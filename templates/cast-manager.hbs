@@ -5,7 +5,38 @@
         <i class="fa-solid {{#if stageEnabled}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
         {{#if stageEnabled}}{{localize "RNPS.Manager.HideStage"}}{{else}}{{localize "RNPS.Manager.ShowStage"}}{{/if}}
       </button>
+      <button type="button" class="rnps-preview-toggle{{#if previewActive}} active{{/if}}{{#if previewDirty}} dirty{{/if}}" data-action="togglePreview">
+        <i class="fa-solid fa-eye-low-vision" aria-hidden="true"></i>
+        {{localize "RNPS.Preview.Button"}}
+      </button>
     </div>
+    {{#if previewActive}}
+      <div class="rnps-preview-bar">
+        <span><i class="fa-solid fa-flask" aria-hidden="true"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.PresetActive"}}: <strong>{{previewPresetName}}</strong>{{else}}{{localize "RNPS.Preview.Active"}}{{/if}}</span>
+        {{#if previewStale}}<span class="warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "RNPS.Preview.Stale"}}</span>{{/if}}
+        {{#if previewPresetId}}
+          <select name="previewCastMode" data-tooltip="{{localize 'RNPS.Presets.CastMode'}}">
+            <option value="merge">{{localize "RNPS.Presets.Merge"}}</option>
+            <option value="replaceScene">{{localize "RNPS.Presets.ReplaceScene"}}</option>
+            <option value="replacePersistent">{{localize "RNPS.Presets.ReplacePersistent"}}</option>
+            <option value="replaceAll">{{localize "RNPS.Presets.ReplaceAll"}}</option>
+          </select>
+          <select name="previewReserveMode" data-tooltip="{{localize 'RNPS.Presets.ReserveMode'}}">
+            <option value="keep">{{localize "RNPS.Presets.KeepReserve"}}</option>
+            <option value="merge">{{localize "RNPS.Presets.MergeReserve"}}</option>
+            <option value="replace">{{localize "RNPS.Presets.ReplaceReserve"}}</option>
+          </select>
+        {{/if}}
+        <button type="button" data-action="applyPreview"><i class="fa-solid fa-users"></i> {{localize "RNPS.Preview.Apply"}}</button>
+        <button type="button" data-action="savePreset"><i class="fa-solid fa-floppy-disk"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.UpdatePreset"}}{{else}}{{localize "RNPS.Preview.SavePreset"}}{{/if}}</button>
+        <button type="button" data-action="resetPreview"><i class="fa-solid fa-rotate-left"></i> {{localize "RNPS.Preview.Reset"}}</button>
+      </div>
+    {{/if}}
+    <nav class="rnps-manager-tabs">
+      <button type="button" class="{{#if compositionTab}}active{{/if}}" data-action="showComposition">{{localize "RNPS.Manager.Composition"}}</button>
+      <button type="button" class="{{#if presetsTab}}active{{/if}}" data-action="showPresets">{{localize "RNPS.Presets.Title"}}</button>
+    </nav>
+    {{#if compositionTab}}
     <p class="hint">{{hint}}</p>
     <div class="rnps-manager-groups">
       {{#each groups as |group|}}
@@ -69,6 +100,40 @@
         {{/each}}
       </div>
     </footer>
+    {{else}}
+      <section class="rnps-presets">
+        <div class="rnps-preset-create">
+          <input type="text" name="presetName" placeholder="{{localize 'RNPS.Presets.NamePlaceholder'}}">
+          <button type="button" data-action="savePreset"><i class="fa-solid fa-plus"></i> {{localize "RNPS.Presets.SaveCurrent"}}</button>
+        </div>
+        <div class="rnps-preset-list">
+          {{#each presets as |preset|}}
+            <article class="rnps-preset-card" data-preset-id="{{preset.id}}">
+              <header><h2>{{preset.name}}</h2><button type="button" class="icon" data-action="deletePreset" data-tooltip="{{localize 'RNPS.Presets.Delete'}}"><i class="fa-solid fa-trash"></i></button></header>
+              <div class="rnps-preset-portraits rnps-preset-portraits--pcs">{{#each preset.pcs as |portrait|}}<span data-tooltip="{{portrait.name}}">{{#if portrait.isVideo}}<video class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="">{{/if}}</span>{{/each}}</div>
+              <div class="rnps-preset-portraits rnps-preset-portraits--npcs">{{#each preset.npcs as |portrait|}}<span data-tooltip="{{portrait.name}}">{{#if portrait.isVideo}}<video class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="">{{/if}}</span>{{/each}}</div>
+              <label><span>{{localize "RNPS.Presets.CastMode"}}</span><select name="castMode">
+                <option value="merge">{{localize "RNPS.Presets.Merge"}}</option>
+                <option value="replaceScene">{{localize "RNPS.Presets.ReplaceScene"}}</option>
+                <option value="replacePersistent">{{localize "RNPS.Presets.ReplacePersistent"}}</option>
+                <option value="replaceAll">{{localize "RNPS.Presets.ReplaceAll"}}</option>
+              </select></label>
+              <label><span>{{localize "RNPS.Presets.ReserveMode"}}</span><select name="reserveMode">
+                <option value="keep">{{localize "RNPS.Presets.KeepReserve"}}</option>
+                <option value="merge">{{localize "RNPS.Presets.MergeReserve"}}</option>
+                <option value="replace">{{localize "RNPS.Presets.ReplaceReserve"}}</option>
+              </select></label>
+              <div class="rnps-preset-actions">
+                <button type="button" data-action="previewPreset"><i class="fa-solid fa-eye"></i> {{localize "RNPS.Presets.Preview"}}</button>
+                <button type="button" data-action="applyPreset"><i class="fa-solid fa-bolt"></i> {{localize "RNPS.Presets.Apply"}}</button>
+              </div>
+            </article>
+          {{else}}
+            <p class="rnps-manager-empty">{{localize "RNPS.Presets.Empty"}}</p>
+          {{/each}}
+        </div>
+      </section>
+    {{/if}}
   {{else}}
     <p class="notification warning">{{localize "RNPS.Manager.NoScene"}}</p>
   {{/if}}

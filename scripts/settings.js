@@ -147,6 +147,24 @@ export function registerSettings() {
     default: []
   });
 
+  register(SETTING_KEYS.PREVIEW_SESSION, {
+    name: "RNPS.Settings.PreviewSession.Name",
+    hint: "RNPS.Settings.PreviewSession.Hint",
+    scope: "client",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
+  register(SETTING_KEYS.CAST_PRESETS, {
+    name: "RNPS.Settings.CastPresets.Name",
+    hint: "RNPS.Settings.CastPresets.Hint",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: []
+  });
+
   register(SETTING_KEYS.PORTRAIT_GAP, {
     name: "RNPS.Settings.PortraitGap.Name",
     hint: "RNPS.Settings.PortraitGap.Hint",

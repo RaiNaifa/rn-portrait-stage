@@ -1,12 +1,16 @@
 import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { createPortraitEntry, normalizePortraitEntry } from "./portrait-entry.js";
 import { preparePortraitView } from "../portraits/portrait-data.js";
+import { getPreviewReserve, isPreviewActive, setPreviewReserve } from "./preview-service.js";
 
 function requireGm() {
   if (!game.user?.isGM) throw new Error(game.i18n.localize("RNPS.Notifications.GmOnly"));
 }
 
 export function getReserveEntries() {
+  if (isPreviewActive()) {
+    return (getPreviewReserve() ?? []).map(entry => ({ ...entry, layer: CAST_LAYERS.RESERVE }));
+  }
   const value = game.settings.get(MODULE_ID, SETTING_KEYS.RESERVE_ACTORS);
   if (!Array.isArray(value)) return [];
   return value.map(item => {
@@ -20,6 +24,7 @@ export function getReserveEntry(entryId) {
 }
 
 async function setReserveEntries(entries) {
+  if (isPreviewActive()) return setPreviewReserve(entries);
   await game.settings.set(MODULE_ID, SETTING_KEYS.RESERVE_ACTORS, entries.map(entry => {
     const { layer, ...stored } = entry;
     return stored;

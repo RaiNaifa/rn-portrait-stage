@@ -6,6 +6,7 @@ import { PortraitEditor } from "../apps/portrait-editor.js";
 import { VariantPicker } from "../apps/variant-picker.js";
 import { createPortraitMedia } from "../media.js";
 import { canUserAccessVariant } from "../data/actor-library.js";
+import { isPreviewActive } from "../data/preview-service.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -48,7 +49,8 @@ export class PortraitStage {
     this.#attachGroups();
     if (!this.#groups.size) return;
     const version = ++this.#renderVersion;
-    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
+    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED) || isPreviewActive();
+    for (const group of this.#groups.values()) group.classList.toggle("rnps-preview-stage", isPreviewActive());
     for (const group of this.#groups.values()) group.hidden = !visible;
     if (!visible) {
       this.#setPcLayoutActive(false);

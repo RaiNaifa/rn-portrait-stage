@@ -1,8 +1,12 @@
 {{#if missing}}
   <p class="notification warning">{{localize "RNPS.Notifications.ActorUnavailable"}}</p>
 {{else}}
-  <div class="rnps-variant-picker-grid">
-    {{#each variants as |variant|}}
+<div class="rnps-picker-groups">
+  {{#each groups as |group|}}
+  <details class="rnps-picker-group" {{#if group.open}}open{{/if}}>
+    <summary>{{group.name}} <span>{{group.variants.length}}</span></summary>
+    <div class="rnps-variant-picker-grid">
+    {{#each group.variants as |variant|}}
       <article class="rnps-picker-variant{{#if variant.active}} active{{/if}}" data-variant-id="{{variant.id}}">
         {{#if variant.hasImage}}
           {{#if variant.isVideo}}<video src="{{variant.previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{variant.previewImage}}" alt="">{{/if}}
@@ -16,5 +20,8 @@
         </div>
       </article>
     {{/each}}
-  </div>
+    </div>
+  </details>
+  {{/each}}
+</div>
 {{/if}}

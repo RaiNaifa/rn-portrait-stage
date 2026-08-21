@@ -46,6 +46,8 @@
         "Name": "Actor reserve",
         "Hint": "Internal world storage for Actors prepared for quick cast placement."
       },
+      "PreviewSession": { "Name": "Preview draft", "Hint": "Local internal storage for the GM preview draft." },
+      "CastPresets": { "Name": "Cast presets", "Hint": "Internal world storage for cast presets." },
       "PortraitGap": {
         "Name": "Portrait spacing",
         "Hint": "World-level gap between portraits in pixels, controlled by the GM."
@@ -124,6 +126,39 @@
       "ReserveHint": "Actors prepared for quick cast placement",
       "ReserveEmpty": "Drop Actors from the directory here",
       "RemoveReserve": "Remove from reserve"
+      ,"Composition": "Cast"
+    },
+    "Preview": {
+      "Button": "Preview",
+      "Active": "Preview mode",
+      "PresetActive": "Preset preview",
+      "Stale": "The published cast changed after this draft was created",
+      "Apply": "Apply for everyone",
+      "SavePreset": "Save as preset",
+      "UpdatePreset": "Save changes",
+      "Reset": "Reset changes",
+      "Applied": "The draft was applied for all users."
+    },
+    "Presets": {
+      "Title": "Presets",
+      "Untitled": "Untitled",
+      "NamePlaceholder": "Cast preset name",
+      "SaveCurrent": "Save current cast",
+      "Delete": "Delete preset",
+      "CastMode": "Cast application",
+      "ReserveMode": "Reserve application",
+      "Merge": "Merge with current cast",
+      "ReplaceScene": "Replace scene cast",
+      "ReplacePersistent": "Replace persistent cast",
+      "ReplaceAll": "Replace all cast",
+      "KeepReserve": "Keep reserve unchanged",
+      "MergeReserve": "Merge reserve",
+      "ReplaceReserve": "Replace reserve",
+      "Preview": "Preview",
+      "Apply": "Apply",
+      "Applied": "The cast preset was applied.",
+      "Updated": "Preset “{name}” was updated.",
+      "Empty": "There are no saved presets yet."
     },
     "Editor": {
       "Title": "Configure Portrait",
@@ -154,6 +189,17 @@
     },
     "VariantPicker": {
       "Title": "Change Portrait"
+    },
+    "VariantGroups": {
+      "Title": "Portrait Variant Groups",
+      "Hint": "Groups organize variant selection and may be hidden from players. Variants in a hidden group are hidden too.",
+      "Configure": "Configure groups",
+      "Group": "Thematic group",
+      "Add": "Add group",
+      "NewGroup": "New group",
+      "DefaultGroup": "Default",
+      "Delete": "Delete group",
+      "Default": "Open this group by default"
     },
     "VariantSettings": {
       "Title": "Configure Portrait Variant",

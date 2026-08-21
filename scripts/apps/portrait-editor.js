@@ -7,6 +7,7 @@ import { preparePortraitView, resolvePortraitImage } from "../portraits/portrait
 import { createPortraitMedia, isVideoPath } from "../media.js";
 import { VariantSettings } from "./variant-settings.js";
 import { VariantAudience } from "./variant-audience.js";
+import { VariantGroups } from "./variant-groups.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -27,7 +28,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       activateVariant: PortraitEditor.#activateVariant,
       removeVariant: PortraitEditor.#removeVariant,
       configureVariant: PortraitEditor.#configureVariant,
-      assignVariant: PortraitEditor.#assignVariant
+      assignVariant: PortraitEditor.#assignVariant,
+      configureGroups: PortraitEditor.#configureGroups
     },
     form: { closeOnSubmit: false, handler: PortraitEditor.#onSubmit }
   };
@@ -82,6 +84,12 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       isDefault: variant.id === library.defaultVariantId,
       assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
     }});
+    const variantGroups = library.groups.map(group => ({
+      ...group,
+      displayName: group.flags?.builtin ? game.i18n.localize("RNPS.VariantGroups.DefaultGroup") : group.name,
+      isDefault: group.id === library.defaultGroupId,
+      variants: variants.filter(variant => variant.groupId === group.id)
+    })).filter(group => group.variants.length || canConfigure);
     return {
       ...context,
       missing: false,
@@ -90,6 +98,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       previewImage: view.image,
       previewIsVideo: view.isVideo,
       variants,
+      variantGroups,
       canConfigure,
       isGM: game.user.isGM,
       activeVariantId: entry.activeVariantId ?? library.defaultVariantId,
@@ -127,6 +136,43 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         this.#refreshVariantPreview(picker.closest("[data-variant-tile]"));
         this.#scheduleAutosave(0);
       }).observe(picker, { attributes: true, attributeFilter: ["value"] });
+    }
+    if (context.canConfigure) this.#activateVariantSorting();
+  }
+
+  #activateVariantSorting() {
+    for (const tile of this.element.querySelectorAll("[data-variant-tile]")) {
+      if (tile.dataset.sortingBound === "true") continue;
+      tile.dataset.sortingBound = "true";
+      tile.draggable = true;
+      tile.querySelectorAll("img, video").forEach(media => { media.draggable = false; });
+      tile.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", JSON.stringify({
+          type: "RNPortraitStageVariant",
+          variantId: tile.dataset.variantId
+        }));
+        event.dataTransfer.effectAllowed = "move";
+      });
+    }
+    for (const grid of this.element.querySelectorAll("[data-variant-group]")) {
+      if (grid.dataset.sortingBound === "true") continue;
+      grid.dataset.sortingBound = "true";
+      grid.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      });
+      grid.addEventListener("drop", event => {
+        event.preventDefault();
+        let data;
+        try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+        if (data?.type !== "RNPortraitStageVariant") return;
+        const tile = this.element.querySelector(`[data-variant-tile][data-variant-id='${CSS.escape(data.variantId)}']`);
+        if (!tile) return;
+        const target = event.target.closest("[data-variant-tile]");
+        if (target && target !== tile && target.parentElement === grid) grid.insertBefore(tile, target);
+        else grid.append(tile);
+        this.#scheduleAutosave(0);
+      });
     }
   }
 
@@ -173,7 +219,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #addVariant() {
     const template = this.element.querySelector("#rnps-new-variant-template");
-    const list = this.element.querySelector(".rnps-variant-grid");
+    const list = this.element.querySelector("[data-variant-group][data-default-group='true']")
+      ?? this.element.querySelector("[data-variant-group]");
     if (!template || !list) return;
     const fragment = template.content.cloneNode(true);
     const tile = fragment.querySelector("[data-variant-tile]");
@@ -181,6 +228,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     tile.dataset.variantId = id;
     tile.querySelector("[name='variantId']").value = id;
     list.append(fragment);
+    this.#activateVariantSorting();
     this.#scheduleAutosave(0);
   }
 
@@ -219,6 +267,14 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (variantId && game.user.isGM) VariantAudience.open(this.#entryId, this.#layer, variantId);
   }
 
+  static async #configureGroups() {
+    const entry = this.#layer === CAST_LAYERS.RESERVE
+      ? getReserveEntry(this.#entryId)
+      : getCastEntry(this.#entryId, { layer: this.#layer });
+    const view = entry ? await preparePortraitView(entry) : null;
+    if (view) VariantGroups.open(view.actor);
+  }
+
   static async #onSubmit(event, form) {
     return PortraitEditor.#persist(this, form);
   }
@@ -245,7 +301,10 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         access: previous?.access,
         settings: previous?.settings,
         gm: previous?.gm,
-        flags: previous?.flags ?? {}
+        flags: previous?.flags ?? {},
+        groupId: tile.closest("[data-variant-group]")?.dataset.variantGroup
+          ?? previous?.groupId
+          ?? existing.defaultGroupId
       };
     });
     const hiddenVariants = game.user.isGM
@@ -259,11 +318,13 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       ? requestedActive
       : variants[0].id;
     await setActorLibrary(view.actor, {
-      schemaVersion: 1,
+      schemaVersion: existing.schemaVersion,
       label: {
         mode: String(values.get("labelMode") || "actor"),
         custom: String(values.get("customLabel") || "")
       },
+      groups: existing.groups,
+      defaultGroupId: existing.defaultGroupId,
       variants,
       defaultVariantId: variants.some(variant => variant.id === existing.defaultVariantId)
         ? existing.defaultVariantId

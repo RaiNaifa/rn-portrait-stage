@@ -1,6 +1,7 @@
 import { MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { getCastEntry, updateCastEntry } from "./cast-service.js";
 import { canUserAccessVariant, getActorLibrary } from "./actor-library.js";
+import { withoutPreview } from "./preview-service.js";
 
 const CHANNEL = `module.${MODULE_ID}`;
 
@@ -9,13 +10,13 @@ export function initializeSocketService() {
     const activeGm = game.users.activeGM ?? game.users.find(user => user.active && user.isGM);
     if (message?.type !== "update-entry" || game.user.id !== activeGm?.id) return;
     const requestingUser = game.users.get(message.userId);
-    const entry = getCastEntry(message.entryId, { layer: message.layer });
+    const entry = await withoutPreview(() => getCastEntry(message.entryId, { layer: message.layer }));
     const actor = entry ? await fromUuid(entry.actorUuid) : null;
     if (!requestingUser || !actor) return;
     if (!game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)) return;
     const variant = getActorLibrary(actor).variants.find(item => item.id === message.changes?.activeVariantId);
     if (!variant || !canUserAccessVariant(variant, actor, requestingUser)) return;
-    await updateCastEntry(message.entryId, message.changes, { layer: message.layer });
+    await withoutPreview(() => updateCastEntry(message.entryId, message.changes, { layer: message.layer }));
   });
 }
 

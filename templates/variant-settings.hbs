@@ -7,6 +7,10 @@
       <div><strong>{{variantName}}</strong><span>{{actorName}}</span></div>
     </header>
 
+    <fieldset><legend>{{localize "RNPS.VariantGroups.Group"}}</legend>
+      <div class="form-group"><label>{{localize "RNPS.VariantGroups.Group"}}</label><div class="form-fields"><select name="groupId">{{#each groups as |group|}}<option value="{{group.id}}" {{#if group.selected}}selected{{/if}}>{{group.name}}</option>{{/each}}</select></div></div>
+    </fieldset>
+
     <fieldset>
       <legend>{{localize "RNPS.VariantSettings.Label"}}</legend>
       <label class="checkbox"><input type="checkbox" name="labelInherit" {{#if settings.label.inherit}}checked{{/if}}> {{localize "RNPS.VariantSettings.InheritLabel"}}</label>

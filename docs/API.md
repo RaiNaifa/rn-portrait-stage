@@ -23,7 +23,7 @@ const state = api.state.get(canvas.scene);
 await api.state.set(canvas.scene, state);
 ```
 
-The current scene-state schema version is `3`. The state contains `pcs` and `npcs` groups with entry arrays and independent PC/NPC portrait-size overrides.
+The current scene-state schema version is `4`. The state contains `pcs` and `npcs` groups with entry arrays and independent PC/NPC portrait-size overrides.
 
 `api.state.getLayers(scene)` returns the persistent and scene-specific layers. `api.state.getCombined(scene)` returns the effective cast; a scene entry overrides a persistent entry for the same Actor.
 

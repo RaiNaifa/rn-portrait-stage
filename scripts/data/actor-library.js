@@ -6,6 +6,8 @@ export function createDefaultActorLibrary(actor = null) {
   return {
     schemaVersion: ACTOR_LIBRARY_SCHEMA_VERSION,
     label: { mode: "actor", custom: "" },
+    groups: [{ id: "default", name: "Default", access: { mode: "everyone", userIds: [] }, flags: { builtin: true } }],
+    defaultGroupId: "default",
     variants: [
       createPortraitVariant({ id: "actor", name: "Actor portrait", source: "actor" }),
       createPortraitVariant({ id: "prototypeToken", name: "Actor token", source: "prototypeToken" })
@@ -18,11 +20,13 @@ export function createPortraitVariant({
   id = foundry.utils.randomID(),
   name = "Variant",
   source = "custom",
-  customSrc = null
+  customSrc = null,
+  groupId = "default"
 } = {}) {
   return {
     id: String(id || foundry.utils.randomID()),
     name: String(name || "Variant"),
+    groupId: String(groupId || "default"),
     image: {
       source: IMAGE_SOURCES.has(source) ? source : "custom",
       customSrc: typeof customSrc === "string" && customSrc ? customSrc : null
@@ -64,6 +68,10 @@ export function createDefaultVariantSettings() {
 export function normalizeActorLibrary(source, actor = null) {
   const fallback = createDefaultActorLibrary(actor);
   if (!source || typeof source !== "object") return fallback;
+  const groups = normalizeGroups(source.groups);
+  const defaultGroupId = groups.some(group => group.id === source.defaultGroupId)
+    ? source.defaultGroupId
+    : groups[0].id;
   const variants = Array.isArray(source.variants)
     ? source.variants.map(normalizeVariant).filter(Boolean)
     : [];
@@ -78,6 +86,9 @@ export function normalizeActorLibrary(source, actor = null) {
   });
   const customVariants = variants.filter(variant => !["actor", "prototypeToken"].includes(variant.id));
   variants.splice(0, variants.length, ...builtinVariants, ...customVariants);
+  for (const variant of variants) {
+    if (!groups.some(group => group.id === variant.groupId)) variant.groupId = defaultGroupId;
+  }
   const defaultVariantId = variants.some(variant => variant.id === source.defaultVariantId)
     ? source.defaultVariantId
     : variants[0].id;
@@ -89,6 +100,8 @@ export function normalizeActorLibrary(source, actor = null) {
         : "actor",
       custom: typeof source.label?.custom === "string" ? source.label.custom : ""
     },
+    groups,
+    defaultGroupId,
     variants,
     defaultVariantId
   };
@@ -131,7 +144,8 @@ function normalizeVariant(source) {
     id: source.id,
     name: source.name,
     source: source.image?.source,
-    customSrc: source.image?.customSrc
+    customSrc: source.image?.customSrc,
+    groupId: source.groupId
   });
   variant.hover = isPlainObject(source.hover) ? { ...source.hover } : {};
   variant.access = normalizeAccess(source.access);
@@ -184,11 +198,43 @@ export function normalizeVariantSettings(source) {
 export function canUserAccessVariant(variant, actor, user = game.user) {
   if (!variant || !user) return false;
   if (user.isGM) return true;
+  const library = typeof actor?.getFlag === "function" ? getActorLibrary(actor) : createDefaultActorLibrary(actor);
+  const group = library.groups.find(item => item.id === (variant.groupId ?? library.defaultGroupId));
+  if (group && !canUserAccess(group.access, actor, user)) return false;
   const access = normalizeAccess(variant.access);
+  return canUserAccess(access, actor, user);
+}
+
+export function canUserAccessGroup(group, actor, user = game.user) {
+  if (!group || !user) return false;
+  if (user.isGM) return true;
+  return canUserAccess(normalizeAccess(group.access), actor, user);
+}
+
+function canUserAccess(access, actor, user) {
   if (access.mode === "everyone") return true;
   if (access.mode === "selected") return access.userIds.includes(user.id);
   if (access.mode === "owners") return actor?.testUserPermission(user, "OWNER") === true;
   return false;
+}
+
+function normalizeGroups(source) {
+  const groups = Array.isArray(source) ? source.map(group => {
+    if (!group || typeof group !== "object") return null;
+    return {
+      id: String(group.id || foundry.utils.randomID()),
+      name: String(group.name || "Group"),
+      access: normalizeAccess(group.access ?? { mode: "everyone" }),
+      flags: isPlainObject(group.flags) ? { ...group.flags } : {}
+    };
+  }).filter(Boolean) : [];
+  if (!groups.length) groups.push({
+    id: "default",
+    name: "Default",
+    access: { mode: "everyone", userIds: [] },
+    flags: { builtin: true }
+  });
+  return groups;
 }
 
 function isPlainObject(value) {

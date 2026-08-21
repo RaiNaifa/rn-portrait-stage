@@ -7,6 +7,7 @@ import { CastManager } from "./apps/cast-manager.js";
 import { portraitStage } from "./portraits/portrait-stage.js";
 import { navigationButton } from "./ui/navigation-button.js";
 import { initializeSocketService } from "./data/socket-service.js";
+import { syncPreviewScene } from "./data/preview-service.js";
 
 Hooks.once("init", () => {
   logger.info(`Initializing ${MODULE_TITLE}`);
@@ -47,7 +48,8 @@ Hooks.once("ready", () => {
   Hooks.callAll(HOOKS.READY, api);
 });
 
-Hooks.on("canvasReady", () => {
+Hooks.on("canvasReady", async () => {
+  await syncPreviewScene(canvas.scene);
   portraitStage.render();
   navigationButton.position();
   CastManager.refresh();
@@ -71,6 +73,7 @@ Hooks.on("collapseSceneNavigation", () => requestAnimationFrame(() => navigation
 Hooks.on(HOOKS.SETTINGS_CHANGED, () => {
   scheduleUiRefresh();
 });
+Hooks.on(HOOKS.STATE_CHANGED, () => scheduleUiRefresh());
 Hooks.on(HOOKS.LAYOUT_CHANGED, () => requestAnimationFrame(() => navigationButton.position()));
 
 let uiRefreshTimer;

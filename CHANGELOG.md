@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — Unreleased
+
+- Added a GM-only client draft for previewing cast, reserve, ordering, sizes, visibility, mirroring, and active or individual variants before publishing.
+- Preview drafts survive leaving preview and browser refreshes; resetting explicitly restores the published state.
+- Kept public stage visibility independent from GM preview visibility.
+- Added world-level cast presets with preview, merge, scene replacement, persistent replacement, full replacement, and independent reserve modes.
+- Preset preview is an editable preset session: save updates that preset and reset restores its last saved snapshot.
+- Added thematic Actor variant groups, a default group, group access controls, and grouped variant selection.
+- Added grouped drag-and-drop variant ordering in the portrait editor and fixed the grouped ApplicationV2 picker template root.
+- Added active portrait thumbnails to preset cards, with PCs ordered left-to-right and NPCs right-to-left.
+- Added cast and reserve application modes to an active preset preview.
+- Separated the Preview button's active styling from its unsaved-draft dot indicator.
+- Kept Actor variant definitions outside preview drafts and presets; cast snapshots reference stable variant IDs.
+
 ## 0.4.1 — Unreleased
 
 - Made portrait visibility fully GM-controlled and removed the client hide setting.

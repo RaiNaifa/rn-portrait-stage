@@ -39,27 +39,37 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     const entry = getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     if (!view) return { ...context, missing: true };
-    return {
-      ...context,
-      missing: false,
-      isGM: game.user.isGM,
-      variants: view.library.variants.filter(variant => canUserAccessVariant(variant, view.actor)).map(variant => {
+    const available = view.library.variants.filter(variant => canUserAccessVariant(variant, view.actor));
+    const groups = view.library.groups.map(group => ({
+      ...group,
+      name: group.flags?.builtin ? game.i18n.localize("RNPS.VariantGroups.DefaultGroup") : group.name,
+      variants: available.filter(variant => variant.groupId === group.id).map(variant => {
         const isBuiltin = ["actor", "prototypeToken"].includes(variant.id);
         const hasImage = isBuiltin || Boolean(variant.image?.customSrc);
         const previewImage = hasImage ? resolvePortraitImage(entry, view.actor, variant) : null;
         return {
-        ...variant,
-        displayName: variant.id === "actor"
-          ? game.i18n.localize("RNPS.Editor.ActorImage")
-          : variant.id === "prototypeToken"
-            ? game.i18n.localize("RNPS.Editor.PrototypeTokenImage")
-            : variant.name,
-        previewImage,
-        hasImage,
-        isVideo: isVideoPath(previewImage),
-        active: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? view.library.defaultVariantId),
-        assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
-      }})
+          ...variant,
+          displayName: variant.id === "actor"
+            ? game.i18n.localize("RNPS.Editor.ActorImage")
+            : variant.id === "prototypeToken"
+              ? game.i18n.localize("RNPS.Editor.PrototypeTokenImage")
+              : variant.name,
+          previewImage,
+          hasImage,
+          isVideo: isVideoPath(previewImage),
+          active: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? view.library.defaultVariantId),
+          assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
+        };
+      }),
+      open: group.id === view.library.defaultGroupId
+        || available.some(variant => variant.groupId === group.id && variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId))
+    })).filter(group => group.variants.length);
+    if (groups.length && !groups.some(group => group.open)) groups[0].open = true;
+    return {
+      ...context,
+      missing: false,
+      isGM: game.user.isGM,
+      groups
     };
   }
 

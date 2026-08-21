@@ -74,6 +74,13 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       name: user.name,
       selected: access.userIds.includes(user.id)
     }));
+    const groups = view.library.groups
+      .filter(group => game.user.isGM || canUserAccessVariant({ ...variant, groupId: group.id }, view.actor))
+      .map(group => ({
+        ...group,
+        name: group.flags?.builtin ? game.i18n.localize("RNPS.VariantGroups.DefaultGroup") : group.name,
+        selected: group.id === variant.groupId
+      }));
     return {
       ...context,
       missing: false,
@@ -86,6 +93,7 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       access,
       fonts,
       users,
+      groups,
       isGM: game.user.isGM,
       accessGm: access.mode === "gm",
       accessOwners: access.mode === "owners",
@@ -187,7 +195,10 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       effects: variant.settings?.effects ?? []
     });
-    const changes = { settings };
+    const changes = {
+      settings,
+      groupId: String(values.get("groupId") || variant.groupId || view.library.defaultGroupId)
+    };
     if (game.user.isGM) {
       changes.access = normalizeAccess({
         mode: String(values.get("accessMode") || "owners"),

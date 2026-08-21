@@ -13,7 +13,7 @@ export class NavigationButton {
       this.#button = document.createElement("button");
       this.#button.id = "rn-portrait-stage-navigation-button";
       this.#button.type = "button";
-      this.#button.className = "ui-control icon";
+      this.#button.className = "ui-control icon faded-ui";
       this.#button.title = game.i18n.localize("RNPS.Controls.OpenManager");
       this.#button.setAttribute("aria-label", this.#button.title);
 

@@ -53,6 +53,8 @@ assert.equal(normalizePortraitEntry({ actorUuid: "Compendium.test" }), null);
 const library = createDefaultActorLibrary();
 assert.equal(library.variants.length, 2);
 assert.equal(library.defaultVariantId, "actor");
+assert.equal(library.groups[0].id, "default");
+assert.equal(library.defaultGroupId, "default");
 const normalizedLibrary = normalizeActorLibrary({
   label: { mode: "custom", custom: "Hero" },
   variants: [{ id: "angry", name: "Angry", image: { source: "custom", customSrc: "angry.webp" } }],
@@ -76,6 +78,16 @@ const selectedLibrary = normalizeActorLibrary({
   }]
 });
 assert.equal(canUserAccessVariant(selectedLibrary.variants[2], actor, guest), true);
+const privateGroupLibrary = normalizeActorLibrary({
+  groups: [{ id: "secret", name: "Secret", access: { mode: "gm" } }],
+  defaultGroupId: "secret",
+  variants: [{ id: "secretVariant", name: "Secret", groupId: "secret", access: { mode: "everyone" } }]
+});
+const actorWithPrivateGroup = {
+  getFlag: () => privateGroupLibrary,
+  testUserPermission: () => true
+};
+assert.equal(canUserAccessVariant(privateGroupLibrary.variants[2], actorWithPrivateGroup, guest), false);
 
 const extensions = new ExtensionRegistry("Test extension");
 const extension = extensions.register({ id: "test.extension", value: 1 });

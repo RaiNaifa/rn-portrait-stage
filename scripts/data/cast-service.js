@@ -3,6 +3,7 @@ import { getActorLibrary } from "./actor-library.js";
 import { createPortraitEntry, normalizeGroupId } from "./portrait-entry.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 import { getSceneState, setSceneState } from "./scene-state.js";
+import { getPreviewLayer, isPreviewActive, setPreviewLayer } from "./preview-service.js";
 
 function requireGm() {
   if (!game.user?.isGM) throw new Error(game.i18n.localize("RNPS.Notifications.GmOnly"));
@@ -17,10 +18,14 @@ function normalizeLayer(layer) {
 }
 
 function getLayerState(layer, scene) {
+  if (isPreviewActive()) return getPreviewLayer(normalizeLayer(layer), scene) ?? (
+    normalizeLayer(layer) === CAST_LAYERS.PERSISTENT ? getPersistentState() : getSceneState(scene)
+  );
   return normalizeLayer(layer) === CAST_LAYERS.PERSISTENT ? getPersistentState() : getSceneState(scene);
 }
 
 async function setLayerState(layer, scene, state) {
+  if (isPreviewActive()) return setPreviewLayer(normalizeLayer(layer), state, scene);
   return normalizeLayer(layer) === CAST_LAYERS.PERSISTENT
     ? setPersistentState(state)
     : setSceneState(scene, state);
@@ -46,14 +51,14 @@ function resequence(state) {
 
 export function getCastLayers(scene = canvas.scene) {
   return {
-    [CAST_LAYERS.PERSISTENT]: getPersistentState(),
-    [CAST_LAYERS.SCENE]: getSceneState(scene)
+    [CAST_LAYERS.PERSISTENT]: getLayerState(CAST_LAYERS.PERSISTENT, scene),
+    [CAST_LAYERS.SCENE]: getLayerState(CAST_LAYERS.SCENE, scene)
   };
 }
 
 export function getCombinedCastState(scene = canvas.scene) {
   const layers = getCastLayers(scene);
-  const combined = getPersistentState();
+  const combined = foundry.utils.deepClone(layers[CAST_LAYERS.PERSISTENT]);
   const sceneState = layers[CAST_LAYERS.SCENE];
   const overriddenActors = new Set(
     Object.values(GROUP_IDS).flatMap(id => sceneState.groups[id].entries.map(entry => entry.actorUuid))

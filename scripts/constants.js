@@ -2,7 +2,7 @@ export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
 export const SCENE_SCHEMA_VERSION = 4;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 2;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 3;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -41,7 +41,9 @@ export const SETTING_KEYS = Object.freeze({
   PC_DIRECTION: "pcDirection",
   NPC_DIRECTION: "npcDirection",
   PC_DIRECTION_OVERRIDE: "pcDirectionOverride",
-  NPC_DIRECTION_OVERRIDE: "npcDirectionOverride"
+  NPC_DIRECTION_OVERRIDE: "npcDirectionOverride",
+  PREVIEW_SESSION: "previewSession",
+  CAST_PRESETS: "castPresets"
 });
 
 export const HOOKS = Object.freeze({

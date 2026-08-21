@@ -24,9 +24,14 @@
 
     <fieldset class="rnps-variant-editor">
       <legend>{{localize "RNPS.Editor.Variants"}}</legend>
+      {{#if isGM}}<button type="button" class="rnps-configure-groups" data-action="configureGroups"><i class="fa-solid fa-layer-group"></i> {{localize "RNPS.VariantGroups.Configure"}}</button>{{/if}}
       <input type="hidden" name="activeVariantId" value="{{activeVariantId}}">
-      <div class="rnps-variant-grid">
-        {{#each variants as |variant|}}
+      <div class="rnps-editor-variant-groups">
+      {{#each variantGroups as |group|}}
+        <section class="rnps-editor-variant-group">
+          <header><h3>{{group.displayName}}</h3><span>{{group.variants.length}}</span></header>
+          <div class="rnps-variant-grid" data-variant-group="{{group.id}}" data-default-group="{{group.isDefault}}">
+        {{#each group.variants as |variant|}}
           <section class="rnps-variant-tile{{#if variant.selected}} active{{/if}}" data-variant-tile data-variant-id="{{variant.id}}">
             <input type="hidden" name="variantId" value="{{variant.id}}">
             <input type="hidden" name="variantSource" value="{{variant.image.source}}">
@@ -55,6 +60,9 @@
             </div>
           </section>
         {{/each}}
+          </div>
+        </section>
+      {{/each}}
       </div>
       <button type="button" data-action="addVariant"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{localize "RNPS.Editor.AddVariant"}}</button>
       <template id="rnps-new-variant-template">

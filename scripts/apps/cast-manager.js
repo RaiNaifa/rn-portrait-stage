@@ -17,6 +17,8 @@ import {
 import { preparePortraitView } from "../portraits/portrait-data.js";
 import { PortraitEditor } from "./portrait-editor.js";
 import { logger } from "../logger.js";
+import { applyPreview, getPreviewSession, previewIsStale, resetPreview, togglePreview } from "../data/preview-service.js";
+import { applyCastPreset, deleteCastPreset, getCastPresets, previewCastPreset, saveCastPreset, updateCastPreset } from "../data/preset-service.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -43,7 +45,16 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleReservePersistent: CastManager.#toggleReservePersistent,
       toggleReserveVisible: CastManager.#toggleReserveVisible,
       removeReserve: CastManager.#removeReserve,
-      toggleStage: CastManager.#toggleStage
+      toggleStage: CastManager.#toggleStage,
+      togglePreview: CastManager.#togglePreview,
+      applyPreview: CastManager.#applyPreview,
+      resetPreview: CastManager.#resetPreview,
+      showComposition: CastManager.#showComposition,
+      showPresets: CastManager.#showPresets,
+      savePreset: CastManager.#savePreset,
+      previewPreset: CastManager.#previewPreset,
+      applyPreset: CastManager.#applyPreset,
+      deletePreset: CastManager.#deletePreset
     }
   };
 
@@ -52,6 +63,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static #instance;
+  #tab = "composition";
 
   static open() {
     if (!this.#instance) this.#instance = new this();
@@ -72,11 +84,20 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#prepareGroup(GROUP_IDS.PCS, "RNPS.Groups.Pcs", state),
       this.#prepareGroup(GROUP_IDS.NPCS, "RNPS.Groups.Npcs", state)
     ]);
+    const preview = getPreviewSession();
     return {
       ...context,
       hasScene: true,
       isGM: game.user.isGM,
       stageEnabled: game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED),
+      previewActive: preview.active,
+      previewDirty: preview.dirty,
+      previewStale: preview.active && previewIsStale(scene),
+      previewPresetId: preview.presetId,
+      previewPresetName: preview.presetName,
+      compositionTab: this.#tab === "composition",
+      presetsTab: this.#tab === "presets",
+      presets: await this.#preparePresets(),
       hint: game.i18n.localize("RNPS.Manager.Hint"),
       groups,
       reserve: await prepareReserveActors()
@@ -108,6 +129,32 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         ? state.layout.pcPortraitSize ?? 160
         : state.layout.npcPortraitSize ?? 160
     };
+  }
+
+  async #preparePresets() {
+    return Promise.all(getCastPresets().map(async preset => {
+      const sceneActors = new Set(Object.values(GROUP_IDS).flatMap(groupId => (
+        preset.scene.groups[groupId].entries.map(entry => entry.actorUuid)
+      )));
+      const groups = {};
+      for (const groupId of Object.values(GROUP_IDS)) {
+        const entries = [
+          ...preset.persistent.groups[groupId].entries
+            .filter(entry => !sceneActors.has(entry.actorUuid))
+            .map(entry => ({ ...entry, layer: CAST_LAYERS.PERSISTENT })),
+          ...preset.scene.groups[groupId].entries
+            .map(entry => ({ ...entry, layer: CAST_LAYERS.SCENE }))
+        ].sort((a, b) => a.sort - b.sort);
+        const views = await Promise.all(entries.map(entry => preparePortraitView(entry)));
+        groups[groupId] = views.filter(Boolean).map(view => ({
+          image: view.image,
+          isVideo: view.isVideo,
+          name: view.name,
+          mirrored: Boolean(view.entry.mirrored) !== Boolean(view.variant.settings?.media?.mirrored)
+        }));
+      }
+      return { ...preset, pcs: groups[GROUP_IDS.PCS], npcs: groups[GROUP_IDS.NPCS] };
+    }));
   }
 
   _onRender(context, options) {
@@ -306,6 +353,80 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #toggleStage() {
     const current = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
     await game.settings.set(MODULE_ID, SETTING_KEYS.STAGE_ENABLED, !current);
+    this.render();
+  }
+
+  static async #togglePreview() {
+    await togglePreview(canvas.scene);
+    this.render();
+  }
+
+  static async #applyPreview() {
+    await applyPreview(canvas.scene, {
+      castMode: this.element.querySelector("[name='previewCastMode']")?.value ?? "replaceAll",
+      reserveMode: this.element.querySelector("[name='previewReserveMode']")?.value ?? "replace"
+    });
+    ui.notifications.info(game.i18n.localize("RNPS.Preview.Applied"));
+    this.render();
+  }
+
+  static async #resetPreview() {
+    await resetPreview(canvas.scene);
+    this.render();
+  }
+
+  static #showComposition() {
+    this.#tab = "composition";
+    this.render();
+  }
+
+  static #showPresets() {
+    this.#tab = "presets";
+    this.render();
+  }
+
+  static async #savePreset() {
+    const preview = getPreviewSession();
+    if (preview.active && preview.presetId) {
+      await updateCastPreset(preview.presetId, canvas.scene);
+      ui.notifications.info(game.i18n.format("RNPS.Presets.Updated", { name: preview.presetName }));
+      this.render();
+      return;
+    }
+    const input = this.element.querySelector("[name='presetName']");
+    if (!input) {
+      this.#tab = "presets";
+      this.render();
+      return;
+    }
+    const name = input?.value.trim();
+    if (!name) return input?.focus();
+    await saveCastPreset(name, canvas.scene);
+    this.#tab = "presets";
+    this.render();
+  }
+
+  static async #previewPreset(event, target) {
+    await previewCastPreset(target.closest("[data-preset-id]")?.dataset.presetId, canvas.scene);
+    this.#tab = "composition";
+    this.render();
+  }
+
+  static async #applyPreset(event, target) {
+    const card = target.closest("[data-preset-id]");
+    if (!card) return;
+    await applyCastPreset(card.dataset.presetId, {
+      castMode: card.querySelector("[name='castMode']")?.value,
+      reserveMode: card.querySelector("[name='reserveMode']")?.value
+    });
+    ui.notifications.info(game.i18n.localize("RNPS.Presets.Applied"));
+    this.render();
+  }
+
+  static async #deletePreset(event, target) {
+    const id = target.closest("[data-preset-id]")?.dataset.presetId;
+    if (!id) return;
+    await deleteCastPreset(id);
     this.render();
   }
 }

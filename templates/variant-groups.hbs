@@ -1,0 +1,20 @@
+<div class="rnps-variant-groups-content">
+  <p class="hint">{{localize "RNPS.VariantGroups.Hint"}}</p>
+  <div class="rnps-group-list">
+    {{#each groups as |group|}}
+      <article data-group-id="{{group.id}}">
+        <input type="text" name="groupName" value="{{group.displayName}}">
+        <select name="groupAccess">
+          <option value="gm" {{#if group.gm}}selected{{/if}}>{{localize "RNPS.VariantSettings.GmOnly"}}</option>
+          <option value="owners" {{#if group.owners}}selected{{/if}}>{{localize "RNPS.VariantSettings.Owners"}}</option>
+          <option value="selected" {{#if group.selected}}selected{{/if}}>{{localize "RNPS.VariantSettings.SelectedUsers"}}</option>
+          <option value="everyone" {{#if group.everyone}}selected{{/if}}>{{localize "RNPS.VariantSettings.Everyone"}}</option>
+        </select>
+        <button type="button" class="icon{{#if group.isDefault}} active{{/if}}" data-action="makeDefault" data-tooltip="{{localize 'RNPS.VariantGroups.Default'}}"><i class="fa-solid fa-house"></i></button>
+        <button type="button" class="icon" data-action="removeGroup" {{#if group.isOnly}}disabled{{/if}} data-tooltip="{{localize 'RNPS.VariantGroups.Delete'}}"><i class="fa-solid fa-trash"></i></button>
+        <div class="rnps-group-users" {{#unless group.selected}}hidden{{/unless}}>{{#each group.users as |user|}}<label class="checkbox"><input type="checkbox" name="groupUserIds" value="{{user.id}}" {{#if user.selected}}checked{{/if}}> {{user.name}}</label>{{/each}}</div>
+      </article>
+    {{/each}}
+  </div>
+  <button type="button" data-action="addGroup"><i class="fa-solid fa-plus"></i> {{localize "RNPS.VariantGroups.Add"}}</button>
+</div>
