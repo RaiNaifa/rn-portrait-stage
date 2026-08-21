@@ -1,47 +1,73 @@
 <div class="rnps-manager-content">
   {{#if hasScene}}
+    <div class="rnps-manager-toolbar">
+      <button type="button" class="rnps-stage-visibility{{#if stageEnabled}} active{{/if}}" data-action="toggleStage">
+        <i class="fa-solid {{#if stageEnabled}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
+        {{#if stageEnabled}}{{localize "RNPS.Manager.HideStage"}}{{else}}{{localize "RNPS.Manager.ShowStage"}}{{/if}}
+      </button>
+    </div>
     <p class="hint">{{hint}}</p>
     <div class="rnps-manager-groups">
       {{#each groups as |group|}}
         <section class="rnps-manager-group" data-group-id="{{group.id}}">
           <header>
-            <h2>{{group.label}}</h2>
-            <span class="rnps-count">{{group.entries.length}}</span>
+            <div><h2>{{group.label}}</h2><span class="rnps-count">{{group.entries.length}}</span></div>
+            <label class="rnps-manager-size">
+              <span>{{localize "RNPS.Manager.PortraitSize"}}</span>
+              <input name="{{group.id}}PortraitSize" type="range" min="48" max="480" step="1" value="{{group.portraitSize}}">
+              <input type="number" min="48" max="480" step="1" value="{{group.portraitSize}}" data-size-output="{{group.id}}" readonly>
+            </label>
           </header>
           <div class="rnps-manager-list">
             {{#each group.entries as |portrait|}}
-              <article class="rnps-manager-entry{{#unless portrait.visible}} rnps-manager-entry--hidden{{/unless}}{{#if portrait.missing}} rnps-manager-entry--missing{{/if}}" draggable="{{@root.isGM}}" data-entry-id="{{portrait.id}}" data-actor-uuid="{{portrait.actorUuid}}">
-                <img src="{{portrait.image}}" alt="" loading="lazy">
+              <article class="rnps-manager-entry{{#unless portrait.visible}} rnps-manager-entry--hidden{{/unless}}{{#if portrait.missing}} rnps-manager-entry--missing{{/if}}" draggable="{{@root.isGM}}" data-entry-id="{{portrait.id}}" data-layer="{{portrait.entry.layer}}" data-actor-uuid="{{portrait.actorUuid}}">
+                {{#if portrait.isVideo}}<video class="{{#if portrait.entry.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.entry.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="" loading="lazy">{{/if}}
                 {{#if portrait.missing}}
                   <span class="rnps-entry-name">{{portrait.name}}</span>
                 {{else}}
-                  <button type="button" class="rnps-entry-name" data-action="openActor" title="{{localize 'RNPS.Controls.OpenActor'}}">
-                    {{portrait.name}}
-                  </button>
+                  <span class="rnps-entry-name">{{portrait.name}}</span>
                 {{/if}}
                 {{#if @root.isGM}}
-                  <div class="rnps-entry-actions">
-                    {{#unless portrait.missing}}
-                      <button type="button" data-action="edit" title="{{localize 'RNPS.Controls.Edit'}}">
-                        <i class="fa-solid fa-gear" aria-hidden="true"></i>
-                      </button>
-                    {{/unless}}
-                    <button type="button" data-action="remove" title="{{localize 'RNPS.Controls.Remove'}}">
-                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                    </button>
+                  <div class="rnps-entry-actions rnps-entry-actions--top">
+                    {{#unless portrait.missing}}<button type="button" data-action="edit" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>{{/unless}}
+                    <button type="button" data-action="remove" data-tooltip="{{localize 'RNPS.Controls.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                  </div>
+                  <div class="rnps-entry-actions rnps-entry-actions--bottom">
+                    <button type="button" class="{{#if portrait.entry.mirrored}}active{{/if}}" data-action="toggleMirror" data-tooltip="{{localize 'RNPS.Controls.Mirror'}}"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i></button>
+                    <button type="button" class="rnps-persistent-button{{#if portrait.persistent}} active{{/if}}" data-action="togglePersistent" data-tooltip="{{localize 'RNPS.Controls.Persistent'}}"><i class="fa-solid {{#if portrait.persistent}}fa-link{{else}}fa-link-slash{{/if}}" aria-hidden="true"></i></button>
+                    <button type="button" class="{{#unless portrait.visible}}active{{/unless}}" data-action="toggleVisible" data-tooltip="{{#if portrait.visible}}{{localize 'RNPS.Controls.Hide'}}{{else}}{{localize 'RNPS.Controls.Show'}}{{/if}}"><i class="fa-solid {{#if portrait.visible}}fa-eye-slash{{else}}fa-eye{{/if}}" aria-hidden="true"></i></button>
                   </div>
                 {{/if}}
               </article>
             {{else}}
-              <div class="rnps-manager-empty">
-                <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                <span>{{localize "RNPS.Manager.Empty"}}</span>
-              </div>
+              <div class="rnps-manager-empty"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i><span>{{localize "RNPS.Manager.Empty"}}</span></div>
             {{/each}}
           </div>
         </section>
       {{/each}}
     </div>
+
+    <footer class="rnps-reserve" data-reserve-drop>
+      <header><h2>{{localize "RNPS.Manager.Reserve"}}</h2><span class="hint">{{localize "RNPS.Manager.ReserveHint"}}</span></header>
+      <div class="rnps-reserve-list">
+        {{#each reserve as |actor|}}
+          <article class="rnps-manager-entry rnps-reserve-actor{{#unless actor.visible}} rnps-manager-entry--hidden{{/unless}}" draggable="true" data-reserve-actor data-entry-id="{{actor.id}}" data-actor-uuid="{{actor.actorUuid}}" data-tooltip="{{actor.name}}">
+            {{#if actor.isVideo}}<video class="{{#if actor.entry.mirrored}}mirrored{{/if}}" src="{{actor.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if actor.entry.mirrored}}mirrored{{/if}}" src="{{actor.image}}" alt="">{{/if}}
+            <div class="rnps-entry-actions rnps-entry-actions--top">
+              <button type="button" data-action="editReserve" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+              <button type="button" data-action="removeReserve" data-tooltip="{{localize 'RNPS.Manager.RemoveReserve'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+            </div>
+            <div class="rnps-entry-actions rnps-entry-actions--bottom">
+              <button type="button" class="{{#if actor.entry.mirrored}}active{{/if}}" data-action="toggleReserveMirror" data-tooltip="{{localize 'RNPS.Controls.Mirror'}}"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i></button>
+              <button type="button" class="{{#if actor.persistent}}active{{/if}}" data-action="toggleReservePersistent" data-tooltip="{{localize 'RNPS.Controls.Persistent'}}"><i class="fa-solid {{#if actor.persistent}}fa-link{{else}}fa-link-slash{{/if}}" aria-hidden="true"></i></button>
+              <button type="button" class="{{#unless actor.visible}}active{{/unless}}" data-action="toggleReserveVisible" data-tooltip="{{#if actor.visible}}{{localize 'RNPS.Controls.Hide'}}{{else}}{{localize 'RNPS.Controls.Show'}}{{/if}}"><i class="fa-solid {{#if actor.visible}}fa-eye-slash{{else}}fa-eye{{/if}}" aria-hidden="true"></i></button>
+            </div>
+          </article>
+        {{else}}
+          <span class="rnps-reserve-empty">{{localize "RNPS.Manager.ReserveEmpty"}}</span>
+        {{/each}}
+      </div>
+    </footer>
   {{else}}
     <p class="notification warning">{{localize "RNPS.Manager.NoScene"}}</p>
   {{/if}}

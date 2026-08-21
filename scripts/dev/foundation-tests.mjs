@@ -15,11 +15,17 @@ const {
   createPortraitEntry,
   normalizePortraitEntry
 } = await import("../data/portrait-entry.js");
+const {
+  createDefaultActorLibrary,
+  normalizeActorLibrary
+} = await import("../data/actor-library.js");
 
 const migrated = migrateSceneState({});
 assert.equal(migrated.schemaVersion, SCENE_SCHEMA_VERSION);
 assert.deepEqual(migrated.groups.pcs.entries, []);
 assert.deepEqual(migrated.groups.npcs.entries, []);
+assert.equal(migrated.layout.pcPortraitSize, null);
+assert.equal(migrated.layout.npcPortraitSize, null);
 
 assert.throws(
   () => migrateSceneState({ schemaVersion: SCENE_SCHEMA_VERSION + 1 }),
@@ -40,6 +46,17 @@ const normalizedEntry = normalizePortraitEntry({
 assert.equal(normalizedEntry.groupId, "pcs");
 assert.equal(normalizedEntry.image.source, "actor");
 assert.equal(normalizePortraitEntry({ actorUuid: "Compendium.test" }), null);
+
+const library = createDefaultActorLibrary();
+assert.equal(library.variants.length, 2);
+assert.equal(library.defaultVariantId, "actor");
+const normalizedLibrary = normalizeActorLibrary({
+  label: { mode: "custom", custom: "Hero" },
+  variants: [{ id: "angry", name: "Angry", image: { source: "custom", customSrc: "angry.webp" } }],
+  defaultVariantId: "angry"
+});
+assert.equal(normalizedLibrary.label.custom, "Hero");
+assert.equal(normalizedLibrary.variants[2].image.customSrc, "angry.webp");
 
 const extensions = new ExtensionRegistry("Test extension");
 const extension = extensions.register({ id: "test.extension", value: 1 });

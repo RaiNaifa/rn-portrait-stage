@@ -55,3 +55,26 @@ registerSceneMigration(0, source => ({
     }
   }
 }));
+
+registerSceneMigration(1, source => ({
+  ...source,
+  schemaVersion: 2,
+  layout: {
+    portraitSize: Number.isFinite(source.layout?.portraitSize)
+      ? source.layout.portraitSize
+      : null
+  }
+}));
+
+registerSceneMigration(2, source => ({
+  ...source,
+  schemaVersion: 3,
+  layout: {
+    pcPortraitSize: Number.isFinite(source.layout?.portraitSize)
+      ? source.layout.portraitSize
+      : null,
+    npcPortraitSize: Number.isFinite(source.layout?.portraitSize)
+      ? source.layout.portraitSize
+      : null
+  }
+}));

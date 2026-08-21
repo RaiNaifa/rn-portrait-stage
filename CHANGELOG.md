@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.3.1 — 2026-08-21
+
+- Prevented empty custom portrait variants from being activated while keeping them as editable drafts.
+- Added explicit empty-image placeholders in the portrait editor and variant picker.
+- Added looping video portrait playback throughout the stage, manager, editor, and variant picker.
+- Moved portrait labels into the editor preview area and added the Actor name to the ApplicationV2 window header.
+- Placed mini-chat notifications above NPC portraits without changing portrait opacity.
+- Fixed staged label wrapping, Foundry tooltips, mirrored action placement, and inactive Scene navigation layout.
+
+## 0.3.0
+
+- Added persistent and scene-specific cast layers with scene overrides.
+- Added reusable Actor portrait libraries with multiple variants.
+- Added configurable labels and manager-controlled shared portrait size.
+- Removed portrait frames and container backgrounds; added alpha-aware shadows and masked gradients.
+- Added adaptive NPC height around mini-chat and notification-aware opacity.
+- Changed NPC overflow to left-growing columns without scrollbars and made the right group absolute so it cannot move chat.
+- Added a GM-controlled global portrait visibility switch.
+- Reworked variants into tiles with activation buttons and fixed Actor portrait/token variants.
+- Changed the label font setting to a dropdown and portrait-size increments to one pixel.
+- Fixed CSS mask URLs resolving relative to the module stylesheet.
+- Replaced the cast-layer selector with per-portrait persistence controls; new PCs persist by default.
+- Split PC and NPC portrait sizes and added schema migration v2 to v3.
+- Added a compact world-level Actor reserve to the manager footer.
+- Added mirror, persistence, hide/show, configure, and remove controls to portrait cards in the manager (not the main game UI).
+- Reserve entries now retain their portrait state and support two-way drag-and-drop.
+- Fixed variant add/edit/activate controls by using ApplicationV2 actions and per-tile form parsing.
+- NPC opacity now reacts only to visible mini-chat notifications instead of the persistent notification container.
+- Removed Actor Sheet opening from manager names and enabled dragging from the entire card, including its image.
+- Font choices now come from the fonts registered by Foundry, the system, and active modules.
+- Deferred font-setting registration until `ready`, after modules such as `ru-ru` extend `CONFIG.fontDefinitions`.
+- Replaced portrait-editor submission with immediate debounced autosave and removed placement, cast label override, and default-variant controls.
+- Added Actor name, Prototype Token name, hidden, and custom label modes.
+- Added owner-aware Configure and Change Portrait buttons to staged UI portraits plus a settings-free variant picker.
+- Preserved one combined manual order across scene/persistent layers when toggling Save between Scenes.
+- Changed active highlights to `rgb(255 179 0)` and mirrored manager previews immediately.
+
 All notable changes to RN Portrait Stage will be documented in this file.
 
 ## 0.2.0 — 2026-08-21

@@ -9,10 +9,14 @@ import { ExtensionRegistry } from "./registries/extension-registry.js";
 import {
   addActorToCast,
   clearCast,
+  getCastLayers,
+  getCombinedCastState,
   moveCastEntry,
   removeCastEntry,
+  setCastPortraitSize,
   updateCastEntry
 } from "./data/cast-service.js";
+import { getActorLibrary, getActorVariant, setActorLibrary } from "./data/actor-library.js";
 
 function notImplemented(feature) {
   throw new Error(`${MODULE_ID} | ${feature} is not implemented in Milestone 0.`);
@@ -46,7 +50,9 @@ export function createPublicApi() {
       createDefault: createDefaultSceneState,
       get: getSceneState,
       set: setSceneState,
-      registerMigration: registerSceneMigration
+      registerMigration: registerSceneMigration,
+      getLayers: getCastLayers,
+      getCombined: getCombinedCastState
     }),
 
     hover: Object.freeze({
@@ -84,11 +90,19 @@ export function createPublicApi() {
       hide: (entryId, options) => removeCastEntry(entryId, options),
       move: (entryId, options) => moveCastEntry(entryId, options),
       update: (entryId, changes, options) => updateCastEntry(entryId, changes, options),
-      clear: options => clearCast(options)
+      clear: options => clearCast(options),
+      setSize: (size, options) => setCastPortraitSize(size, options)
     }),
 
     variants: Object.freeze({
-      apply: () => notImplemented("Portrait variants")
+      getLibrary: actor => getActorLibrary(actor),
+      setLibrary: (actor, library) => setActorLibrary(actor, library),
+      getActive: (actor, variantId) => getActorVariant(actor, variantId),
+      apply: (entryId, activeVariantId, options) => updateCastEntry(
+        entryId,
+        { activeVariantId },
+        options
+      )
     }),
 
     presets: Object.freeze({

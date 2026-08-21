@@ -1,16 +1,24 @@
 export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
-export const SCENE_SCHEMA_VERSION = 1;
+export const SCENE_SCHEMA_VERSION = 3;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 1;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
-  SCENE_STATE: "state"
+  SCENE_STATE: "state",
+  ACTOR_LIBRARY: "portraitLibrary"
 });
 
 export const GROUP_IDS = Object.freeze({
   PCS: "pcs",
   NPCS: "npcs"
+});
+
+export const CAST_LAYERS = Object.freeze({
+  SCENE: "scene",
+  PERSISTENT: "persistent",
+  RESERVE: "reserve"
 });
 
 export const SETTING_KEYS = Object.freeze({
@@ -19,6 +27,11 @@ export const SETTING_KEYS = Object.freeze({
   EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabled",
   MODULE_VISIBLE: "moduleVisible",
   PORTRAIT_SIZE: "portraitSize",
+  LABEL_FONT_FAMILY: "labelFontFamily",
+  LABEL_FONT_SIZE: "labelFontSize",
+  PERSISTENT_STATE: "persistentState",
+  STAGE_ENABLED: "stageEnabled",
+  RESERVE_ACTORS: "reserveActors",
   PORTRAIT_GAP: "portraitGap",
   PC_OFFSET_X: "pcOffsetX",
   PC_OFFSET_Y: "pcOffsetY",

@@ -23,7 +23,9 @@ const state = api.state.get(canvas.scene);
 await api.state.set(canvas.scene, state);
 ```
 
-The current scene-state schema version is `1`. The state contains `pcs` and `npcs` groups with entry arrays.
+The current scene-state schema version is `3`. The state contains `pcs` and `npcs` groups with entry arrays and independent PC/NPC portrait-size overrides.
+
+`api.state.getLayers(scene)` returns the persistent and scene-specific layers. `api.state.getCombined(scene)` returns the effective cast; a scene entry overrides a persistent entry for the same Actor.
 
 ## Portrait cast operations
 
@@ -32,6 +34,7 @@ All write operations currently require a Gamemaster.
 ```js
 const entry = await api.portraits.show("Actor.actorId", {
   scene: canvas.scene,
+  layer: "scene", // or "persistent"
   groupId: "pcs"
 });
 
@@ -51,6 +54,18 @@ await api.portraits.update(entry.id, {
 
 await api.portraits.hide(entry.id);
 await api.portraits.clear({ scene: canvas.scene, groupId: "npcs" });
+await api.portraits.setSize(180, { scene: canvas.scene, layer: "scene", groupId: "npcs" });
+
+## Actor portrait variants
+
+Variant libraries persist in Actor flags and remain available after the Actor is removed from a cast.
+
+```js
+const actor = game.actors.get("actorId");
+const library = api.variants.getLibrary(actor);
+await api.variants.setLibrary(actor, library);
+await api.variants.apply(entry.id, "angry", { layer: "scene" });
+```
 ```
 
 ## Register a hover block

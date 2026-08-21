@@ -6,6 +6,10 @@ import { normalizePortraitEntry } from "./portrait-entry.js";
 export function createDefaultSceneState() {
   return {
     schemaVersion: SCENE_SCHEMA_VERSION,
+    layout: {
+      pcPortraitSize: null,
+      npcPortraitSize: null
+    },
     groups: {
       [GROUP_IDS.PCS]: {
         entries: []
@@ -21,6 +25,8 @@ export function normalizeSceneState(source) {
   const adapter = getCompatibilityAdapter();
   const state = migrateSceneState(source ?? createDefaultSceneState());
   const normalized = createDefaultSceneState();
+  normalized.layout.pcPortraitSize = normalizePortraitSize(state.layout?.pcPortraitSize);
+  normalized.layout.npcPortraitSize = normalizePortraitSize(state.layout?.npcPortraitSize);
 
   for (const groupId of Object.values(GROUP_IDS)) {
     const entries = state.groups?.[groupId]?.entries;
@@ -33,6 +39,11 @@ export function normalizeSceneState(source) {
   }
 
   return normalized;
+}
+
+function normalizePortraitSize(value) {
+  if (!Number.isFinite(value)) return null;
+  return Math.max(48, Math.min(480, Math.round(value)));
 }
 
 export function getSceneState(

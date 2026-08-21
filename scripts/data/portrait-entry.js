@@ -2,7 +2,11 @@ import { GROUP_IDS } from "../constants.js";
 
 const IMAGE_SOURCES = new Set(["actor", "prototypeToken", "custom"]);
 
-export function createPortraitEntry(actorUuid, { groupId = GROUP_IDS.PCS, tokenUuid = null } = {}) {
+export function createPortraitEntry(actorUuid, {
+  groupId = GROUP_IDS.PCS,
+  tokenUuid = null,
+  activeVariantId = null
+} = {}) {
   if (typeof actorUuid !== "string" || !actorUuid.startsWith("Actor.")) {
     throw new TypeError("A world Actor UUID is required.");
   }
@@ -14,14 +18,13 @@ export function createPortraitEntry(actorUuid, { groupId = GROUP_IDS.PCS, tokenU
     groupId: normalizeGroupId(groupId),
     sort: 0,
     visible: true,
-    image: {
-      source: "actor",
-      customSrc: null
-    },
+    mirrored: false,
+    image: { source: "actor", customSrc: null },
+    labelOverride: null,
     hover: {},
     actions: [],
     effects: [],
-    activeVariantId: null,
+    activeVariantId: typeof activeVariantId === "string" ? activeVariantId : null,
     flags: {}
   };
 }
@@ -38,12 +41,14 @@ export function normalizePortraitEntry(source, fallbackGroupId = GROUP_IDS.PCS) 
     groupId: normalizeGroupId(source.groupId ?? fallbackGroupId),
     sort: Number.isFinite(source.sort) ? source.sort : 0,
     visible: source.visible !== false,
+    mirrored: source.mirrored === true,
     image: {
       source: imageSource,
       customSrc: typeof source.image?.customSrc === "string" && source.image.customSrc
         ? source.image.customSrc
         : null
     },
+    labelOverride: typeof source.labelOverride === "string" ? source.labelOverride : null,
     hover: isPlainObject(source.hover) ? { ...source.hover } : {},
     actions: Array.isArray(source.actions) ? [...source.actions] : [],
     effects: Array.isArray(source.effects) ? [...source.effects] : [],

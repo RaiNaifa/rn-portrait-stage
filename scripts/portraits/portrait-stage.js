@@ -1,14 +1,18 @@
 import { GROUP_IDS, HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
-import { moveCastEntry, removeCastEntry } from "../data/cast-service.js";
-import { getSceneState } from "../data/scene-state.js";
+import { getCombinedCastState } from "../data/cast-service.js";
 import { resolveUiAnchor } from "../compatibility/ui-anchors.js";
-import { PortraitEditor } from "../apps/portrait-editor.js";
 import { preparePortraitView } from "./portrait-data.js";
-import { logger } from "../logger.js";
+import { PortraitEditor } from "../apps/portrait-editor.js";
+import { VariantPicker } from "../apps/variant-picker.js";
+import { createPortraitMedia } from "../media.js";
 
 export class PortraitStage {
   #groups = new Map();
   #renderVersion = 0;
+  #rightUiObserver = null;
+  #notificationObserver = null;
+  #resizeObserver = null;
+  #resizeHandler = () => this.#updateRightColumnLayout();
 
   initialize() {
     for (const groupId of Object.values(GROUP_IDS)) {
@@ -23,20 +27,28 @@ export class PortraitStage {
       this.#groups.set(groupId, group);
     }
     this.#attachGroups();
+    this.#observeRightColumn();
+    window.addEventListener("resize", this.#resizeHandler);
     this.render();
   }
 
   destroy() {
     document.querySelector("#ui-left-column-2")?.classList.remove("rnps-pc-layout");
+    document.querySelector("#ui-right-column-1")?.classList.remove("rnps-npc-layout");
     for (const group of this.#groups.values()) group.remove();
     this.#groups.clear();
+    this.#rightUiObserver?.disconnect();
+    this.#notificationObserver?.disconnect();
+    this.#resizeObserver?.disconnect();
+    window.removeEventListener("resize", this.#resizeHandler);
   }
 
   async render() {
     this.#attachGroups();
     if (!this.#groups.size) return;
     const version = ++this.#renderVersion;
-    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.MODULE_VISIBLE);
+    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.MODULE_VISIBLE)
+      && game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
     for (const group of this.#groups.values()) group.hidden = !visible;
     if (!visible) {
       this.#setPcLayoutActive(false);
@@ -44,7 +56,7 @@ export class PortraitStage {
     }
 
     const scene = canvas.scene;
-    const state = getSceneState(scene);
+    const state = getCombinedCastState(scene);
 
     for (const groupId of Object.values(GROUP_IDS)) {
       const views = await Promise.all(
@@ -55,6 +67,7 @@ export class PortraitStage {
     }
 
     this.#applySettings();
+    this.#updateRightColumnLayout();
   }
 
   #attachGroups() {
@@ -65,6 +78,11 @@ export class PortraitStage {
 
     if (left && pcs && pcs.parentElement !== left) left.append(pcs);
     if (right && npcs && npcs.parentElement !== right) right.append(npcs);
+    right?.classList.add("rnps-npc-layout");
+    const notifications = document.querySelector("#chat-notifications");
+    if (right && npcs && notifications?.parentElement === right && npcs.nextSibling !== notifications) {
+      right.insertBefore(npcs, notifications);
+    }
   }
 
   #renderGroup(groupId, views) {
@@ -77,23 +95,44 @@ export class PortraitStage {
       card.dataset.entryId = view.id;
       card.dataset.actorUuid = view.actorUuid;
       card.tabIndex = 0;
-      card.title = view.name;
+      card.dataset.layer = view.entry.layer;
 
-      const image = document.createElement("img");
-      image.src = view.image;
-      image.alt = "";
-      image.draggable = false;
+      const imageLayer = document.createElement("div");
+      imageLayer.className = "rnps-portrait-image";
+      imageLayer.classList.toggle("rnps-portrait-image--mirrored", view.entry.mirrored);
+
+      const image = createPortraitMedia(view.image);
+      imageLayer.style.setProperty("--rnps-image", cssUrl(image.src));
       image.addEventListener("error", () => {
-        if (image.src !== CONST.DEFAULT_TOKEN) image.src = CONST.DEFAULT_TOKEN;
+        if (image.src !== CONST.DEFAULT_TOKEN) {
+          image.src = CONST.DEFAULT_TOKEN;
+          imageLayer.style.setProperty("--rnps-image", cssUrl(image.src));
+        }
       }, { once: true });
-      card.append(image);
+      imageLayer.append(image);
+      card.append(imageLayer);
 
-      const name = document.createElement("span");
-      name.className = "rnps-portrait-name";
-      name.textContent = view.name;
-      card.append(name);
+      if (view.label) {
+        const name = document.createElement("span");
+        name.className = "rnps-portrait-name";
+        name.textContent = view.label;
+        card.append(name);
+      }
 
-      if (game.user.isGM) card.append(this.#createActions(view, groupId));
+      const canManage = game.user.isGM || (
+        game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)
+        && view.actor.testUserPermission(game.user, "OWNER")
+      );
+      if (canManage) {
+        card.append(
+          this.#portraitButton("rnps-ui-configure", "fa-solid fa-gear", "RNPS.Controls.Edit", () => {
+            PortraitEditor.open(view.id, view.entry.layer);
+          }),
+          this.#portraitButton("rnps-ui-switch", "fa-solid fa-images", "RNPS.Controls.ChangePortrait", () => {
+            VariantPicker.open(view.id, view.entry.layer);
+          })
+        );
+      }
 
       card.addEventListener("dblclick", () => {
         if (view.canOpenSheet) view.actor.sheet?.render({ force: true });
@@ -117,68 +156,140 @@ export class PortraitStage {
     if (changed) Hooks.callAll(HOOKS.LAYOUT_CHANGED, { active });
   }
 
-  #createActions(view, groupId) {
-    const actions = document.createElement("div");
-    actions.className = "rnps-portrait-actions";
-
-    actions.append(
-      this.#actionButton("fa-solid fa-gear", "RNPS.Controls.Edit", () => PortraitEditor.open(view.id)),
-      this.#actionButton(
-        "fa-solid fa-arrow-right-arrow-left",
-        groupId === GROUP_IDS.PCS ? "RNPS.Controls.MoveToNpcs" : "RNPS.Controls.MoveToPcs",
-        async () => {
-          await moveCastEntry(view.id, {
-            groupId: groupId === GROUP_IDS.PCS ? GROUP_IDS.NPCS : GROUP_IDS.PCS
-          });
-        }
-      ),
-      this.#actionButton("fa-solid fa-xmark", "RNPS.Controls.Remove", async () => {
-        await removeCastEntry(view.id);
-      })
-    );
-    return actions;
-  }
-
-  #actionButton(icon, titleKey, callback) {
+  #portraitButton(className, icon, titleKey, callback) {
     const button = document.createElement("button");
     button.type = "button";
-    button.title = game.i18n.localize(titleKey);
-    const iconElement = document.createElement("i");
-    iconElement.className = icon;
-    iconElement.setAttribute("aria-hidden", "true");
-    button.append(iconElement);
-    button.addEventListener("click", async event => {
+    button.className = `rnps-ui-action ${className}`;
+    const tooltip = game.i18n.localize(titleKey);
+    button.dataset.tooltip = tooltip;
+    button.setAttribute("aria-label", tooltip);
+    button.innerHTML = `<i class="${icon}" aria-hidden="true"></i>`;
+    button.addEventListener("click", event => {
       event.stopPropagation();
-      try {
-        await callback();
-      } catch (error) {
-        logger.error("Portrait action failed", error);
-        ui.notifications.error(error.message);
-      }
+      callback();
     });
     return button;
   }
 
   #applySettings() {
-    const size = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SIZE);
+    const state = getCombinedCastState(canvas.scene);
+    const fallbackSize = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SIZE);
+    const pcSize = state.layout.pcPortraitSize ?? fallbackSize;
+    const npcSize = state.layout.npcPortraitSize ?? fallbackSize;
     const gap = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_GAP);
+    const fontFamily = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_FAMILY);
+    const fontSize = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_SIZE);
 
     for (const [groupId, directionKey, offsetXKey, offsetYKey] of [
       [GROUP_IDS.PCS, SETTING_KEYS.PC_DIRECTION, SETTING_KEYS.PC_OFFSET_X, SETTING_KEYS.PC_OFFSET_Y],
       [GROUP_IDS.NPCS, SETTING_KEYS.NPC_DIRECTION, SETTING_KEYS.NPC_OFFSET_X, SETTING_KEYS.NPC_OFFSET_Y]
     ]) {
       const group = this.#groups.get(groupId);
+      const size = groupId === GROUP_IDS.PCS ? pcSize : npcSize;
       group.style.setProperty("--rnps-size", `${size}px`);
       group.style.setProperty("--rnps-gap", `${gap}px`);
+      group.style.setProperty("--rnps-label-font", fontFamily || "Signika");
+      group.style.setProperty("--rnps-label-font-size", `${fontSize}px`);
       group.style.setProperty("--rnps-offset-x", `${game.settings.get(MODULE_ID, offsetXKey)}px`);
       group.style.setProperty("--rnps-offset-y", `${game.settings.get(MODULE_ID, offsetYKey)}px`);
       group.dataset.direction = game.settings.get(MODULE_ID, directionKey);
     }
 
     const leftColumn = document.querySelector("#ui-left-column-2");
-    leftColumn?.style.setProperty("--rnps-size", `${size}px`);
+    const pcGroup = this.#groups.get(GROUP_IDS.PCS);
+    const pcCount = pcGroup?.childElementCount ?? 0;
+    const pcTop = pcGroup?.getBoundingClientRect().top ?? 0;
+    const pcAvailable = Math.max(48, window.innerHeight - pcTop - 24);
+    const fittedPcSize = pcCount
+      ? Math.max(48, Math.min(pcSize, Math.floor((pcAvailable - gap * (pcCount - 1)) / pcCount)))
+      : pcSize;
+    pcGroup?.style.setProperty("--rnps-size", `${fittedPcSize}px`);
+    leftColumn?.style.setProperty("--rnps-size", `${fittedPcSize}px`);
     leftColumn?.style.setProperty("--rnps-gap", `${gap}px`);
+  }
+
+  #observeRightColumn() {
+    const right = resolveUiAnchor("rightPrimary");
+    if (!right) return;
+    this.#rightUiObserver?.disconnect();
+    this.#rightUiObserver = new MutationObserver(() => {
+      this.#attachGroups();
+      this.#updateRightColumnLayout();
+    });
+    this.#rightUiObserver.observe(right, { childList: true, subtree: true });
+
+    this.#resizeObserver?.disconnect();
+    this.#resizeObserver = new ResizeObserver(() => this.#updateRightColumnLayout());
+    this.#resizeObserver.observe(right);
+    const chat = this.#findMiniChat();
+    if (chat) this.#resizeObserver.observe(chat);
+    const notifications = document.querySelector("#chat-notifications");
+    if (notifications) {
+      this.#resizeObserver.observe(notifications);
+      this.#notificationObserver?.disconnect();
+      this.#notificationObserver = new MutationObserver(() => this.#updateRightColumnLayout());
+      this.#notificationObserver.observe(notifications, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"]
+      });
+    }
+  }
+
+  #findMiniChat() {
+    return document.querySelector("#chat-message")
+      ?? document.querySelector("#chat-form")
+      ?? document.querySelector("#chat-controls");
+  }
+
+  #updateRightColumnLayout() {
+    const group = this.#groups.get(GROUP_IDS.NPCS);
+    if (!group?.isConnected) return;
+    const groupRect = group.getBoundingClientRect();
+    const chat = this.#findMiniChat();
+    const chatRect = chat?.getBoundingClientRect();
+    const bottomBoundary = chatRect?.height > 0
+      ? chatRect.top
+      : window.innerHeight - 24;
+    const notifications = document.querySelector("#chat-notifications");
+    const available = Math.max(48, bottomBoundary - groupRect.top - 8);
+    const size = Number.parseFloat(group.style.getPropertyValue("--rnps-size")) || 160;
+    const gap = Number.parseFloat(group.style.getPropertyValue("--rnps-gap")) || 8;
+    const rows = Math.max(1, Math.floor((available + gap) / (size + gap)));
+    group.style.setProperty("--rnps-available-height", `${available}px`);
+    group.style.setProperty("--rnps-rows", String(rows));
+    const upward = group.dataset.direction === "up";
+    [...group.children].forEach((portrait, index) => {
+      portrait.style.gridColumn = String(Math.floor(index / rows) + 1);
+      portrait.style.gridRow = String(upward ? rows - (index % rows) : (index % rows) + 1);
+    });
+    group.classList.toggle(
+      "rnps-notifications-active",
+      this.#hasVisibleChatNotification(notifications)
+    );
+  }
+
+  #hasVisibleChatNotification(container) {
+    if (!container) return false;
+    const sidebar = document.querySelector("#sidebar");
+    const chatIsMainTab = Boolean(sidebar?.querySelector("#chat.active, [data-tab='chat'].active"));
+    const miniChatActive = sidebar?.classList.contains("collapsed") || !chatIsMainTab;
+    if (!miniChatActive) return false;
+    return [...container.children].some(element => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+        return false;
+      }
+      return element.getClientRects().length > 0
+        && Boolean(element.textContent?.trim() || element.querySelector("img, i, svg"));
+    });
   }
 }
 
 export const portraitStage = new PortraitStage();
+
+function cssUrl(value) {
+  const escaped = String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  return `url("${escaped}")`;
+}

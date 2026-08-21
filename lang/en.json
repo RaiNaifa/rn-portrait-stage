@@ -22,6 +22,26 @@
         "Name": "Portrait size",
         "Hint": "Default portrait size for this user, in pixels."
       },
+      "LabelFontFamily": {
+        "Name": "Portrait label font",
+        "Hint": "Portrait label font from the fonts available in this world."
+      },
+      "LabelFontSize": {
+        "Name": "Portrait label font size",
+        "Hint": "Portrait label size in pixels."
+      },
+      "StageEnabled": {
+        "Name": "Show portraits to everyone",
+        "Hint": "Controlled by the GM from the cast manager. While disabled, portraits are not rendered for any user."
+      },
+      "PersistentState": {
+        "Name": "Persistent portrait cast",
+        "Hint": "Internal storage for portraits which remain visible between Scenes."
+      },
+      "ReserveActors": {
+        "Name": "Actor reserve",
+        "Hint": "Internal world storage for Actors prepared for quick cast placement."
+      },
       "PortraitGap": {
         "Name": "Portrait spacing",
         "Hint": "Default gap between portraits for this user, in pixels."
@@ -70,18 +90,48 @@
       "MoveToPcs": "Move to Characters",
       "MoveToNpcs": "Move to NPCs",
       "OpenActor": "Open actor sheet",
+      "Mirror": "Mirror portrait",
+      "Persistent": "Keep between Scenes",
+      "Hide": "Hide portrait",
+      "Show": "Show portrait",
+      "ChangePortrait": "Change portrait",
       "AddActor": "Drop an Actor here"
     },
     "Manager": {
       "Title": "RN Portrait Stage — Scene Cast",
       "Hint": "Drag Actors from the Actors directory into either group. Drag entries to reorder or move them between groups.",
       "Empty": "Drop Actors here",
-      "NoScene": "No active scene is available."
+      "NoScene": "No active scene is available.",
+      "Layer": "Edited cast",
+      "SceneLayer": "Current Scene only",
+      "PersistentLayer": "Persistent between Scenes",
+      "PortraitSize": "All portrait sizes",
+      "ShowStage": "Show portraits to everyone",
+      "HideStage": "Hide portraits for everyone",
+      "Persistent": "Keep between Scenes",
+      "PersistentHint": "Keep this portrait when changing Scenes",
+      "Reserve": "Reserve",
+      "ReserveHint": "Actors prepared for quick cast placement",
+      "ReserveEmpty": "Drop Actors from the directory here",
+      "RemoveReserve": "Remove from reserve"
     },
     "Editor": {
       "Title": "Configure Portrait",
       "Actor": "Actor",
-      "Group": "Group",
+      "Label": "Label",
+      "LabelMode": "Actor default label",
+      "ActorName": "Use Actor name",
+      "PrototypeTokenName": "Prototype Token name",
+      "CustomLabel": "Custom label",
+      "HiddenLabel": "Hide label",
+      "Variants": "Portrait variants",
+      "ActiveVariant": "Active variant",
+      "VariantName": "Variant name",
+      "AddVariant": "Add variant",
+      "NewVariant": "New variant",
+      "DeleteVariant": "Delete",
+      "ActivateVariant": "Activate",
+      "ImageNotSelected": "No image selected",
       "ImageSource": "Image source",
       "ActorImage": "Actor portrait",
       "PrototypeTokenImage": "Prototype token",
@@ -90,13 +140,18 @@
       "Visible": "Visible",
       "Save": "Save"
     },
+    "VariantPicker": {
+      "Title": "Change Portrait"
+    },
     "Notifications": {
       "Initialized": "RN Portrait Stage initialized.",
       "UnsupportedVersion": "RN Portrait Stage requires Foundry VTT v13 or v14.",
       "GmOnly": "Only a Gamemaster can change the scene portrait cast.",
       "ActorDropOnly": "Only Actors can be added to RN Portrait Stage.",
       "ActorUnavailable": "The selected Actor is unavailable.",
-      "SceneUnavailable": "No active Scene is available."
+      "SceneUnavailable": "No active Scene is available.",
+      "ActorPermission": "You do not have permission to change this Actor's portrait library.",
+      "PlayerChangesDisabled": "The GM has disabled portrait changes for players."
     }
   }
 }

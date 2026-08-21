@@ -3,48 +3,63 @@
 {{else}}
   <div class="rnps-editor-content">
     <div class="rnps-editor-preview">
-      <img src="{{previewImage}}" alt="">
-      <strong>{{actorName}}</strong>
+      {{#if previewIsVideo}}<video src="{{previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{previewImage}}" alt="">{{/if}}
+      <fieldset class="rnps-editor-label">
+        <legend>{{localize "RNPS.Editor.Label"}}</legend>
+        <div class="form-group">
+          <label for="rnps-label-mode">{{localize "RNPS.Editor.LabelMode"}}</label>
+          <div class="form-fields"><select id="rnps-label-mode" name="labelMode">
+            <option value="actor" {{#if labelUsesActor}}selected{{/if}}>{{localize "RNPS.Editor.ActorName"}}</option>
+            <option value="prototypeToken" {{#if labelUsesPrototypeToken}}selected{{/if}}>{{localize "RNPS.Editor.PrototypeTokenName"}}</option>
+            <option value="custom" {{#if labelIsCustom}}selected{{/if}}>{{localize "RNPS.Editor.CustomLabel"}}</option>
+            <option value="hidden" {{#if labelIsHidden}}selected{{/if}}>{{localize "RNPS.Editor.HiddenLabel"}}</option>
+          </select></div>
+        </div>
+        <div class="form-group" data-custom-label-field>
+          <label for="rnps-custom-label">{{localize "RNPS.Editor.CustomLabel"}}</label>
+          <div class="form-fields"><input id="rnps-custom-label" name="customLabel" type="text" value="{{customLabel}}"></div>
+        </div>
+      </fieldset>
     </div>
 
-    <div class="form-group">
-      <label for="rnps-group-id">{{localize "RNPS.Editor.Group"}}</label>
-      <div class="form-fields">
-        <select id="rnps-group-id" name="groupId">
-          <option value="pcs" {{#if isPcs}}selected{{/if}}>{{localize "RNPS.Groups.Pcs"}}</option>
-          <option value="npcs" {{#if isNpcs}}selected{{/if}}>{{localize "RNPS.Groups.Npcs"}}</option>
-        </select>
+    <fieldset class="rnps-variant-editor">
+      <legend>{{localize "RNPS.Editor.Variants"}}</legend>
+      <input type="hidden" name="activeVariantId" value="{{activeVariantId}}">
+      <div class="rnps-variant-grid">
+        {{#each variants as |variant|}}
+          <section class="rnps-variant-tile{{#if variant.selected}} active{{/if}}" data-variant-tile data-variant-id="{{variant.id}}">
+            <input type="hidden" name="variantId" value="{{variant.id}}">
+            <input type="hidden" name="variantSource" value="{{variant.image.source}}">
+            {{#if variant.hasImage}}
+              {{#if variant.isVideo}}<video src="{{variant.previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{variant.previewImage}}" alt="">{{/if}}
+            {{else}}
+              <div class="rnps-variant-placeholder" data-tooltip="{{localize 'RNPS.Editor.ImageNotSelected'}}"><i class="fa-solid fa-image" aria-hidden="true"></i><span>{{localize "RNPS.Editor.ImageNotSelected"}}</span></div>
+            {{/if}}
+            {{#if variant.isBuiltin}}
+              <input type="hidden" name="variantName" value="{{variant.name}}">
+              <input type="hidden" name="variantPath" value="">
+              <strong>{{variant.displayName}}</strong>
+            {{else}}
+              <input type="text" name="variantName" value="{{variant.name}}" aria-label="{{localize 'RNPS.Editor.VariantName'}}">
+              <file-picker name="variantPath" type="imagevideo" value="{{variant.image.customSrc}}"></file-picker>
+              <button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+            {{/if}}
+            <button type="button" data-action="activateVariant" {{#unless variant.hasImage}}disabled{{/unless}}><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>
+          </section>
+        {{/each}}
       </div>
-    </div>
-
-    <div class="form-group">
-      <label for="rnps-image-source">{{localize "RNPS.Editor.ImageSource"}}</label>
-      <div class="form-fields">
-        <select id="rnps-image-source" name="imageSource">
-          <option value="actor" {{#if isActorImage}}selected{{/if}}>{{localize "RNPS.Editor.ActorImage"}}</option>
-          <option value="prototypeToken" {{#if isPrototypeTokenImage}}selected{{/if}}>{{localize "RNPS.Editor.PrototypeTokenImage"}}</option>
-          <option value="custom" {{#if isCustomImage}}selected{{/if}}>{{localize "RNPS.Editor.CustomImage"}}</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group stacked">
-      <label>{{localize "RNPS.Editor.CustomImagePath"}}</label>
-      <file-picker name="customSrc" type="imagevideo" value="{{entry.image.customSrc}}"></file-picker>
-    </div>
-
-    <div class="form-group">
-      <label for="rnps-visible">{{localize "RNPS.Editor.Visible"}}</label>
-      <div class="form-fields">
-        <input id="rnps-visible" type="checkbox" name="visible" {{checked entry.visible}}>
-      </div>
-    </div>
-
-    <footer class="form-footer">
-      <button type="submit">
-        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-        {{localize "RNPS.Editor.Save"}}
-      </button>
-    </footer>
+      <button type="button" data-action="addVariant"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{localize "RNPS.Editor.AddVariant"}}</button>
+      <template id="rnps-new-variant-template">
+        <section class="rnps-variant-tile" data-variant-tile data-variant-id="">
+          <input type="hidden" name="variantId" value="">
+          <input type="hidden" name="variantSource" value="custom">
+          <div class="rnps-variant-placeholder"><i class="fa-solid fa-image" aria-hidden="true"></i><span>{{localize "RNPS.Editor.ImageNotSelected"}}</span></div>
+          <input type="text" name="variantName" value="{{localize 'RNPS.Editor.NewVariant'}}" aria-label="{{localize 'RNPS.Editor.VariantName'}}">
+          <file-picker name="variantPath" type="imagevideo"></file-picker>
+          <button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+          <button type="button" data-action="activateVariant" disabled><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>
+        </section>
+      </template>
+    </fieldset>
   </div>
 {{/if}}

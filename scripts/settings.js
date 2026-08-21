@@ -13,6 +13,30 @@ function register(key, data) {
   });
 }
 
+function getAvailableFontChoices() {
+  const FontConfigClass = foundry.applications.settings.menus.FontConfig;
+  const foundryChoices = FontConfigClass?.getAvailableFontChoices?.();
+  const choices = foundryChoices && typeof foundryChoices === "object"
+    ? { ...foundryChoices }
+    : {};
+  const available = FontConfigClass?.getAvailableFonts?.();
+  const names = available instanceof Map
+    ? [...available.keys()]
+    : available instanceof Set
+      ? [...available]
+    : Array.isArray(available)
+      ? available
+      : available && typeof available === "object"
+        ? Object.keys(available)
+        : Object.keys(globalThis.CONFIG?.fontDefinitions ?? {});
+  for (const name of names) {
+    if (typeof name === "string" && name.trim()) choices[name] = name;
+  }
+  for (const name of Object.keys(globalThis.CONFIG?.fontDefinitions ?? {})) choices[name] = name;
+  if (!Object.keys(choices).length) choices.Signika = "Signika";
+  return choices;
+}
+
 export function registerSettings() {
   register(SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES, {
     name: "RNPS.Settings.AllowPlayerPortraitChanges.Name",
@@ -60,8 +84,58 @@ export function registerSettings() {
     range: {
       min: 48,
       max: 480,
-      step: 4
+      step: 1
     }
+  });
+
+  const fontChoices = getAvailableFontChoices();
+  register(SETTING_KEYS.LABEL_FONT_FAMILY, {
+    name: "RNPS.Settings.LabelFontFamily.Name",
+    hint: "RNPS.Settings.LabelFontFamily.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: fontChoices,
+    default: fontChoices[CONFIG.defaultFontFamily]
+      ? CONFIG.defaultFontFamily
+      : Object.keys(fontChoices)[0] ?? "Signika"
+  });
+
+  register(SETTING_KEYS.LABEL_FONT_SIZE, {
+    name: "RNPS.Settings.LabelFontSize.Name",
+    hint: "RNPS.Settings.LabelFontSize.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 12,
+    range: { min: 8, max: 48, step: 1 }
+  });
+
+  register(SETTING_KEYS.STAGE_ENABLED, {
+    name: "RNPS.Settings.StageEnabled.Name",
+    hint: "RNPS.Settings.StageEnabled.Hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  register(SETTING_KEYS.PERSISTENT_STATE, {
+    name: "RNPS.Settings.PersistentState.Name",
+    hint: "RNPS.Settings.PersistentState.Hint",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
+  register(SETTING_KEYS.RESERVE_ACTORS, {
+    name: "RNPS.Settings.ReserveActors.Name",
+    hint: "RNPS.Settings.ReserveActors.Hint",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: []
   });
 
   register(SETTING_KEYS.PORTRAIT_GAP, {
@@ -127,4 +201,10 @@ export function registerSettings() {
   });
 
   logger.debug("Settings registered");
+}
+
+export function refreshFontChoices() {
+  const choices = getAvailableFontChoices();
+  const setting = game.settings.settings.get(`${MODULE_ID}.${SETTING_KEYS.LABEL_FONT_FAMILY}`);
+  if (setting) setting.choices = choices;
 }

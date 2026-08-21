@@ -2,10 +2,11 @@ import { HOOKS, MODULE_ID, MODULE_TITLE } from "./constants.js";
 import { createPublicApi } from "./api.js";
 import { getCompatibilityAdapter, isSupportedFoundryVersion } from "./compatibility/index.js";
 import { logger } from "./logger.js";
-import { registerSettings } from "./settings.js";
+import { refreshFontChoices, registerSettings } from "./settings.js";
 import { CastManager } from "./apps/cast-manager.js";
 import { portraitStage } from "./portraits/portrait-stage.js";
 import { navigationButton } from "./ui/navigation-button.js";
+import { initializeSocketService } from "./data/socket-service.js";
 
 Hooks.once("init", () => {
   logger.info(`Initializing ${MODULE_TITLE}`);
@@ -28,6 +29,8 @@ Hooks.once("ready", () => {
     return;
   }
 
+  refreshFontChoices();
+  initializeSocketService();
   const adapter = getCompatibilityAdapter();
   const api = game.modules.get(MODULE_ID)?.api;
 
@@ -52,21 +55,29 @@ Hooks.on("canvasReady", () => {
 
 Hooks.on("updateScene", scene => {
   if (scene.id !== canvas.scene?.id) return;
-  portraitStage.render();
-  CastManager.refresh();
+  scheduleUiRefresh();
 });
 
 Hooks.on("updateActor", () => {
-  portraitStage.render();
-  CastManager.refresh();
+  scheduleUiRefresh();
 });
 
 Hooks.on("deleteActor", () => {
-  portraitStage.render();
-  CastManager.refresh();
+  scheduleUiRefresh();
 });
 
 Hooks.on("renderSceneNavigation", () => navigationButton.position());
 Hooks.on("collapseSceneNavigation", () => requestAnimationFrame(() => navigationButton.position()));
-Hooks.on(HOOKS.SETTINGS_CHANGED, () => portraitStage.render());
+Hooks.on(HOOKS.SETTINGS_CHANGED, () => {
+  scheduleUiRefresh();
+});
 Hooks.on(HOOKS.LAYOUT_CHANGED, () => requestAnimationFrame(() => navigationButton.position()));
+
+let uiRefreshTimer;
+function scheduleUiRefresh() {
+  clearTimeout(uiRefreshTimer);
+  uiRefreshTimer = setTimeout(() => {
+    portraitStage.render();
+    CastManager.refresh();
+  }, 75);
+}
