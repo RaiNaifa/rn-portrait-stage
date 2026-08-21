@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0 — Unreleased
+
+- Added enlarged hover art with per-variant source, custom image/video, scale, mirroring, and disable controls.
+- Added world defaults for hover-art source, bottom offset, and base size plus a client hover-art scale.
+- Added optional linked-token highlighting while hovering staged portraits.
+- Moved token highlighting from individual variants to a world default with a scene-level Default/Enabled/Disabled override.
+- Filtered token highlighting through each client's Foundry visibility state so players do not reveal hidden or unseen tokens.
+- Added Image Hover compatibility modes: prioritize RN Portrait Stage, prioritize Image Hover, or display both.
+- Removed the duplicate immediate portrait render after extension actions, preventing action-button flicker.
+- Activated the public hover-block and portrait-action registries in the staged portrait UI.
+- Added the first system integration for `litm-rn`: a cast-entry tag-visibility action and hover tags/statuses rendered above enlarged art.
+- Added manager actions to show or hide `litm-rn` tags for every Actor in the current cast at once.
+- Stored system action state on cast entries so it participates in preview drafts and cast presets.
+- Bumped the Actor portrait-library schema to version 4.
+
 ## 0.5.0 — Unreleased
 
 - Added a GM-only client draft for previewing cast, reserve, ordering, sizes, visibility, mirroring, and active or individual variants before publishing.

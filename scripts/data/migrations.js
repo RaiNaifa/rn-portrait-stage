@@ -92,3 +92,14 @@ registerSceneMigration(3, source => ({
     }))
   }]))
 }));
+
+registerSceneMigration(4, source => ({
+  ...source,
+  schemaVersion: 5,
+  layout: {
+    ...source.layout,
+    tokenHighlight: typeof source.layout?.tokenHighlight === "boolean"
+      ? source.layout.tokenHighlight
+      : null
+  }
+}));

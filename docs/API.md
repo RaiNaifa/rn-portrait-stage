@@ -1,6 +1,6 @@
 # RN Portrait Stage API
 
-> API status: Scene Portraits MVP (`apiVersion: 1`). Variants, presets, and voice methods remain placeholders.
+> API status: Scene Portraits and Hover Extensions (`apiVersion: 1`). Voice methods remain placeholders.
 
 Access the API after the `rnPortraitStageReady` hook:
 
@@ -23,7 +23,7 @@ const state = api.state.get(canvas.scene);
 await api.state.set(canvas.scene, state);
 ```
 
-The current scene-state schema version is `4`. The state contains `pcs` and `npcs` groups with entry arrays and independent PC/NPC portrait-size overrides.
+The current scene-state schema version is `5`. The state contains `pcs` and `npcs` groups with entry arrays, independent PC/NPC portrait-size overrides, and a scene-level token-highlight override.
 
 `api.state.getLayers(scene)` returns the persistent and scene-specific layers. `api.state.getCombined(scene)` returns the effective cast; a scene entry overrides a persistent entry for the same Actor.
 
@@ -55,6 +55,7 @@ await api.portraits.update(entry.id, {
 await api.portraits.hide(entry.id);
 await api.portraits.clear({ scene: canvas.scene, groupId: "npcs" });
 await api.portraits.setSize(180, { scene: canvas.scene, layer: "scene", groupId: "npcs" });
+```
 
 ## Actor portrait variants
 
@@ -66,7 +67,6 @@ const library = api.variants.getLibrary(actor);
 await api.variants.setLibrary(actor, library);
 await api.variants.apply(entry.id, "angry", { layer: "scene" });
 ```
-```
 
 ## Register a hover block
 
@@ -75,12 +75,17 @@ Extension IDs must be namespaced:
 ```js
 api.hover.registerBlock({
   id: "my-package.statuses",
-  label: "Statuses",
-  packageId: "my-package",
-  isAvailable: context => true,
-  getData: async context => ({})
+  order: 100,
+  isVisible: context => context.actor.type === "character",
+  render: async context => {
+    const element = document.createElement("div");
+    element.textContent = context.actor.name;
+    return element;
+  }
 });
 ```
+
+`render` may return one `HTMLElement`, an HTML string with one root element, or `null`. Context contains `card`, `view`, `entry`, `actor`, `variant`, and `groupId`. Blocks are ordered by `order`; asynchronous results are discarded after the pointer leaves the portrait.
 
 ## Register an action
 
@@ -89,9 +94,20 @@ api.actions.register({
   id: "my-package.toggle-status",
   label: "Toggle status",
   icon: "fa-solid fa-toggle-on",
-  execute: async context => {}
+  order: 100,
+  isVisible: context => game.user.isGM,
+  isActive: context => context.entry.flags?.["my-package"]?.enabled,
+  onClick: async context => context.updateEntry({
+    flags: { "my-package": { enabled: true } }
+  })
 });
 ```
+
+Registered actions are placed beside the built-in lower portrait action. `onClick` receives the hover context plus `updateEntry(changes)`.
+
+## litm-rn example integration
+
+When the active system is `litm-rn`, RN Portrait Stage registers `litm-rn.toggle-tags` and `litm-rn.tags`. The action stores `flags["litm-rn"].tagsVisible` on the cast entry; the hover block renders visible tag, status, and might Active Effects. This is the reference implementation for system integrations.
 
 ## Effects foundation
 

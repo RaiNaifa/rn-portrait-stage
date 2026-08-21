@@ -27,6 +27,14 @@ assert.deepEqual(migrated.groups.pcs.entries, []);
 assert.deepEqual(migrated.groups.npcs.entries, []);
 assert.equal(migrated.layout.pcPortraitSize, null);
 assert.equal(migrated.layout.npcPortraitSize, null);
+assert.equal(migrated.layout.tokenHighlight, null);
+
+const highlightedScene = migrateSceneState({
+  schemaVersion: SCENE_SCHEMA_VERSION,
+  layout: { tokenHighlight: true },
+  groups: { pcs: { entries: [] }, npcs: { entries: [] } }
+});
+assert.equal(highlightedScene.layout.tokenHighlight, true);
 
 assert.throws(
   () => migrateSceneState({ schemaVersion: SCENE_SCHEMA_VERSION + 1 }),
@@ -64,6 +72,17 @@ assert.equal(normalizedLibrary.label.custom, "Hero");
 assert.equal(normalizedLibrary.variants[2].image.customSrc, "angry.webp");
 assert.equal(normalizedLibrary.variants[2].access.mode, "owners");
 assert.equal(normalizedLibrary.variants[2].settings.label.inherit, true);
+assert.equal(normalizedLibrary.variants[2].settings.hover.source, "inherit");
+const hoverLibrary = normalizeActorLibrary({
+  variants: [{
+    id: "hover",
+    name: "Hover",
+    settings: { hover: { source: "custom", customSrc: "close.webp", scale: 1.5, mirrored: true } }
+  }]
+});
+assert.equal(hoverLibrary.variants[2].settings.hover.customSrc, "close.webp");
+assert.equal(hoverLibrary.variants[2].settings.hover.scale, 1.5);
+assert.equal(hoverLibrary.variants[2].settings.hover.mirrored, true);
 const owner = { id: "owner", isGM: false };
 const guest = { id: "guest", isGM: false };
 const actor = { testUserPermission: user => user.id === "owner" };

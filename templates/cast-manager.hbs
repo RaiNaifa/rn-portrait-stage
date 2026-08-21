@@ -10,6 +10,13 @@
         {{localize "RNPS.Preview.Button"}}
       </button>
     </div>
+    {{#if litmIntegrationEnabled}}
+      <div class="rnps-manager-extension-toolbar">
+        <span><i class="fa-solid fa-tags"></i> {{localize "RNPS.Integrations.Litm.TagsForCast"}}</span>
+        <button type="button" data-action="showAllLitmTags"><i class="fa-solid fa-eye"></i> {{localize "RNPS.Integrations.Litm.ShowAllTags"}}</button>
+        <button type="button" data-action="hideAllLitmTags"><i class="fa-solid fa-eye-slash"></i> {{localize "RNPS.Integrations.Litm.HideAllTags"}}</button>
+      </div>
+    {{/if}}
     {{#if previewActive}}
       <div class="rnps-preview-bar">
         <span><i class="fa-solid fa-flask" aria-hidden="true"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.PresetActive"}}: <strong>{{previewPresetName}}</strong>{{else}}{{localize "RNPS.Preview.Active"}}{{/if}}</span>
@@ -37,6 +44,14 @@
       <button type="button" class="{{#if presetsTab}}active{{/if}}" data-action="showPresets">{{localize "RNPS.Presets.Title"}}</button>
     </nav>
     {{#if compositionTab}}
+    <div class="rnps-manager-scene-options">
+      <label>{{localize "RNPS.Manager.TokenHighlight"}}</label>
+      <select name="tokenHighlightMode">
+        <option value="inherit" {{#if tokenHighlightDefault}}selected{{/if}}>{{localize "RNPS.HoverArt.Inherit"}}</option>
+        <option value="enabled" {{#if tokenHighlightEnabled}}selected{{/if}}>{{localize "RNPS.VariantSettings.Enabled"}}</option>
+        <option value="disabled" {{#if tokenHighlightDisabled}}selected{{/if}}>{{localize "RNPS.Manager.Disabled"}}</option>
+      </select>
+    </div>
     <p class="hint">{{hint}}</p>
     <div class="rnps-manager-groups">
       {{#each groups as |group|}}

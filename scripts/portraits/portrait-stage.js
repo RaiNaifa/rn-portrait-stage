@@ -1,5 +1,5 @@
 import { GROUP_IDS, HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
-import { getCombinedCastState } from "../data/cast-service.js";
+import { getCombinedCastState, updateCastEntry } from "../data/cast-service.js";
 import { resolveUiAnchor } from "../compatibility/ui-anchors.js";
 import { preparePortraitView } from "./portrait-data.js";
 import { PortraitEditor } from "../apps/portrait-editor.js";
@@ -7,6 +7,8 @@ import { VariantPicker } from "../apps/variant-picker.js";
 import { createPortraitMedia } from "../media.js";
 import { canUserAccessVariant } from "../data/actor-library.js";
 import { isPreviewActive } from "../data/preview-service.js";
+import { getCompatibilityAdapter } from "../compatibility/index.js";
+import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/image-hover.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -15,6 +17,11 @@ export class PortraitStage {
   #notificationObserver = null;
   #resizeObserver = null;
   #resizeHandler = () => this.#updateRightColumnLayout();
+  #hoverLayer = null;
+  #hoverArt = null;
+  #hoverBlocks = null;
+  #hoverVersion = 0;
+  #highlightedTokens = [];
 
   initialize() {
     for (const groupId of Object.values(GROUP_IDS)) {
@@ -29,6 +36,7 @@ export class PortraitStage {
       this.#groups.set(groupId, group);
     }
     this.#attachGroups();
+    this.#createHoverLayer();
     this.#observeRightColumn();
     window.addEventListener("resize", this.#resizeHandler);
     this.render();
@@ -38,6 +46,9 @@ export class PortraitStage {
     document.querySelector("#ui-left-column-2")?.classList.remove("rnps-pc-layout");
     document.querySelector("#ui-right-column-1")?.classList.remove("rnps-npc-layout");
     for (const group of this.#groups.values()) group.remove();
+    this.#hideHover();
+    this.#hoverLayer?.remove();
+    this.#hoverLayer = null;
     this.#groups.clear();
     this.#rightUiObserver?.disconnect();
     this.#notificationObserver?.disconnect();
@@ -46,6 +57,7 @@ export class PortraitStage {
   }
 
   async render() {
+    this.#hideHover();
     this.#attachGroups();
     if (!this.#groups.size) return;
     const version = ++this.#renderVersion;
@@ -59,13 +71,15 @@ export class PortraitStage {
 
     const scene = canvas.scene;
     const state = getCombinedCastState(scene);
+    const tokenHighlight = state.layout.tokenHighlight
+      ?? game.settings.get(MODULE_ID, SETTING_KEYS.TOKEN_HIGHLIGHT_DEFAULT);
 
     for (const groupId of Object.values(GROUP_IDS)) {
       const views = await Promise.all(
         state.groups[groupId].entries.map(entry => preparePortraitView(entry))
       );
       if (version !== this.#renderVersion) return;
-      this.#renderGroup(groupId, views.filter(view => view?.visible));
+      this.#renderGroup(groupId, views.filter(view => view?.visible), tokenHighlight);
     }
 
     this.#applySettings();
@@ -87,7 +101,7 @@ export class PortraitStage {
     }
   }
 
-  #renderGroup(groupId, views) {
+  #renderGroup(groupId, views, tokenHighlight) {
     const group = this.#groups.get(groupId);
     group.replaceChildren();
 
@@ -178,6 +192,11 @@ export class PortraitStage {
         card.append(indicator);
       }
 
+      this.#renderRegisteredActions(card, view, groupId);
+
+      card.addEventListener("mouseenter", () => this.#showHover(card, view, groupId, tokenHighlight));
+      card.addEventListener("mouseleave", () => this.#hideHover());
+
       card.addEventListener("dblclick", () => {
         if (view.canOpenSheet) view.actor.sheet?.render({ force: true });
       });
@@ -213,6 +232,174 @@ export class PortraitStage {
       callback();
     });
     return button;
+  }
+
+  #createHoverLayer() {
+    if (this.#hoverLayer?.isConnected) return;
+    const layer = document.createElement("div");
+    layer.className = "rnps-hover-layer";
+    const art = document.createElement("div");
+    art.className = "rnps-hover-art";
+    const blocks = document.createElement("div");
+    blocks.className = "rnps-hover-blocks";
+    layer.append(art, blocks);
+    document.body.append(layer);
+    this.#hoverLayer = layer;
+    this.#hoverArt = art;
+    this.#hoverBlocks = blocks;
+  }
+
+  async #showHover(card, view, groupId, tokenHighlight) {
+    this.#createHoverLayer();
+    const version = ++this.#hoverVersion;
+    this.#hideTokenHighlight();
+    const imageHoverMode = game.settings.get(MODULE_ID, SETTING_KEYS.IMAGE_HOVER_PRIORITY);
+    const imageHoverCanCompete = tokenHighlight && isImageHoverActive();
+    this.#positionHover(card, groupId);
+    let artRendered = false;
+    if (imageHoverCanCompete && imageHoverMode === "imageHover") {
+      const highlighted = this.#showTokenHighlight(view.actor);
+      if (!highlighted) artRendered = this.#renderHoverArt(view, groupId);
+    } else {
+      artRendered = this.#renderHoverArt(view, groupId);
+      if (tokenHighlight) {
+        this.#showTokenHighlight(view.actor, {
+          suppressImageHover: imageHoverMode === "rnps" && artRendered
+        });
+      }
+    }
+    this.#hoverBlocks.replaceChildren();
+    const api = game.modules.get(MODULE_ID)?.api;
+    const context = { card, view, entry: view.entry, actor: view.actor, variant: view.variant, groupId };
+    for (const block of (api?.hover?.listBlocks?.() ?? []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))) {
+      try {
+        if (block.isVisible && !await block.isVisible(context)) continue;
+        const rendered = await block.render?.(context);
+        if (version !== this.#hoverVersion) return;
+        if (!rendered) continue;
+        const element = rendered instanceof HTMLElement ? rendered : htmlToElement(String(rendered));
+        if (element) {
+          element.dataset.rnpsHoverBlock = block.id;
+          this.#hoverBlocks.append(element);
+        }
+      } catch (error) {
+        console.error(`${MODULE_ID} | Hover block '${block.id}' failed`, error);
+      }
+    }
+    this.#hoverLayer.hidden = !this.#hoverArt.childElementCount && !this.#hoverBlocks.childElementCount;
+  }
+
+  #renderHoverArt(view, groupId) {
+    this.#hoverArt.replaceChildren();
+    const hover = view.variant.settings?.hover ?? {};
+    if (hover.enabled === false) return false;
+    const configured = hover.source === "inherit" || !hover.source
+      ? game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE)
+      : hover.source;
+    if (configured === "none") return false;
+    let source;
+    if (configured === "prototypeToken") source = view.actor.prototypeToken?.texture?.src || view.actor.img;
+    else if (configured === "custom") source = hover.customSrc;
+    else source = view.actor.img || view.actor.prototypeToken?.texture?.src;
+    if (!source) return false;
+    const media = createPortraitMedia(source);
+    media.classList.toggle("mirrored", hover.mirrored === true);
+    const worldScale = game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_WORLD_SCALE) / 100;
+    const clientScale = game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_SCALE) / 100;
+    this.#hoverArt.style.setProperty(
+      "--rnps-hover-scale",
+      String((hover.scale ?? 1) * worldScale * clientScale)
+    );
+    this.#hoverArt.dataset.side = groupId === GROUP_IDS.NPCS ? "right" : "left";
+    this.#hoverArt.append(media);
+    return true;
+  }
+
+  #positionHover(card, groupId) {
+    const rect = card.getBoundingClientRect();
+    const bottom = game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET);
+    this.#hoverArt.style.bottom = `${bottom}px`;
+    this.#hoverBlocks.style.top = `${Math.max(8, rect.top)}px`;
+    if (groupId === GROUP_IDS.NPCS) {
+      this.#hoverBlocks.dataset.side = "right";
+      const right = window.innerWidth - rect.left + 8;
+      this.#hoverArt.style.right = `${right}px`;
+      this.#hoverArt.style.left = "auto";
+      this.#hoverBlocks.style.right = `${right}px`;
+      this.#hoverBlocks.style.left = "auto";
+    } else {
+      this.#hoverBlocks.dataset.side = "left";
+      const left = rect.right + 8;
+      this.#hoverArt.style.left = `${left}px`;
+      this.#hoverArt.style.right = "auto";
+      this.#hoverBlocks.style.left = `${left}px`;
+      this.#hoverBlocks.style.right = "auto";
+    }
+  }
+
+  #showTokenHighlight(actor, { suppressImageHover = false } = {}) {
+    const tokens = canvas.tokens?.placeables?.filter(token => (
+      token.actor?.uuid === actor.uuid
+      && token.visible !== false
+      && token.isVisible !== false
+      && (game.user.isGM || token.document?.hidden !== true)
+    )) ?? [];
+    this.#highlightedTokens = tokens.filter(token => !token.hover);
+    const adapter = getCompatibilityAdapter();
+    this.#highlightedTokens.forEach(token => {
+      const hover = () => adapter.hoverToken(token, { hoverOutOthers: false });
+      if (suppressImageHover) withImageHoverSuppressed(hover);
+      else hover();
+    });
+    return tokens.length;
+  }
+
+  #hideTokenHighlight() {
+    const adapter = getCompatibilityAdapter();
+    for (const token of this.#highlightedTokens) adapter.unhoverToken(token);
+    this.#highlightedTokens = [];
+  }
+
+  #hideHover() {
+    this.#hoverVersion += 1;
+    this.#hideTokenHighlight();
+    this.#hoverArt?.replaceChildren();
+    this.#hoverBlocks?.replaceChildren();
+    if (this.#hoverLayer) this.#hoverLayer.hidden = true;
+  }
+
+  #renderRegisteredActions(card, view, groupId) {
+    const api = game.modules.get(MODULE_ID)?.api;
+    const definitions = (api?.actions?.list?.() ?? []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    let actionIndex = 0;
+    for (const definition of definitions) {
+      try {
+        const context = { card, view, entry: view.entry, actor: view.actor, variant: view.variant, groupId };
+        if (definition.isVisible && !definition.isVisible(context)) continue;
+        const button = this.#portraitButton(
+          "rnps-ui-extension-action",
+          definition.icon ?? "fa-solid fa-puzzle-piece",
+          definition.label ?? definition.id,
+          async () => {
+            try {
+              await definition.onClick?.({
+                ...context,
+                updateEntry: changes => updateCastEntry(view.id, changes, { layer: view.entry.layer })
+              });
+            } catch (error) {
+              console.error(`${MODULE_ID} | Portrait action '${definition.id}' failed`, error);
+              ui.notifications.error(error.message);
+            }
+          }
+        );
+        button.style.setProperty("--rnps-action-index", String(actionIndex));
+        actionIndex += 1;
+        button.classList.toggle("active", Boolean(definition.isActive?.(context)));
+        card.append(button);
+      } catch (error) {
+        console.error(`${MODULE_ID} | Portrait action '${definition.id}' failed`, error);
+      }
+    }
   }
 
   #applySettings() {
@@ -340,4 +527,10 @@ export const portraitStage = new PortraitStage();
 function cssUrl(value) {
   const escaped = String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
   return `url("${escaped}")`;
+}
+
+function htmlToElement(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+  return template.content.firstElementChild;
 }

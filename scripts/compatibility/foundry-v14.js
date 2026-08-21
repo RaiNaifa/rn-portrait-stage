@@ -13,5 +13,13 @@ export const foundryV14Adapter = Object.freeze({
 
   clone(value) {
     return foundry.utils.deepClone(value);
+  },
+
+  hoverToken(token, { hoverOutOthers = false } = {}) {
+    token?._onHoverIn?.(new MouseEvent("mouseenter"), { hoverOutOthers });
+  },
+
+  unhoverToken(token) {
+    token?._onHoverOut?.(new MouseEvent("mouseleave"));
   }
 });

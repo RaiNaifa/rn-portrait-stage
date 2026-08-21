@@ -145,6 +145,15 @@
   bottom: 8px;
 }
 
+.rnps-ui-extension-action {
+  right: calc(38px + var(--rnps-action-index, 0) * 30px);
+  bottom: 8px;
+}
+
+.rnps-ui-extension-action.active {
+  color: rgb(255 179 0);
+}
+
 .rnps-ui-assignment-indicator {
   position: absolute;
   top: 42px;
@@ -196,6 +205,68 @@
 .rnps-stage-group--npcs .rnps-ui-action {
   right: auto;
   left: 4px;
+}
+
+.rnps-stage-group--npcs .rnps-ui-extension-action {
+  right: auto;
+  left: calc(38px + var(--rnps-action-index, 0) * 30px);
+}
+
+.rnps-hover-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rnps-hover-art {
+  position: fixed;
+  z-index: 1;
+  max-width: 55vw;
+  transform: scale(var(--rnps-hover-scale, 1));
+}
+
+.rnps-hover-art[data-side="left"] {
+  transform-origin: bottom left;
+}
+
+.rnps-hover-art[data-side="right"] {
+  transform-origin: bottom right;
+}
+
+.rnps-hover-art > img,
+.rnps-hover-art > video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 55vw;
+  max-height: 82vh;
+  border: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 90%));
+}
+
+.rnps-hover-art > .mirrored {
+  transform: scaleX(-1);
+}
+
+.rnps-hover-blocks {
+  position: fixed;
+  z-index: 2;
+  display: flex;
+  max-width: 40vw;
+  max-height: calc(100vh - 16px);
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rnps-hover-blocks[data-side="right"] {
+  align-items: flex-end;
+}
+
+.rnps-hover-blocks > .rnps-litm-tags {
+  position: relative;
 }
 
 .rnps-portrait:hover > .rnps-ui-action,
@@ -318,6 +389,22 @@
   gap: 6px;
 }
 
+.rnps-manager-extension-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 6px;
+}
+
+.rnps-manager-extension-toolbar > span {
+  margin-right: auto;
+}
+
+.rnps-manager-extension-toolbar button {
+  width: auto;
+  flex: 0 1 auto;
+}
+
 .rnps-preview-bar > span {
   margin-right: auto;
 }
@@ -348,6 +435,21 @@
 .rnps-manager-tabs button.active {
   color: rgb(255 179 0);
   box-shadow: 0 0 0 1px rgb(255 179 0 / 55%) inset;
+}
+
+.rnps-manager-scene-options {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.rnps-manager-scene-options label {
+  margin-right: auto;
+}
+
+.rnps-manager-scene-options select {
+  width: 190px;
 }
 
 .rnps-presets {

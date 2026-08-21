@@ -8,7 +8,8 @@ export function createDefaultSceneState() {
     schemaVersion: SCENE_SCHEMA_VERSION,
     layout: {
       pcPortraitSize: null,
-      npcPortraitSize: null
+      npcPortraitSize: null,
+      tokenHighlight: null
     },
     groups: {
       [GROUP_IDS.PCS]: {
@@ -27,6 +28,9 @@ export function normalizeSceneState(source) {
   const normalized = createDefaultSceneState();
   normalized.layout.pcPortraitSize = normalizePortraitSize(state.layout?.pcPortraitSize);
   normalized.layout.npcPortraitSize = normalizePortraitSize(state.layout?.npcPortraitSize);
+  normalized.layout.tokenHighlight = typeof state.layout?.tokenHighlight === "boolean"
+    ? state.layout.tokenHighlight
+    : null;
 
   for (const groupId of Object.values(GROUP_IDS)) {
     const entries = state.groups?.[groupId]?.entries;

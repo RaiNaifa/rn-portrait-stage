@@ -1,8 +1,8 @@
 export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
-export const SCENE_SCHEMA_VERSION = 4;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 3;
+export const SCENE_SCHEMA_VERSION = 5;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 4;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -42,6 +42,13 @@ export const SETTING_KEYS = Object.freeze({
   NPC_DIRECTION: "npcDirection",
   PC_DIRECTION_OVERRIDE: "pcDirectionOverride",
   NPC_DIRECTION_OVERRIDE: "npcDirectionOverride",
+  HOVER_ART_DEFAULT_SOURCE: "hoverArtDefaultSource",
+  HOVER_ART_BOTTOM_OFFSET: "hoverArtBottomOffset",
+  HOVER_ART_WORLD_SCALE: "hoverArtWorldScale",
+  HOVER_ART_SCALE: "hoverArtScale",
+  TOKEN_HIGHLIGHT_DEFAULT: "tokenHighlightDefault",
+  IMAGE_HOVER_PRIORITY: "imageHoverPriority",
+  LITM_INTEGRATION_ENABLED: "litmIntegrationEnabled",
   PREVIEW_SESSION: "previewSession",
   CAST_PRESETS: "castPresets"
 });

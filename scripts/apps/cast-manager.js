@@ -5,6 +5,7 @@ import {
   moveCastEntry,
   removeCastEntry,
   setCastPortraitSize,
+  setCastTokenHighlight,
   updateCastEntry
 } from "../data/cast-service.js";
 import {
@@ -54,7 +55,9 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       savePreset: CastManager.#savePreset,
       previewPreset: CastManager.#previewPreset,
       applyPreset: CastManager.#applyPreset,
-      deletePreset: CastManager.#deletePreset
+      deletePreset: CastManager.#deletePreset,
+      showAllLitmTags: CastManager.#showAllLitmTags,
+      hideAllLitmTags: CastManager.#hideAllLitmTags
     }
   };
 
@@ -95,9 +98,14 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       previewStale: preview.active && previewIsStale(scene),
       previewPresetId: preview.presetId,
       previewPresetName: preview.presetName,
+      litmIntegrationEnabled: game.system.id === "litm-rn"
+        && game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED),
       compositionTab: this.#tab === "composition",
       presetsTab: this.#tab === "presets",
       presets: await this.#preparePresets(),
+      tokenHighlightDefault: state.layout.tokenHighlight === null,
+      tokenHighlightEnabled: state.layout.tokenHighlight === true,
+      tokenHighlightDisabled: state.layout.tokenHighlight === false,
       hint: game.i18n.localize("RNPS.Manager.Hint"),
       groups,
       reserve: await prepareReserveActors()
@@ -190,6 +198,11 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         if (image.src !== CONST.DEFAULT_TOKEN) image.src = CONST.DEFAULT_TOKEN;
       }, { once: true });
     }
+    this.element.querySelector("[name='tokenHighlightMode']")?.addEventListener("change", async event => {
+      const value = event.currentTarget.value;
+      await setCastTokenHighlight(value === "inherit" ? null : value === "enabled");
+      this.render();
+    });
   }
 
   #onDragOver(event) {
@@ -428,6 +441,30 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!id) return;
     await deleteCastPreset(id);
     this.render();
+  }
+
+  static async #showAllLitmTags() {
+    await this.#setAllLitmTags(true);
+    this.render();
+  }
+
+  static async #hideAllLitmTags() {
+    await this.#setAllLitmTags(false);
+    this.render();
+  }
+
+  async #setAllLitmTags(visible) {
+    const state = getCombinedCastState(canvas.scene);
+    for (const entry of Object.values(GROUP_IDS).flatMap(groupId => state.groups[groupId].entries)) {
+      await updateCastEntry(entry.id, {
+        flags: {
+          "litm-rn": {
+            ...(entry.flags?.["litm-rn"] ?? {}),
+            tagsVisible: visible
+          }
+        }
+      }, { layer: entry.layer });
+    }
   }
 }
 

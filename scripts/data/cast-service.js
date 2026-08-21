@@ -76,6 +76,7 @@ export function getCombinedCastState(scene = canvas.scene) {
     ?? layers[CAST_LAYERS.PERSISTENT].layout.pcPortraitSize;
   combined.layout.npcPortraitSize = sceneState.layout.npcPortraitSize
     ?? layers[CAST_LAYERS.PERSISTENT].layout.npcPortraitSize;
+  combined.layout.tokenHighlight = sceneState.layout.tokenHighlight;
   return resequence(combined);
 }
 
@@ -158,7 +159,10 @@ export async function updateCastEntry(entryId, changes, {
     userVariants: changes.userVariants === undefined
       ? location.entry.userVariants
       : { ...changes.userVariants },
-    labelOverride: changes.labelOverride === undefined ? location.entry.labelOverride : changes.labelOverride
+    labelOverride: changes.labelOverride === undefined ? location.entry.labelOverride : changes.labelOverride,
+    flags: changes.flags === undefined
+      ? location.entry.flags
+      : foundry.utils.mergeObject(location.entry.flags ?? {}, changes.flags, { inplace: false })
   };
   state.groups[location.groupId].entries.splice(location.index, 1);
   if (targetLayer === sourceLayer) {
@@ -232,6 +236,14 @@ export async function setCastPortraitSize(size, {
   const key = normalizeGroupId(groupId) === GROUP_IDS.NPCS ? "npcPortraitSize" : "pcPortraitSize";
   state.layout[key] = Number.isFinite(size) ? Math.max(48, Math.min(480, size)) : null;
   return setLayerState(normalizedLayer, scene, state);
+}
+
+export async function setCastTokenHighlight(value, { scene = canvas.scene } = {}) {
+  requireGm();
+  requireScene(scene);
+  const state = getLayerState(CAST_LAYERS.SCENE, scene);
+  state.layout.tokenHighlight = typeof value === "boolean" ? value : null;
+  return setLayerState(CAST_LAYERS.SCENE, scene, state);
 }
 
 export async function clearCast({ scene = canvas.scene, layer = CAST_LAYERS.SCENE, groupId = null } = {}) {

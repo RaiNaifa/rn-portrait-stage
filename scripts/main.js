@@ -8,6 +8,7 @@ import { portraitStage } from "./portraits/portrait-stage.js";
 import { navigationButton } from "./ui/navigation-button.js";
 import { initializeSocketService } from "./data/socket-service.js";
 import { syncPreviewScene } from "./data/preview-service.js";
+import { registerLitmIntegration } from "./integrations/litm-rn.js";
 
 Hooks.once("init", () => {
   logger.info(`Initializing ${MODULE_TITLE}`);
@@ -34,6 +35,7 @@ Hooks.once("ready", () => {
   initializeSocketService();
   const adapter = getCompatibilityAdapter();
   const api = game.modules.get(MODULE_ID)?.api;
+  registerLitmIntegration(api);
 
   portraitStage.initialize();
   navigationButton.initialize();

@@ -60,7 +60,13 @@ export function createDefaultVariantSettings() {
       playbackRate: 1
     },
     transition: { enabled: false, enter: "none", exit: "none", duration: 300, delay: 0 },
-    hover: { enabled: false, image: null, enlarged: false, tokenHighlight: false },
+    hover: {
+      enabled: true,
+      source: "inherit",
+      customSrc: null,
+      scale: 1,
+      mirrored: false
+    },
     effects: []
   };
 }
@@ -190,7 +196,25 @@ export function normalizeVariantSettings(source) {
       fit: ["contain", "cover"].includes(media.fit) ? media.fit : "contain"
     },
     transition: { ...fallback.transition, ...transition },
-    hover: { ...fallback.hover, ...hover },
+    hover: {
+      ...fallback.hover,
+      ...hover,
+      enabled: hover.enabled !== false,
+      source: ["inherit", "actor", "prototypeToken", "custom", "none"].includes(hover.source)
+        ? hover.source
+        : hover.image
+          ? "custom"
+          : hover.enlarged === false
+            ? "none"
+            : "inherit",
+      customSrc: typeof hover.customSrc === "string" && hover.customSrc
+        ? hover.customSrc
+        : typeof hover.image === "string" && hover.image
+          ? hover.image
+          : null,
+      scale: Number.isFinite(hover.scale) ? Math.max(0.1, Math.min(5, hover.scale)) : 1,
+      mirrored: hover.mirrored === true
+    },
     effects: Array.isArray(source?.effects) ? [...source.effects] : []
   };
 }

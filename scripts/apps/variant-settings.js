@@ -112,6 +112,11 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       alignLeft: settings.label.align === "left",
       alignCenter: settings.label.align === "center",
       alignRight: settings.label.align === "right",
+      hoverInherit: settings.hover.source === "inherit",
+      hoverActor: settings.hover.source === "actor",
+      hoverToken: settings.hover.source === "prototypeToken",
+      hoverCustom: settings.hover.source === "custom",
+      hoverNone: settings.hover.source === "none",
       gmMacrosText: (variant.gm?.macros ?? []).join("\n"),
       gmScriptsText: (variant.gm?.scripts ?? []).join("\n")
     };
@@ -135,6 +140,8 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     if (custom) custom.hidden = inherit || this.element.querySelector("[name='labelMode']")?.value !== "custom";
     const selectedUsers = this.element.querySelector("[data-access-users]");
     if (selectedUsers) selectedUsers.hidden = this.element.querySelector("[name='accessMode']")?.value !== "selected";
+    const hoverCustom = this.element.querySelector("[data-hover-custom-image]");
+    if (hoverCustom) hoverCustom.hidden = this.element.querySelector("[name='hoverSource']")?.value !== "custom";
   }
 
   #schedule(delay) {
@@ -188,10 +195,11 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         delay: number("transitionDelay", 0)
       },
       hover: {
-        enabled: values.get("hoverEnabled") === "on",
-        image: String(values.get("hoverImage") || "") || null,
-        enlarged: values.get("hoverEnlarged") === "on",
-        tokenHighlight: values.get("hoverTokenHighlight") === "on"
+        enabled: true,
+        source: String(values.get("hoverSource") || "inherit"),
+        customSrc: String(values.get("hoverCustomSrc") || "") || null,
+        scale: number("hoverScale", 1),
+        mirrored: values.get("hoverMirrored") === "on"
       },
       effects: variant.settings?.effects ?? []
     });

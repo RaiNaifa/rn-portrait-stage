@@ -97,6 +97,82 @@ export function registerSettings() {
     }
   });
 
+  register(SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE, {
+    name: "RNPS.Settings.HoverArtDefaultSource.Name",
+    hint: "RNPS.Settings.HoverArtDefaultSource.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      actor: "RNPS.HoverArt.ActorImage",
+      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage",
+      none: "RNPS.HoverArt.None"
+    },
+    default: "actor"
+  });
+
+  register(SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET, {
+    name: "RNPS.Settings.HoverArtBottomOffset.Name",
+    hint: "RNPS.Settings.HoverArtBottomOffset.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0,
+    range: { min: 0, max: 500, step: 1 }
+  });
+
+  register(SETTING_KEYS.HOVER_ART_WORLD_SCALE, {
+    name: "RNPS.Settings.HoverArtWorldScale.Name",
+    hint: "RNPS.Settings.HoverArtWorldScale.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 25, max: 200, step: 5 }
+  });
+
+  register(SETTING_KEYS.HOVER_ART_SCALE, {
+    name: "RNPS.Settings.HoverArtScale.Name",
+    hint: "RNPS.Settings.HoverArtScale.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 50, max: 150, step: 5 }
+  });
+
+  register(SETTING_KEYS.TOKEN_HIGHLIGHT_DEFAULT, {
+    name: "RNPS.Settings.TokenHighlightDefault.Name",
+    hint: "RNPS.Settings.TokenHighlightDefault.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  register(SETTING_KEYS.IMAGE_HOVER_PRIORITY, {
+    name: "RNPS.Settings.ImageHoverPriority.Name",
+    hint: "RNPS.Settings.ImageHoverPriority.Hint",
+    scope: "world",
+    config: game.modules.get("image-hover")?.active === true,
+    type: String,
+    choices: {
+      rnps: "RNPS.Settings.ImageHoverPriority.Rnps",
+      imageHover: "RNPS.Settings.ImageHoverPriority.ImageHover",
+      both: "RNPS.Settings.ImageHoverPriority.Both"
+    },
+    default: "rnps"
+  });
+
+  register(SETTING_KEYS.LITM_INTEGRATION_ENABLED, {
+    name: "RNPS.Settings.LitmIntegrationEnabled.Name",
+    hint: "RNPS.Settings.LitmIntegrationEnabled.Hint",
+    scope: "world",
+    config: game.system.id === "litm-rn",
+    type: Boolean,
+    default: true
+  });
+
   const fontChoices = getAvailableFontChoices();
   register(SETTING_KEYS.LABEL_FONT_FAMILY, {
     name: "RNPS.Settings.LabelFontFamily.Name",

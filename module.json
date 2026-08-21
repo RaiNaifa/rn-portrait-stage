@@ -2,7 +2,7 @@
   "id": "rn-portrait-stage",
   "title": "RN Portrait Stage",
   "description": "System-agnostic portrait staging for characters and NPCs in the Foundry VTT interface.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "authors": [
     {
       "name": "RN"
