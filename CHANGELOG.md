@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1 — Unreleased
+
+- Made portrait visibility fully GM-controlled and removed the client hide setting.
+- Removed the obsolete default portrait-size setting; unconfigured groups use an internal 160px default and manager sizes remain authoritative.
+- Added a client portrait scale from 50% to 150%.
+- Made portrait spacing and PC/NPC offsets world settings controlled by the GM.
+- Added world PC/NPC directions plus client overrides which inherit the GM value by default.
+- Split experimental voice activation into a world permission and a client opt-in enabled by default.
+- Made debug logging client-scoped and removed the unused reduced-motion setting; browser `prefers-reduced-motion` remains supported.
+
 ## 0.4.0 — Unreleased
 
 - Added per-variant ApplicationV2 settings for labels, typography, media framing, transitions, hover behavior, effects foundations, and GM automation metadata.

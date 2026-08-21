@@ -15,16 +15,16 @@
         "Hint": "Write additional RN Portrait Stage diagnostic information to the browser console."
       },
       "ExperimentalVoiceEnabled": {
-        "Name": "Enable experimental voice-activated portraits",
-        "Hint": "Allow users to opt into local microphone activity detection. No audio is transmitted or recorded by this module."
+        "Name": "Use voice activation on this client",
+        "Hint": "Locally enables experimental microphone activity detection when allowed by the GM. No audio is transmitted or recorded."
       },
-      "ModuleVisible": {
-        "Name": "Show portrait stage",
-        "Hint": "Show RN Portrait Stage portrait groups for this user."
+      "ExperimentalVoiceAllowed": {
+        "Name": "Allow experimental voice activation",
+        "Hint": "Allows users to use local microphone activity detection for portraits. This feature remains experimental."
       },
-      "PortraitSize": {
-        "Name": "Portrait size",
-        "Hint": "Default portrait size for this user, in pixels."
+      "PortraitScale": {
+        "Name": "Personal portrait scale",
+        "Hint": "Scales the GM-defined portrait sizes on this client."
       },
       "LabelFontFamily": {
         "Name": "Portrait label font",
@@ -48,7 +48,7 @@
       },
       "PortraitGap": {
         "Name": "Portrait spacing",
-        "Hint": "Default gap between portraits for this user, in pixels."
+        "Hint": "World-level gap between portraits in pixels, controlled by the GM."
       },
       "PcOffsetX": {
         "Name": "Character group horizontal offset",
@@ -75,12 +75,17 @@
         "Hint": "Choose whether NPC portraits are arranged from top to bottom or bottom to top."
       },
       "Direction": {
+        "Inherit": "Use GM setting",
         "Down": "Top to bottom",
         "Up": "Bottom to top"
       },
-      "ReducedMotion": {
-        "Name": "Reduce portrait motion",
-        "Hint": "Reduce or disable non-essential portrait animations for this user."
+      "PcDirectionOverride": {
+        "Name": "Personal character direction",
+        "Hint": "Use the GM world direction or override it only on this client."
+      },
+      "NpcDirectionOverride": {
+        "Name": "Personal NPC direction",
+        "Hint": "Use the GM world direction or override it only on this client."
       }
     },
     "Groups": {

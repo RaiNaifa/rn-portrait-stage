@@ -105,8 +105,8 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: entries.filter(Boolean),
       isPcs: id === GROUP_IDS.PCS,
       portraitSize: id === GROUP_IDS.PCS
-        ? state.layout.pcPortraitSize ?? game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SIZE)
-        : state.layout.npcPortraitSize ?? game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SIZE)
+        ? state.layout.pcPortraitSize ?? 160
+        : state.layout.npcPortraitSize ?? 160
     };
   }
 

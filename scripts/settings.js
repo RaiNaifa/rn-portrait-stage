@@ -59,6 +59,15 @@ export function registerSettings() {
   register(SETTING_KEYS.DEBUG_LOGGING, {
     name: "RNPS.Settings.DebugLogging.Name",
     hint: "RNPS.Settings.DebugLogging.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  register(SETTING_KEYS.EXPERIMENTAL_VOICE_ALLOWED, {
+    name: "RNPS.Settings.ExperimentalVoiceAllowed.Name",
+    hint: "RNPS.Settings.ExperimentalVoiceAllowed.Hint",
     scope: "world",
     config: true,
     type: Boolean,
@@ -68,32 +77,23 @@ export function registerSettings() {
   register(SETTING_KEYS.EXPERIMENTAL_VOICE_ENABLED, {
     name: "RNPS.Settings.ExperimentalVoiceEnabled.Name",
     hint: "RNPS.Settings.ExperimentalVoiceEnabled.Hint",
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: false
-  });
-
-  register(SETTING_KEYS.MODULE_VISIBLE, {
-    name: "RNPS.Settings.ModuleVisible.Name",
-    hint: "RNPS.Settings.ModuleVisible.Hint",
-    scope: "user",
+    scope: "client",
     config: true,
     type: Boolean,
     default: true
   });
 
-  register(SETTING_KEYS.PORTRAIT_SIZE, {
-    name: "RNPS.Settings.PortraitSize.Name",
-    hint: "RNPS.Settings.PortraitSize.Hint",
-    scope: "user",
+  register(SETTING_KEYS.PORTRAIT_SCALE, {
+    name: "RNPS.Settings.PortraitScale.Name",
+    hint: "RNPS.Settings.PortraitScale.Hint",
+    scope: "client",
     config: true,
     type: Number,
-    default: 160,
+    default: 100,
     range: {
-      min: 48,
-      max: 480,
-      step: 1
+      min: 50,
+      max: 150,
+      step: 5
     }
   });
 
@@ -150,7 +150,7 @@ export function registerSettings() {
   register(SETTING_KEYS.PORTRAIT_GAP, {
     name: "RNPS.Settings.PortraitGap.Name",
     hint: "RNPS.Settings.PortraitGap.Hint",
-    scope: "user",
+    scope: "world",
     config: true,
     type: Number,
     default: 8,
@@ -170,7 +170,7 @@ export function registerSettings() {
     register(key, {
       name: `RNPS.Settings.${labelKey}.Name`,
       hint: `RNPS.Settings.${labelKey}.Hint`,
-      scope: "user",
+      scope: "world",
       config: true,
       type: Number,
       default: defaultValue,
@@ -189,7 +189,7 @@ export function registerSettings() {
     register(key, {
       name: `RNPS.Settings.${labelKey}.Name`,
       hint: `RNPS.Settings.${labelKey}.Hint`,
-      scope: "user",
+      scope: "world",
       config: true,
       type: String,
       choices: {
@@ -200,14 +200,24 @@ export function registerSettings() {
     });
   }
 
-  register(SETTING_KEYS.REDUCED_MOTION, {
-    name: "RNPS.Settings.ReducedMotion.Name",
-    hint: "RNPS.Settings.ReducedMotion.Hint",
-    scope: "user",
-    config: true,
-    type: Boolean,
-    default: false
-  });
+  for (const [key, labelKey] of [
+    [SETTING_KEYS.PC_DIRECTION_OVERRIDE, "PcDirectionOverride"],
+    [SETTING_KEYS.NPC_DIRECTION_OVERRIDE, "NpcDirectionOverride"]
+  ]) {
+    register(key, {
+      name: `RNPS.Settings.${labelKey}.Name`,
+      hint: `RNPS.Settings.${labelKey}.Hint`,
+      scope: "client",
+      config: true,
+      type: String,
+      choices: {
+        inherit: "RNPS.Settings.Direction.Inherit",
+        down: "RNPS.Settings.Direction.Down",
+        up: "RNPS.Settings.Direction.Up"
+      },
+      default: "inherit"
+    });
+  }
 
   logger.debug("Settings registered");
 }

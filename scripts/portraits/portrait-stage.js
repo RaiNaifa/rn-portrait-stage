@@ -48,8 +48,7 @@ export class PortraitStage {
     this.#attachGroups();
     if (!this.#groups.size) return;
     const version = ++this.#renderVersion;
-    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.MODULE_VISIBLE)
-      && game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
+    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
     for (const group of this.#groups.values()) group.hidden = !visible;
     if (!visible) {
       this.#setPcLayoutActive(false);
@@ -216,16 +215,17 @@ export class PortraitStage {
 
   #applySettings() {
     const state = getCombinedCastState(canvas.scene);
-    const fallbackSize = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SIZE);
-    const pcSize = state.layout.pcPortraitSize ?? fallbackSize;
-    const npcSize = state.layout.npcPortraitSize ?? fallbackSize;
+    const fallbackSize = 160;
+    const scale = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_SCALE) / 100;
+    const pcSize = (state.layout.pcPortraitSize ?? fallbackSize) * scale;
+    const npcSize = (state.layout.npcPortraitSize ?? fallbackSize) * scale;
     const gap = game.settings.get(MODULE_ID, SETTING_KEYS.PORTRAIT_GAP);
     const fontFamily = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_FAMILY);
     const fontSize = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_SIZE);
 
-    for (const [groupId, directionKey, offsetXKey, offsetYKey] of [
-      [GROUP_IDS.PCS, SETTING_KEYS.PC_DIRECTION, SETTING_KEYS.PC_OFFSET_X, SETTING_KEYS.PC_OFFSET_Y],
-      [GROUP_IDS.NPCS, SETTING_KEYS.NPC_DIRECTION, SETTING_KEYS.NPC_OFFSET_X, SETTING_KEYS.NPC_OFFSET_Y]
+    for (const [groupId, directionKey, directionOverrideKey, offsetXKey, offsetYKey] of [
+      [GROUP_IDS.PCS, SETTING_KEYS.PC_DIRECTION, SETTING_KEYS.PC_DIRECTION_OVERRIDE, SETTING_KEYS.PC_OFFSET_X, SETTING_KEYS.PC_OFFSET_Y],
+      [GROUP_IDS.NPCS, SETTING_KEYS.NPC_DIRECTION, SETTING_KEYS.NPC_DIRECTION_OVERRIDE, SETTING_KEYS.NPC_OFFSET_X, SETTING_KEYS.NPC_OFFSET_Y]
     ]) {
       const group = this.#groups.get(groupId);
       const size = groupId === GROUP_IDS.PCS ? pcSize : npcSize;
@@ -235,7 +235,10 @@ export class PortraitStage {
       group.style.setProperty("--rnps-label-font-size", `${fontSize}px`);
       group.style.setProperty("--rnps-offset-x", `${game.settings.get(MODULE_ID, offsetXKey)}px`);
       group.style.setProperty("--rnps-offset-y", `${game.settings.get(MODULE_ID, offsetYKey)}px`);
-      group.dataset.direction = game.settings.get(MODULE_ID, directionKey);
+      const directionOverride = game.settings.get(MODULE_ID, directionOverrideKey);
+      group.dataset.direction = directionOverride === "inherit"
+        ? game.settings.get(MODULE_ID, directionKey)
+        : directionOverride;
     }
 
     const leftColumn = document.querySelector("#ui-left-column-2");

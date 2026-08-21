@@ -25,9 +25,9 @@ export const SETTING_KEYS = Object.freeze({
   ALLOW_PLAYER_PORTRAIT_CHANGES: "allowPlayerPortraitChanges",
   ALLOW_OWNER_VARIANT_CONFIGURATION: "allowOwnerVariantConfiguration",
   DEBUG_LOGGING: "debugLogging",
-  EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabled",
-  MODULE_VISIBLE: "moduleVisible",
-  PORTRAIT_SIZE: "portraitSize",
+  EXPERIMENTAL_VOICE_ALLOWED: "experimentalVoiceAllowed",
+  EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabledClient",
+  PORTRAIT_SCALE: "portraitScale",
   LABEL_FONT_FAMILY: "labelFontFamily",
   LABEL_FONT_SIZE: "labelFontSize",
   PERSISTENT_STATE: "persistentState",
@@ -40,7 +40,8 @@ export const SETTING_KEYS = Object.freeze({
   NPC_OFFSET_Y: "npcOffsetY",
   PC_DIRECTION: "pcDirection",
   NPC_DIRECTION: "npcDirection",
-  REDUCED_MOTION: "reducedMotion"
+  PC_DIRECTION_OVERRIDE: "pcDirectionOverride",
+  NPC_DIRECTION_OVERRIDE: "npcDirectionOverride"
 });
 
 export const HOOKS = Object.freeze({
