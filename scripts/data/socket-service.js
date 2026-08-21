@@ -1,5 +1,6 @@
 import { MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { getCastEntry, updateCastEntry } from "./cast-service.js";
+import { canUserAccessVariant, getActorLibrary } from "./actor-library.js";
 
 const CHANNEL = `module.${MODULE_ID}`;
 
@@ -10,8 +11,10 @@ export function initializeSocketService() {
     const requestingUser = game.users.get(message.userId);
     const entry = getCastEntry(message.entryId, { layer: message.layer });
     const actor = entry ? await fromUuid(entry.actorUuid) : null;
-    if (!requestingUser || !actor?.testUserPermission(requestingUser, "OWNER")) return;
+    if (!requestingUser || !actor) return;
     if (!game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)) return;
+    const variant = getActorLibrary(actor).variants.find(item => item.id === message.changes?.activeVariantId);
+    if (!variant || !canUserAccessVariant(variant, actor, requestingUser)) return;
     await updateCastEntry(message.entryId, message.changes, { layer: message.layer });
   });
 }
@@ -21,7 +24,8 @@ export async function requestCastEntryUpdate(entryId, changes, { layer, actor } 
   if (!game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)) {
     throw new Error(game.i18n.localize("RNPS.Notifications.PlayerChangesDisabled"));
   }
-  if (!actor?.testUserPermission(game.user, "OWNER")) {
+  const variant = getActorLibrary(actor).variants.find(item => item.id === changes.activeVariantId);
+  if (!variant || !canUserAccessVariant(variant, actor, game.user)) {
     throw new Error(game.i18n.localize("RNPS.Notifications.ActorPermission"));
   }
   game.socket.emit(CHANNEL, {

@@ -1,0 +1,20 @@
+{{#if missing}}
+  <p class="notification warning">{{localize "RNPS.Notifications.ActorUnavailable"}}</p>
+{{else}}
+  <div class="rnps-audience-content standard-form">
+    <p class="hint">{{localize "RNPS.VariantAudience.Hint" variant=variantName}}</p>
+    <div class="rnps-user-list">
+      {{#each users as |user|}}
+        <label class="checkbox">
+          <input type="checkbox" name="userIds" value="{{user.id}}" {{#if user.selected}}checked{{/if}}>
+          <span>{{user.name}}</span>
+          {{#if user.assignedVariant}}{{#unless user.selected}}<i class="fa-solid fa-circle-info" data-tooltip="{{localize 'RNPS.VariantAudience.OtherAssignment'}}"></i>{{/unless}}{{/if}}
+        </label>
+      {{/each}}
+    </div>
+    <footer class="form-footer">
+      <button type="button" data-action="apply"><i class="fa-solid fa-users"></i> {{localize "RNPS.VariantAudience.Apply"}}</button>
+      <button type="button" data-action="clear"><i class="fa-solid fa-users-slash"></i> {{localize "RNPS.VariantAudience.Clear"}}</button>
+    </footer>
+  </div>
+{{/if}}

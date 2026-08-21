@@ -1,10 +1,12 @@
-import { CAST_LAYERS, GROUP_IDS, MODULE_ID } from "../constants.js";
-import { createPortraitVariant, setActorLibrary } from "../data/actor-library.js";
+import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
+import { canUserAccessVariant, createPortraitVariant, setActorLibrary } from "../data/actor-library.js";
 import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry, updateReserveEntry } from "../data/reserve-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
 import { preparePortraitView, resolvePortraitImage } from "../portraits/portrait-data.js";
 import { createPortraitMedia, isVideoPath } from "../media.js";
+import { VariantSettings } from "./variant-settings.js";
+import { VariantAudience } from "./variant-audience.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -23,7 +25,9 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       addVariant: PortraitEditor.#addVariant,
       activateVariant: PortraitEditor.#activateVariant,
-      removeVariant: PortraitEditor.#removeVariant
+      removeVariant: PortraitEditor.#removeVariant,
+      configureVariant: PortraitEditor.#configureVariant,
+      assignVariant: PortraitEditor.#assignVariant
     },
     form: { closeOnSubmit: false, handler: PortraitEditor.#onSubmit }
   };
@@ -55,7 +59,11 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const view = entry ? await preparePortraitView(entry) : null;
     if (!entry || !view) return { ...context, missing: true };
     const library = view.library;
-    const variants = library.variants.map(variant => {
+    const canConfigure = game.user.isGM || (
+      view.actor.testUserPermission(game.user, "OWNER")
+      && game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_OWNER_VARIANT_CONFIGURATION)
+    );
+    const variants = library.variants.filter(variant => canUserAccessVariant(variant, view.actor)).map(variant => {
       const isBuiltin = ["actor", "prototypeToken"].includes(variant.id);
       const hasImage = isBuiltin || Boolean(variant.image?.customSrc);
       const previewImage = hasImage ? resolvePortraitImage(entry, view.actor, variant) : null;
@@ -70,8 +78,9 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       hasImage,
       previewImage,
       isVideo: isVideoPath(previewImage),
-      selected: variant.id === (entry.activeVariantId ?? library.defaultVariantId),
-      isDefault: variant.id === library.defaultVariantId
+      selected: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? library.defaultVariantId),
+      isDefault: variant.id === library.defaultVariantId,
+      assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
     }});
     return {
       ...context,
@@ -81,6 +90,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       previewImage: view.image,
       previewIsVideo: view.isVideo,
       variants,
+      canConfigure,
+      isGM: game.user.isGM,
       activeVariantId: entry.activeVariantId ?? library.defaultVariantId,
       isPcs: entry.groupId === GROUP_IDS.PCS,
       isNpcs: entry.groupId === GROUP_IDS.NPCS,
@@ -183,8 +194,10 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const source = readTileValue(tile, "variantSource");
     const path = readTileValue(tile, "variantPath");
-    const preview = this.element.querySelector(".rnps-editor-preview img");
-    if (preview) preview.src = resolveDraftImage(source, path, preview.src, tile);
+    const preview = this.element.querySelector(".rnps-editor-preview img, .rnps-editor-preview video");
+    const tileMedia = tile.querySelector(":scope > img, :scope > video");
+    const draftImage = source === "custom" ? path : tileMedia?.getAttribute("src");
+    if (preview && draftImage) preview.replaceWith(createPortraitMedia(draftImage));
     this.#scheduleAutosave(0);
   }
 
@@ -194,6 +207,16 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (tile?.dataset.variantId === activeInput?.value) activeInput.value = "actor";
     tile?.remove();
     this.#scheduleAutosave(0);
+  }
+
+  static #configureVariant(event, target) {
+    const variantId = target.closest("[data-variant-tile]")?.dataset.variantId;
+    if (variantId) VariantSettings.open(this.#entryId, this.#layer, variantId);
+  }
+
+  static #assignVariant(event, target) {
+    const variantId = target.closest("[data-variant-tile]")?.dataset.variantId;
+    if (variantId && game.user.isGM) VariantAudience.open(this.#entryId, this.#layer, variantId);
   }
 
   static async #onSubmit(event, form) {
@@ -209,7 +232,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!entry || !view) return;
     const existing = view.library;
     const oldById = new Map(existing.variants.map(variant => [variant.id, variant]));
-    const variants = [...form.querySelectorAll("[data-variant-tile]")].map(tile => {
+    const editedVariants = [...form.querySelectorAll("[data-variant-tile]")].map(tile => {
       const id = readTileValue(tile, "variantId");
       const previous = oldById.get(id);
       return {
@@ -219,11 +242,16 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
           source: readTileValue(tile, "variantSource") || "custom",
           customSrc: readTileValue(tile, "variantPath") || null
         }),
-        hover: previous?.hover ?? {},
-        effects: previous?.effects ?? [],
+        access: previous?.access,
+        settings: previous?.settings,
+        gm: previous?.gm,
         flags: previous?.flags ?? {}
       };
     });
+    const hiddenVariants = game.user.isGM
+      ? []
+      : existing.variants.filter(variant => !canUserAccessVariant(variant, view.actor));
+    const variants = [...editedVariants, ...hiddenVariants];
     if (!variants.length) variants.push(createPortraitVariant({ id: "actor", name: "Actor portrait", source: "actor" }));
 
     const requestedActive = String(values.get("activeVariantId") || "");
@@ -242,7 +270,10 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         : "actor"
     });
     const entryChanges = {
-      activeVariantId
+      activeVariantId,
+      userVariants: Object.fromEntries(Object.entries(entry.userVariants ?? {}).filter(([, variantId]) => (
+        variants.some(variant => variant.id === variantId)
+      )))
     };
     if (app.#layer === CAST_LAYERS.RESERVE) {
       await updateReserveEntry(app.#entryId, entryChanges);
@@ -263,11 +294,6 @@ function readTileValue(tile, name) {
   if (typeof attribute === "string" && attribute.trim()) return attribute.trim();
   const nested = field.shadowRoot?.querySelector("input") ?? field.querySelector?.("input");
   return typeof nested?.value === "string" ? nested.value.trim() : "";
-}
-
-function resolveDraftImage(source, path, fallback, tile) {
-  if (source === "custom") return path || fallback;
-  return tile.querySelector("img")?.src || fallback;
 }
 
 function createEmptyVariantPlaceholder() {

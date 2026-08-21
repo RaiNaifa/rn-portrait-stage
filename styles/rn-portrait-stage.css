@@ -141,6 +141,54 @@
   bottom: 8px;
 }
 
+.rnps-ui-assignment-indicator {
+  position: absolute;
+  top: 42px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  color: rgb(255 179 0);
+  gap: 3px;
+}
+
+.rnps-ui-assignment-variant {
+  position: relative;
+  display: block;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.rnps-ui-assignment-variant > img,
+.rnps-ui-assignment-variant > video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
+
+.rnps-ui-assignment-variant > b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgb(255 179 0);
+  color: #111;
+  font-size: 9px;
+}
+
+.rnps-stage-group--npcs .rnps-ui-assignment-indicator {
+  right: auto;
+  left: 4px;
+}
+
 .rnps-stage-group--npcs .rnps-ui-action {
   right: auto;
   left: 4px;
@@ -175,8 +223,11 @@
   mask-position: center;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  mask-size: contain;
+  -webkit-mask-size: var(--rnps-media-fit, contain);
+  mask-size: var(--rnps-media-fit, contain);
+  opacity: var(--rnps-media-opacity, 1);
+  transform: var(--rnps-media-transform, none);
+  transform-origin: center;
 }
 
 .rnps-portrait-image > img,
@@ -185,8 +236,11 @@
   width: 100%;
   height: 100%;
   border: 0;
-  object-fit: contain;
+  object-fit: var(--rnps-media-fit, contain);
+  opacity: var(--rnps-media-opacity, 1);
   pointer-events: none;
+  transform: var(--rnps-media-transform, none);
+  transform-origin: center;
 }
 
 .rnps-portrait-image--mirrored {
@@ -366,6 +420,47 @@
   gap: 3px;
 }
 
+.rnps-manager-assignment {
+  position: absolute;
+  top: 50%;
+  right: 98px;
+  display: flex;
+  align-items: center;
+  color: rgb(255 179 0);
+  gap: 3px;
+  transform: translateY(-50%);
+  font-size: 10px;
+}
+
+.rnps-manager-assignment-variant {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.rnps-manager-assignment-variant > img,
+.rnps-manager-assignment-variant > video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
+
+.rnps-manager-assignment-variant > b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  min-width: 14px;
+  height: 14px;
+  place-items: center;
+  border-radius: 7px;
+  background: rgb(255 179 0);
+  color: #111;
+  font-size: 8px;
+}
+
 .rnps-entry-actions--top {
   top: 4px;
 }
@@ -527,8 +622,44 @@
 
 .rnps-variant-tile > strong,
 .rnps-variant-tile > file-picker,
-.rnps-variant-tile > [data-action="activateVariant"] {
+.rnps-variant-configure-row,
+.rnps-variant-activation-row {
   grid-column: 1 / -1;
+}
+
+.rnps-variant-configure-row,
+.rnps-variant-activation-row {
+  display: flex;
+  gap: 5px;
+}
+
+.rnps-variant-configure-row > button:first-child,
+.rnps-variant-activation-row > button:first-child {
+  flex: 1;
+}
+
+.rnps-variant-configure-row > button.icon,
+.rnps-variant-activation-row > button.icon {
+  position: relative;
+  flex: 0 0 34px;
+  width: 34px;
+  margin: 0;
+  padding: 0;
+}
+
+.rnps-assignment-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgb(255 179 0);
+  color: #111;
+  font-size: 9px;
 }
 
 .rnps-variant-picker-grid {
@@ -571,6 +702,60 @@
 
 .rnps-manager-entry video.mirrored {
   transform: scaleX(-1);
+}
+
+.rnps-variant-settings-content {
+  overflow-y: auto;
+  height: 100%;
+  padding: 12px;
+}
+
+.rnps-variant-settings-content fieldset {
+  margin: 0 0 12px;
+}
+
+.rnps-variant-settings-preview {
+  display: grid;
+  align-items: center;
+  margin-bottom: 12px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.rnps-variant-settings-preview img,
+.rnps-variant-settings-preview video {
+  width: 96px;
+  height: 96px;
+  border: 0;
+  object-fit: contain;
+}
+
+.rnps-variant-settings-preview > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rnps-variant-settings-preview strong {
+  font-size: 18px;
+}
+
+.rnps-variant-settings-preview span {
+  opacity: 0.7;
+}
+
+.rnps-user-list {
+  display: grid;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rnps-audience-content {
+  padding: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

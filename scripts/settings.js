@@ -47,6 +47,15 @@ export function registerSettings() {
     default: true
   });
 
+  register(SETTING_KEYS.ALLOW_OWNER_VARIANT_CONFIGURATION, {
+    name: "RNPS.Settings.AllowOwnerVariantConfiguration.Name",
+    hint: "RNPS.Settings.AllowOwnerVariantConfiguration.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
   register(SETTING_KEYS.DEBUG_LOGGING, {
     name: "RNPS.Settings.DebugLogging.Name",
     hint: "RNPS.Settings.DebugLogging.Hint",

@@ -33,6 +33,9 @@ Milestone 1 adds:
 - scene persistence, sorting, grouping, and portrait configuration;
 - persistent portraits which remain visible between scene changes, merged with scene-specific portraits;
 - reusable Actor portrait libraries with multiple named variants and per-cast active variants;
+- per-variant labels, typography, media framing, and explicit player access policies;
+- GM-controlled individual variant assignments with a global fallback variant;
+- stored foundations for transitions, hover behavior, portrait effects, macros, and scripts;
 - configurable labels, shared cast sizing, alpha-aware shadows, and image-masked lower gradients;
 - absolutely positioned NPC grid which never moves mini-chat, wraps into columns toward the left, and reacts to chat notifications;
 - GM-controlled global show/hide switch; staged entries remain saved while hidden;

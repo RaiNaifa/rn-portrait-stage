@@ -1,4 +1,4 @@
-import { ACTOR_LIBRARY_SCHEMA_VERSION, FLAGS, MODULE_ID } from "../constants.js";
+import { ACTOR_LIBRARY_SCHEMA_VERSION, FLAGS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 
 const IMAGE_SOURCES = new Set(["actor", "prototypeToken", "custom"]);
 
@@ -27,9 +27,37 @@ export function createPortraitVariant({
       source: IMAGE_SOURCES.has(source) ? source : "custom",
       customSrc: typeof customSrc === "string" && customSrc ? customSrc : null
     },
-    hover: {},
-    effects: [],
+    access: { mode: "owners", userIds: [] },
+    settings: createDefaultVariantSettings(),
+    gm: { scripts: [], macros: [] },
     flags: {}
+  };
+}
+
+export function createDefaultVariantSettings() {
+  return {
+    label: {
+      inherit: true,
+      mode: "actor",
+      custom: "",
+      fontFamily: null,
+      fontSize: null,
+      color: null,
+      shadowColor: null,
+      align: "center"
+    },
+    media: {
+      fit: "contain",
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      mirrored: false,
+      opacity: 1,
+      playbackRate: 1
+    },
+    transition: { enabled: false, enter: "none", exit: "none", duration: 300, delay: 0 },
+    hover: { enabled: false, image: null, enlarged: false, tokenHighlight: false },
+    effects: []
   };
 }
 
@@ -39,8 +67,17 @@ export function normalizeActorLibrary(source, actor = null) {
   const variants = Array.isArray(source.variants)
     ? source.variants.map(normalizeVariant).filter(Boolean)
     : [];
+  const builtinVariants = fallback.variants.map(builtin => {
+    const existing = variants.find(variant => variant.id === builtin.id);
+    return existing ? {
+      ...existing,
+      id: builtin.id,
+      name: builtin.name,
+      image: builtin.image
+    } : builtin;
+  });
   const customVariants = variants.filter(variant => !["actor", "prototypeToken"].includes(variant.id));
-  variants.splice(0, variants.length, ...fallback.variants, ...customVariants);
+  variants.splice(0, variants.length, ...builtinVariants, ...customVariants);
   const defaultVariantId = variants.some(variant => variant.id === source.defaultVariantId)
     ? source.defaultVariantId
     : variants[0].id;
@@ -65,9 +102,20 @@ export async function setActorLibrary(actor, library) {
   if (!actor?.isOwner && !game.user?.isGM) {
     throw new Error(game.i18n.localize("RNPS.Notifications.ActorPermission"));
   }
+  if (!game.user?.isGM && !game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_OWNER_VARIANT_CONFIGURATION)) {
+    throw new Error(game.i18n.localize("RNPS.Notifications.ActorPermission"));
+  }
   const normalized = normalizeActorLibrary(library, actor);
   await actor.setFlag(MODULE_ID, FLAGS.ACTOR_LIBRARY, normalized);
   return normalized;
+}
+
+export async function updateActorVariant(actor, variantId, changes) {
+  const library = getActorLibrary(actor);
+  const index = library.variants.findIndex(variant => variant.id === variantId);
+  if (index < 0) throw new Error(`Portrait variant '${variantId}' was not found.`);
+  library.variants[index] = normalizeVariant({ ...library.variants[index], ...changes });
+  return setActorLibrary(actor, library);
 }
 
 export function getActorVariant(actor, variantId = null) {
@@ -86,9 +134,61 @@ function normalizeVariant(source) {
     customSrc: source.image?.customSrc
   });
   variant.hover = isPlainObject(source.hover) ? { ...source.hover } : {};
-  variant.effects = Array.isArray(source.effects) ? [...source.effects] : [];
+  variant.access = normalizeAccess(source.access);
+  variant.settings = normalizeVariantSettings(source.settings ?? {
+    hover: source.hover,
+    effects: source.effects
+  });
+  variant.gm = {
+    scripts: Array.isArray(source.gm?.scripts) ? [...source.gm.scripts] : [],
+    macros: Array.isArray(source.gm?.macros) ? [...source.gm.macros] : []
+  };
   variant.flags = isPlainObject(source.flags) ? { ...source.flags } : {};
   return variant;
+}
+
+export function normalizeAccess(source) {
+  const modes = new Set(["gm", "owners", "selected", "everyone"]);
+  return {
+    mode: modes.has(source?.mode) ? source.mode : "owners",
+    userIds: Array.isArray(source?.userIds)
+      ? [...new Set(source.userIds.filter(id => typeof id === "string"))]
+      : []
+  };
+}
+
+export function normalizeVariantSettings(source) {
+  const fallback = createDefaultVariantSettings();
+  const label = isPlainObject(source?.label) ? source.label : {};
+  const media = isPlainObject(source?.media) ? source.media : {};
+  const transition = isPlainObject(source?.transition) ? source.transition : {};
+  const hover = isPlainObject(source?.hover) ? source.hover : {};
+  return {
+    label: {
+      ...fallback.label,
+      ...label,
+      inherit: label.inherit !== false,
+      mode: ["actor", "prototypeToken", "custom", "hidden"].includes(label.mode) ? label.mode : "actor"
+    },
+    media: {
+      ...fallback.media,
+      ...media,
+      fit: ["contain", "cover"].includes(media.fit) ? media.fit : "contain"
+    },
+    transition: { ...fallback.transition, ...transition },
+    hover: { ...fallback.hover, ...hover },
+    effects: Array.isArray(source?.effects) ? [...source.effects] : []
+  };
+}
+
+export function canUserAccessVariant(variant, actor, user = game.user) {
+  if (!variant || !user) return false;
+  if (user.isGM) return true;
+  const access = normalizeAccess(variant.access);
+  if (access.mode === "everyone") return true;
+  if (access.mode === "selected") return access.userIds.includes(user.id);
+  if (access.mode === "owners") return actor?.testUserPermission(user, "OWNER") === true;
+  return false;
 }
 
 function isPlainObject(value) {

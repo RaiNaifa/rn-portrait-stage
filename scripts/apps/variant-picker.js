@@ -1,8 +1,10 @@
 import { MODULE_ID } from "../constants.js";
+import { canUserAccessVariant } from "../data/actor-library.js";
 import { getCastEntry } from "../data/cast-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
 import { preparePortraitView, resolvePortraitImage } from "../portraits/portrait-data.js";
 import { isVideoPath } from "../media.js";
+import { VariantAudience } from "./variant-audience.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -12,7 +14,7 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["rn-portrait-stage-app", "rn-portrait-stage-variant-picker"],
     position: { width: 560, height: "auto" },
     window: { icon: "fa-solid fa-images", title: "RNPS.VariantPicker.Title", resizable: true },
-    actions: { activate: VariantPicker.#activate }
+    actions: { activate: VariantPicker.#activate, assign: VariantPicker.#assign }
   };
 
   static PARTS = {
@@ -40,7 +42,8 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       ...context,
       missing: false,
-      variants: view.library.variants.map(variant => {
+      isGM: game.user.isGM,
+      variants: view.library.variants.filter(variant => canUserAccessVariant(variant, view.actor)).map(variant => {
         const isBuiltin = ["actor", "prototypeToken"].includes(variant.id);
         const hasImage = isBuiltin || Boolean(variant.image?.customSrc);
         const previewImage = hasImage ? resolvePortraitImage(entry, view.actor, variant) : null;
@@ -54,7 +57,8 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
         previewImage,
         hasImage,
         isVideo: isVideoPath(previewImage),
-        active: variant.id === (entry.activeVariantId ?? view.library.defaultVariantId)
+        active: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? view.library.defaultVariantId),
+        assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
       }})
     };
   }
@@ -69,8 +73,14 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
       layer: this.#layer,
       actor: view.actor
     });
+    const displayedVariantId = entry.userVariants?.[game.user.id] ?? variantId;
     for (const tile of this.element.querySelectorAll("[data-variant-id]")) {
-      tile.classList.toggle("active", tile.dataset.variantId === variantId);
+      tile.classList.toggle("active", tile.dataset.variantId === displayedVariantId);
     }
+  }
+
+  static #assign(event, target) {
+    const variantId = target.closest("[data-variant-id]")?.dataset.variantId;
+    if (variantId && game.user.isGM) VariantAudience.open(this.#entryId, this.#layer, variantId);
   }
 }

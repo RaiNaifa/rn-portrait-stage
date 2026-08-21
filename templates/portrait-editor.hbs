@@ -42,9 +42,17 @@
             {{else}}
               <input type="text" name="variantName" value="{{variant.name}}" aria-label="{{localize 'RNPS.Editor.VariantName'}}">
               <file-picker name="variantPath" type="imagevideo" value="{{variant.image.customSrc}}"></file-picker>
-              <button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
             {{/if}}
-            <button type="button" data-action="activateVariant" {{#unless variant.hasImage}}disabled{{/unless}}><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>
+            {{#if @root.canConfigure}}
+              <div class="rnps-variant-configure-row">
+                <button type="button" data-action="configureVariant"><i class="fa-solid fa-sliders" aria-hidden="true"></i> {{localize "RNPS.Editor.ConfigureVariant"}}</button>
+                {{#unless variant.isBuiltin}}<button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>{{/unless}}
+              </div>
+            {{/if}}
+            <div class="rnps-variant-activation-row">
+              <button type="button" data-action="activateVariant" {{#unless variant.hasImage}}disabled{{/unless}}><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>
+              {{#if @root.isGM}}<button type="button" class="icon" data-action="assignVariant" data-tooltip="{{localize 'RNPS.Editor.ActivateForUsers'}}" {{#unless variant.hasImage}}disabled{{/unless}}><i class="fa-solid fa-users" aria-hidden="true"></i>{{#if variant.assignedUsers}}<span class="rnps-assignment-count">{{variant.assignedUsers}}</span>{{/if}}</button>{{/if}}
+            </div>
           </section>
         {{/each}}
       </div>
@@ -56,8 +64,8 @@
           <div class="rnps-variant-placeholder"><i class="fa-solid fa-image" aria-hidden="true"></i><span>{{localize "RNPS.Editor.ImageNotSelected"}}</span></div>
           <input type="text" name="variantName" value="{{localize 'RNPS.Editor.NewVariant'}}" aria-label="{{localize 'RNPS.Editor.VariantName'}}">
           <file-picker name="variantPath" type="imagevideo"></file-picker>
-          <button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
-          <button type="button" data-action="activateVariant" disabled><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>
+          <div class="rnps-variant-configure-row"><button type="button" data-action="configureVariant"><i class="fa-solid fa-sliders" aria-hidden="true"></i> {{localize "RNPS.Editor.ConfigureVariant"}}</button><button type="button" class="icon" data-action="removeVariant" data-tooltip="{{localize 'RNPS.Editor.DeleteVariant'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></div>
+          <div class="rnps-variant-activation-row"><button type="button" data-action="activateVariant" disabled><i class="fa-solid fa-check" aria-hidden="true"></i> {{localize "RNPS.Editor.ActivateVariant"}}</button>{{#if isGM}}<button type="button" class="icon" data-action="assignVariant" disabled><i class="fa-solid fa-users"></i></button>{{/if}}</div>
         </section>
       </template>
     </fieldset>

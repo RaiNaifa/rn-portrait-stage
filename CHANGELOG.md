@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — Unreleased
+
+- Added per-variant ApplicationV2 settings for labels, typography, media framing, transitions, hover behavior, effects foundations, and GM automation metadata.
+- Added explicit variant access modes: GM only, Actor owners, selected players, or everyone.
+- Added a world setting allowing Actor owners to configure variants available to them without exposing GM-only variants or controls.
+- Allowed explicitly authorized non-owners to open Change Portrait and activate accessible variants for everyone.
+- Added GM-only per-user variant assignments, assignment management, and indicators on staged and manager portraits.
+- Added per-user active variant resolution while preserving one global fallback variant.
+- Added scene schema v4 and Actor portrait-library schema v2 normalization.
+
 ## 0.3.1 — 2026-08-21
 
 - Prevented empty custom portrait variants from being activated while keeping them as editable drafts.

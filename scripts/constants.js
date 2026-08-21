@@ -1,8 +1,8 @@
 export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
-export const SCENE_SCHEMA_VERSION = 3;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 1;
+export const SCENE_SCHEMA_VERSION = 4;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 2;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -23,6 +23,7 @@ export const CAST_LAYERS = Object.freeze({
 
 export const SETTING_KEYS = Object.freeze({
   ALLOW_PLAYER_PORTRAIT_CHANGES: "allowPlayerPortraitChanges",
+  ALLOW_OWNER_VARIANT_CONFIGURATION: "allowOwnerVariantConfiguration",
   DEBUG_LOGGING: "debugLogging",
   EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabled",
   MODULE_VISIBLE: "moduleVisible",

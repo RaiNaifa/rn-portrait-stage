@@ -28,6 +28,7 @@
                   <span class="rnps-entry-name">{{portrait.name}}</span>
                 {{/if}}
                 {{#if @root.isGM}}
+                  {{#if portrait.personalizedUsers}}<span class="rnps-manager-assignment" data-tooltip="{{portrait.personalizedSummary}}">{{#each portrait.personalizedVariants as |assignment|}}<span class="rnps-manager-assignment-variant" data-tooltip="{{assignment.tooltip}}">{{#if assignment.isVideo}}<video src="{{assignment.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{assignment.image}}" alt="">{{/if}}<b>{{assignment.count}}</b></span>{{/each}}</span>{{/if}}
                   <div class="rnps-entry-actions rnps-entry-actions--top">
                     {{#unless portrait.missing}}<button type="button" data-action="edit" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>{{/unless}}
                     <button type="button" data-action="remove" data-tooltip="{{localize 'RNPS.Controls.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>

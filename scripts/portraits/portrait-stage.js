@@ -5,6 +5,7 @@ import { preparePortraitView } from "./portrait-data.js";
 import { PortraitEditor } from "../apps/portrait-editor.js";
 import { VariantPicker } from "../apps/variant-picker.js";
 import { createPortraitMedia } from "../media.js";
+import { canUserAccessVariant } from "../data/actor-library.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -99,9 +100,18 @@ export class PortraitStage {
 
       const imageLayer = document.createElement("div");
       imageLayer.className = "rnps-portrait-image";
-      imageLayer.classList.toggle("rnps-portrait-image--mirrored", view.entry.mirrored);
+      const mediaSettings = view.variant.settings?.media ?? {};
+      const mediaTransform = `translate(${mediaSettings.offsetX ?? 0}px, ${mediaSettings.offsetY ?? 0}px) scale(${mediaSettings.scale ?? 1})`;
+      imageLayer.style.setProperty("--rnps-media-transform", mediaTransform);
+      imageLayer.style.setProperty("--rnps-media-fit", mediaSettings.fit ?? "contain");
+      imageLayer.style.setProperty("--rnps-media-opacity", String(mediaSettings.opacity ?? 1));
+      imageLayer.classList.toggle(
+        "rnps-portrait-image--mirrored",
+        Boolean(view.entry.mirrored) !== Boolean(mediaSettings.mirrored)
+      );
 
       const image = createPortraitMedia(view.image);
+      if (image instanceof HTMLVideoElement) image.playbackRate = mediaSettings.playbackRate ?? 1;
       imageLayer.style.setProperty("--rnps-image", cssUrl(image.src));
       image.addEventListener("error", () => {
         if (image.src !== CONST.DEFAULT_TOKEN) {
@@ -116,22 +126,55 @@ export class PortraitStage {
         const name = document.createElement("span");
         name.className = "rnps-portrait-name";
         name.textContent = view.label;
+        const labelSettings = view.variant.settings?.label;
+        if (labelSettings?.inherit === false) {
+          if (labelSettings.fontFamily) name.style.fontFamily = labelSettings.fontFamily;
+          if (labelSettings.fontSize) name.style.fontSize = `${labelSettings.fontSize}px`;
+          if (labelSettings.color) name.style.color = labelSettings.color;
+          if (labelSettings.shadowColor) name.style.textShadow = `0 1px 2px ${labelSettings.shadowColor}, 0 0 5px ${labelSettings.shadowColor}`;
+          name.style.textAlign = labelSettings.align ?? "center";
+        }
         card.append(name);
       }
 
-      const canManage = game.user.isGM || (
-        game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)
-        && view.actor.testUserPermission(game.user, "OWNER")
+      const canConfigure = game.user.isGM || (
+        view.actor.testUserPermission(game.user, "OWNER")
+        && game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_OWNER_VARIANT_CONFIGURATION)
       );
-      if (canManage) {
+      const canSwitch = game.user.isGM || (
+        game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)
+        && view.library.variants.some(variant => canUserAccessVariant(variant, view.actor))
+      );
+      if (canConfigure) {
         card.append(
           this.#portraitButton("rnps-ui-configure", "fa-solid fa-gear", "RNPS.Controls.Edit", () => {
             PortraitEditor.open(view.id, view.entry.layer);
-          }),
+          })
+        );
+      }
+      if (canSwitch) {
+        card.append(
           this.#portraitButton("rnps-ui-switch", "fa-solid fa-images", "RNPS.Controls.ChangePortrait", () => {
             VariantPicker.open(view.id, view.entry.layer);
           })
         );
+      }
+      if (game.user.isGM && view.personalizedUsers > 0) {
+        const indicator = document.createElement("span");
+        indicator.className = "rnps-ui-assignment-indicator";
+        indicator.dataset.tooltip = `${game.i18n.format("RNPS.Controls.PersonalizedUsers", { count: view.personalizedUsers })}\n${view.personalizedSummary}`;
+        for (const assignment of view.personalizedVariants) {
+          const item = document.createElement("span");
+          item.className = "rnps-ui-assignment-variant";
+          item.dataset.tooltip = assignment.tooltip;
+          const thumbnail = createPortraitMedia(assignment.image);
+          item.append(thumbnail);
+          const count = document.createElement("b");
+          count.textContent = String(assignment.count);
+          item.append(count);
+          indicator.append(item);
+        }
+        card.append(indicator);
       }
 
       card.addEventListener("dblclick", () => {

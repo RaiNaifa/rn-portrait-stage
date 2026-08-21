@@ -25,6 +25,7 @@ export function createPortraitEntry(actorUuid, {
     actions: [],
     effects: [],
     activeVariantId: typeof activeVariantId === "string" ? activeVariantId : null,
+    userVariants: {},
     flags: {}
   };
 }
@@ -53,8 +54,16 @@ export function normalizePortraitEntry(source, fallbackGroupId = GROUP_IDS.PCS) 
     actions: Array.isArray(source.actions) ? [...source.actions] : [],
     effects: Array.isArray(source.effects) ? [...source.effects] : [],
     activeVariantId: typeof source.activeVariantId === "string" ? source.activeVariantId : null,
+    userVariants: normalizeUserVariants(source.userVariants),
     flags: isPlainObject(source.flags) ? { ...source.flags } : {}
   };
+}
+
+function normalizeUserVariants(source) {
+  if (!isPlainObject(source)) return {};
+  return Object.fromEntries(Object.entries(source).filter(([userId, variantId]) => (
+    typeof userId === "string" && typeof variantId === "string" && variantId
+  )));
 }
 
 export function normalizeGroupId(groupId) {

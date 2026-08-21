@@ -1,0 +1,70 @@
+{{#if missing}}
+  <p class="notification warning">{{localize "RNPS.Notifications.ActorPermission"}}</p>
+{{else}}
+  <div class="rnps-variant-settings-content">
+    <header class="rnps-variant-settings-preview">
+      {{#if isVideo}}<video src="{{image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{image}}" alt="">{{/if}}
+      <div><strong>{{variantName}}</strong><span>{{actorName}}</span></div>
+    </header>
+
+    <fieldset>
+      <legend>{{localize "RNPS.VariantSettings.Label"}}</legend>
+      <label class="checkbox"><input type="checkbox" name="labelInherit" {{#if settings.label.inherit}}checked{{/if}}> {{localize "RNPS.VariantSettings.InheritLabel"}}</label>
+      <div data-label-overrides>
+        <div class="form-group"><label>{{localize "RNPS.Editor.LabelMode"}}</label><div class="form-fields"><select name="labelMode">
+          <option value="actor" {{#if labelActor}}selected{{/if}}>{{localize "RNPS.Editor.ActorName"}}</option>
+          <option value="prototypeToken" {{#if labelToken}}selected{{/if}}>{{localize "RNPS.Editor.PrototypeTokenName"}}</option>
+          <option value="custom" {{#if labelCustom}}selected{{/if}}>{{localize "RNPS.Editor.CustomLabel"}}</option>
+          <option value="hidden" {{#if labelHidden}}selected{{/if}}>{{localize "RNPS.Editor.HiddenLabel"}}</option>
+        </select></div></div>
+        <div class="form-group" data-variant-custom-label><label>{{localize "RNPS.Editor.CustomLabel"}}</label><div class="form-fields"><input type="text" name="labelCustom" value="{{settings.label.custom}}"></div></div>
+        <div class="form-group"><label>{{localize "RNPS.Settings.LabelFontFamily.Name"}}</label><div class="form-fields"><select name="labelFontFamily"><option value="">{{localize "RNPS.VariantSettings.UseGlobal"}}</option>{{#each fonts as |font|}}<option value="{{font.value}}" {{#if font.selected}}selected{{/if}}>{{font.label}}</option>{{/each}}</select></div></div>
+        <div class="form-group"><label>{{localize "RNPS.Settings.LabelFontSize.Name"}}</label><div class="form-fields"><input type="number" name="labelFontSize" min="8" max="72" step="1" value="{{settings.label.fontSize}}"></div></div>
+        <div class="form-group"><label>{{localize "RNPS.VariantSettings.TextColor"}}</label><div class="form-fields"><color-picker name="labelColor" value="{{settings.label.color}}"></color-picker></div></div>
+        <div class="form-group"><label>{{localize "RNPS.VariantSettings.ShadowColor"}}</label><div class="form-fields"><color-picker name="labelShadowColor" value="{{settings.label.shadowColor}}"></color-picker></div></div>
+        <div class="form-group"><label>{{localize "RNPS.VariantSettings.TextAlign"}}</label><div class="form-fields"><select name="labelAlign"><option value="left" {{#if alignLeft}}selected{{/if}}>{{localize "RNPS.VariantSettings.Left"}}</option><option value="center" {{#if alignCenter}}selected{{/if}}>{{localize "RNPS.VariantSettings.Center"}}</option><option value="right" {{#if alignRight}}selected{{/if}}>{{localize "RNPS.VariantSettings.Right"}}</option></select></div></div>
+      </div>
+    </fieldset>
+
+    <fieldset><legend>{{localize "RNPS.VariantSettings.Media"}}</legend>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Fit"}}</label><div class="form-fields"><select name="mediaFit"><option value="contain" {{#if fitContain}}selected{{/if}}>contain</option><option value="cover" {{#if fitCover}}selected{{/if}}>cover</option></select></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Scale"}}</label><div class="form-fields"><input type="number" name="mediaScale" min="0.1" max="5" step="0.05" value="{{settings.media.scale}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.OffsetX"}}</label><div class="form-fields"><input type="number" name="mediaOffsetX" step="1" value="{{settings.media.offsetX}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.OffsetY"}}</label><div class="form-fields"><input type="number" name="mediaOffsetY" step="1" value="{{settings.media.offsetY}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Opacity"}}</label><div class="form-fields"><input type="range" name="mediaOpacity" min="0" max="1" step="0.05" value="{{settings.media.opacity}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.PlaybackRate"}}</label><div class="form-fields"><input type="number" name="mediaPlaybackRate" min="0.1" max="4" step="0.1" value="{{settings.media.playbackRate}}"></div></div>
+      <label class="checkbox"><input type="checkbox" name="mediaMirrored" {{#if settings.media.mirrored}}checked{{/if}}> {{localize "RNPS.Controls.Mirror"}}</label>
+    </fieldset>
+
+    <fieldset><legend>{{localize "RNPS.VariantSettings.Transition"}}</legend>
+      <label class="checkbox"><input type="checkbox" name="transitionEnabled" {{#if settings.transition.enabled}}checked{{/if}}> {{localize "RNPS.VariantSettings.Enabled"}}</label>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.EnterEffect"}}</label><div class="form-fields"><select name="transitionEnter"><option value="none" {{#if enterNone}}selected{{/if}}>None</option><option value="fade" {{#if enterFade}}selected{{/if}}>Fade</option><option value="slide" {{#if enterSlide}}selected{{/if}}>Slide</option><option value="scale" {{#if enterScale}}selected{{/if}}>Scale</option></select></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Duration"}}</label><div class="form-fields"><input type="number" name="transitionDuration" min="0" max="10000" step="50" value="{{settings.transition.duration}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Delay"}}</label><div class="form-fields"><input type="number" name="transitionDelay" min="0" max="10000" step="50" value="{{settings.transition.delay}}"></div></div>
+      <p class="hint">{{localize "RNPS.VariantSettings.FoundationOnly"}}</p>
+    </fieldset>
+
+    <fieldset><legend>{{localize "RNPS.VariantSettings.Hover"}}</legend>
+      <label class="checkbox"><input type="checkbox" name="hoverEnabled" {{#if settings.hover.enabled}}checked{{/if}}> {{localize "RNPS.VariantSettings.Enabled"}}</label>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.HoverImage"}}</label><div class="form-fields"><file-picker name="hoverImage" type="imagevideo" value="{{settings.hover.image}}"></file-picker></div></div>
+      <label class="checkbox"><input type="checkbox" name="hoverEnlarged" {{#if settings.hover.enlarged}}checked{{/if}}> {{localize "RNPS.VariantSettings.Enlarged"}}</label>
+      <label class="checkbox"><input type="checkbox" name="hoverTokenHighlight" {{#if settings.hover.tokenHighlight}}checked{{/if}}> {{localize "RNPS.VariantSettings.TokenHighlight"}}</label>
+      <p class="hint">{{localize "RNPS.VariantSettings.FoundationOnly"}}</p>
+    </fieldset>
+
+    <fieldset><legend>{{localize "RNPS.VariantSettings.Effects"}}</legend><p class="hint">{{localize "RNPS.VariantSettings.EffectsLater"}}</p></fieldset>
+
+    {{#if isGM}}
+      <fieldset><legend>{{localize "RNPS.VariantSettings.Access"}}</legend>
+        <div class="form-group"><label>{{localize "RNPS.VariantSettings.WhoCanUse"}}</label><div class="form-fields"><select name="accessMode"><option value="gm" {{#if accessGm}}selected{{/if}}>{{localize "RNPS.VariantSettings.GmOnly"}}</option><option value="owners" {{#if accessOwners}}selected{{/if}}>{{localize "RNPS.VariantSettings.Owners"}}</option><option value="selected" {{#if accessSelected}}selected{{/if}}>{{localize "RNPS.VariantSettings.SelectedUsers"}}</option><option value="everyone" {{#if accessEveryone}}selected{{/if}}>{{localize "RNPS.VariantSettings.Everyone"}}</option></select></div></div>
+        <div class="rnps-user-list" data-access-users>{{#each users as |user|}}<label class="checkbox"><input type="checkbox" name="accessUserIds" value="{{user.id}}" {{#if user.selected}}checked{{/if}}> {{user.name}}</label>{{/each}}</div>
+        <p class="hint">{{localize "RNPS.VariantSettings.AccessHint"}}</p>
+      </fieldset>
+      <fieldset><legend>{{localize "RNPS.VariantSettings.Automation"}}</legend>
+        <div class="form-group stacked"><label>{{localize "RNPS.VariantSettings.Macros"}}</label><textarea name="gmMacros">{{gmMacrosText}}</textarea></div>
+        <div class="form-group stacked"><label>{{localize "RNPS.VariantSettings.Scripts"}}</label><textarea name="gmScripts">{{gmScriptsText}}</textarea></div>
+        <p class="hint">{{localize "RNPS.VariantSettings.AutomationLater"}}</p>
+      </fieldset>
+    {{/if}}
+  </div>
+{{/if}}

@@ -217,9 +217,14 @@
   actions: [],
   effects: [],
   activeVariantId: null,
+  userVariants: {},
   flags: {}
 }
 ```
+
+`activeVariantId` является общим вариантом по умолчанию. `userVariants[userId]` содержит назначенное GM индивидуальное переопределение для конкретного клиента.
+
+Библиотека портретов Actor использует схему v2. Каждый вариант содержит политику `access`, наследуемые визуальные `settings` и отдельный раздел `gm` для служебной автоматизации. На клиенте сначала разрешается `userVariants[game.user.id]`, затем общий `activeVariantId`.
 
 - [ ] **ENTRY-001 — MVP.** Использовать UUID Actor, а не только `_id`.
 - [ ] **ENTRY-002 — MVP.** Token UUID является необязательным.

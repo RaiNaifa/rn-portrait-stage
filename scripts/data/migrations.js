@@ -78,3 +78,17 @@ registerSceneMigration(2, source => ({
       : null
   }
 }));
+
+registerSceneMigration(3, source => ({
+  ...source,
+  schemaVersion: 4,
+  groups: Object.fromEntries(["pcs", "npcs"].map(groupId => [groupId, {
+    ...source.groups?.[groupId],
+    entries: (source.groups?.[groupId]?.entries ?? []).map(entry => ({
+      ...entry,
+      userVariants: entry.userVariants && typeof entry.userVariants === "object"
+        ? entry.userVariants
+        : {}
+    }))
+  }]))
+}));

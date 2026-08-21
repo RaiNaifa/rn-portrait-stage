@@ -16,6 +16,7 @@ const {
   normalizePortraitEntry
 } = await import("../data/portrait-entry.js");
 const {
+  canUserAccessVariant,
   createDefaultActorLibrary,
   normalizeActorLibrary
 } = await import("../data/actor-library.js");
@@ -37,6 +38,7 @@ assert.equal(entry.id, "test-entry-id");
 assert.equal(entry.actorUuid, "Actor.test");
 assert.equal(entry.groupId, "npcs");
 assert.equal(entry.image.source, "actor");
+assert.deepEqual(entry.userVariants, {});
 
 const normalizedEntry = normalizePortraitEntry({
   actorUuid: "Actor.test",
@@ -45,6 +47,7 @@ const normalizedEntry = normalizePortraitEntry({
 });
 assert.equal(normalizedEntry.groupId, "pcs");
 assert.equal(normalizedEntry.image.source, "actor");
+assert.deepEqual(normalizedEntry.userVariants, {});
 assert.equal(normalizePortraitEntry({ actorUuid: "Compendium.test" }), null);
 
 const library = createDefaultActorLibrary();
@@ -57,6 +60,22 @@ const normalizedLibrary = normalizeActorLibrary({
 });
 assert.equal(normalizedLibrary.label.custom, "Hero");
 assert.equal(normalizedLibrary.variants[2].image.customSrc, "angry.webp");
+assert.equal(normalizedLibrary.variants[2].access.mode, "owners");
+assert.equal(normalizedLibrary.variants[2].settings.label.inherit, true);
+const owner = { id: "owner", isGM: false };
+const guest = { id: "guest", isGM: false };
+const actor = { testUserPermission: user => user.id === "owner" };
+assert.equal(canUserAccessVariant(normalizedLibrary.variants[2], actor, owner), true);
+assert.equal(canUserAccessVariant(normalizedLibrary.variants[2], actor, guest), false);
+const selectedLibrary = normalizeActorLibrary({
+  variants: [{
+    id: "selected",
+    name: "Selected",
+    image: { source: "custom", customSrc: "selected.webp" },
+    access: { mode: "selected", userIds: ["guest"] }
+  }]
+});
+assert.equal(canUserAccessVariant(selectedLibrary.variants[2], actor, guest), true);
 
 const extensions = new ExtensionRegistry("Test extension");
 const extension = extensions.register({ id: "test.extension", value: 1 });

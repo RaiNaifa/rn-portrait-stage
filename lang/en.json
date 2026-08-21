@@ -3,8 +3,12 @@
     "Name": "RN Portrait Stage",
     "Settings": {
       "AllowPlayerPortraitChanges": {
-        "Name": "Allow player portrait changes",
-        "Hint": "Allow actor owners to change their RN Portrait Stage portrait. Document permissions are still enforced."
+        "Name": "Allow players to activate accessible variants",
+        "Hint": "Players may activate for everyone variants which the GM has made available to them."
+      },
+      "AllowOwnerVariantConfiguration": {
+        "Name": "Allow owners to configure portrait variants",
+        "Hint": "Actor owners may create, edit, and delete variants available to them. Hidden GM variants and privileged settings are not shown."
       },
       "DebugLogging": {
         "Name": "Debug logging",
@@ -95,6 +99,7 @@
       "Hide": "Hide portrait",
       "Show": "Show portrait",
       "ChangePortrait": "Change portrait",
+      "PersonalizedUsers": "Users with individual variants: {count}",
       "AddActor": "Drop an Actor here"
     },
     "Manager": {
@@ -131,6 +136,8 @@
       "NewVariant": "New variant",
       "DeleteVariant": "Delete",
       "ActivateVariant": "Activate",
+      "ConfigureVariant": "Configure",
+      "ActivateForUsers": "Activate for selected users",
       "ImageNotSelected": "No image selected",
       "ImageSource": "Image source",
       "ActorImage": "Actor portrait",
@@ -142,6 +149,55 @@
     },
     "VariantPicker": {
       "Title": "Change Portrait"
+    },
+    "VariantSettings": {
+      "Title": "Configure Portrait Variant",
+      "Label": "Label",
+      "InheritLabel": "Use global label settings",
+      "UseGlobal": "Global setting",
+      "TextColor": "Text color",
+      "ShadowColor": "Shadow color",
+      "TextAlign": "Alignment",
+      "Left": "Left",
+      "Center": "Center",
+      "Right": "Right",
+      "Media": "Image and video",
+      "Fit": "Fit",
+      "Scale": "Scale",
+      "OffsetX": "Offset X",
+      "OffsetY": "Offset Y",
+      "Opacity": "Opacity",
+      "PlaybackRate": "Video playback rate",
+      "Transition": "Transition effects",
+      "Enabled": "Enabled",
+      "EnterEffect": "Enter effect",
+      "Duration": "Duration, ms",
+      "Delay": "Delay, ms",
+      "Hover": "Hover",
+      "HoverImage": "Hover image",
+      "Enlarged": "Show enlarged portrait",
+      "TokenHighlight": "Highlight linked token",
+      "Effects": "Portrait effects",
+      "EffectsLater": "The effects structure is stored now; the editor and effect engine will be added later.",
+      "FoundationOnly": "These settings are stored now; their visual implementation will be added later.",
+      "Access": "Who can see and activate this variant",
+      "WhoCanUse": "Variant access",
+      "GmOnly": "GM only",
+      "Owners": "GM and Actor owners",
+      "SelectedUsers": "GM and selected players",
+      "Everyone": "Everyone",
+      "AccessHint": "Selected players can see this variant and activate it for everyone even without Actor ownership.",
+      "Automation": "Scripts and macros",
+      "Macros": "Macro UUIDs or names, one per line",
+      "Scripts": "Scripts, one per line",
+      "AutomationLater": "Stored as GM-only configuration. Automated execution will be implemented later."
+    },
+    "VariantAudience": {
+      "Title": "Individual Display",
+      "Hint": "Select users who should see the “{variant}” variant.",
+      "Apply": "Apply assignments",
+      "Clear": "Clear all assignments",
+      "OtherAssignment": "This user has a different individual variant assigned"
     },
     "Notifications": {
       "Initialized": "RN Portrait Stage initialized.",

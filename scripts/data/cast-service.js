@@ -150,6 +150,9 @@ export async function updateCastEntry(entryId, changes, {
     visible: changes.visible ?? location.entry.visible,
     mirrored: changes.mirrored ?? location.entry.mirrored,
     activeVariantId: changes.activeVariantId ?? location.entry.activeVariantId,
+    userVariants: changes.userVariants === undefined
+      ? location.entry.userVariants
+      : { ...changes.userVariants },
     labelOverride: changes.labelOverride === undefined ? location.entry.labelOverride : changes.labelOverride
   };
   state.groups[location.groupId].entries.splice(location.index, 1);
