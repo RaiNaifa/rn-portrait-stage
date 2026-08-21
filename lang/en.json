@@ -1,0 +1,102 @@
+{
+  "RNPS": {
+    "Name": "RN Portrait Stage",
+    "Settings": {
+      "AllowPlayerPortraitChanges": {
+        "Name": "Allow player portrait changes",
+        "Hint": "Allow actor owners to change their RN Portrait Stage portrait. Document permissions are still enforced."
+      },
+      "DebugLogging": {
+        "Name": "Debug logging",
+        "Hint": "Write additional RN Portrait Stage diagnostic information to the browser console."
+      },
+      "ExperimentalVoiceEnabled": {
+        "Name": "Enable experimental voice-activated portraits",
+        "Hint": "Allow users to opt into local microphone activity detection. No audio is transmitted or recorded by this module."
+      },
+      "ModuleVisible": {
+        "Name": "Show portrait stage",
+        "Hint": "Show RN Portrait Stage portrait groups for this user."
+      },
+      "PortraitSize": {
+        "Name": "Portrait size",
+        "Hint": "Default portrait size for this user, in pixels."
+      },
+      "PortraitGap": {
+        "Name": "Portrait spacing",
+        "Hint": "Default gap between portraits for this user, in pixels."
+      },
+      "PcOffsetX": {
+        "Name": "Character group horizontal offset",
+        "Hint": "Move the character portrait group horizontally, in pixels."
+      },
+      "PcOffsetY": {
+        "Name": "Character group vertical offset",
+        "Hint": "Move the character portrait group vertically, in pixels."
+      },
+      "NpcOffsetX": {
+        "Name": "NPC group horizontal offset",
+        "Hint": "Move the NPC portrait group horizontally, in pixels."
+      },
+      "NpcOffsetY": {
+        "Name": "NPC group vertical offset",
+        "Hint": "Move the NPC portrait group vertically, in pixels."
+      },
+      "PcDirection": {
+        "Name": "Character group direction",
+        "Hint": "Choose whether character portraits are arranged from top to bottom or bottom to top."
+      },
+      "NpcDirection": {
+        "Name": "NPC group direction",
+        "Hint": "Choose whether NPC portraits are arranged from top to bottom or bottom to top."
+      },
+      "Direction": {
+        "Down": "Top to bottom",
+        "Up": "Bottom to top"
+      },
+      "ReducedMotion": {
+        "Name": "Reduce portrait motion",
+        "Hint": "Reduce or disable non-essential portrait animations for this user."
+      }
+    },
+    "Groups": {
+      "Pcs": "Characters",
+      "Npcs": "NPCs"
+    },
+    "Controls": {
+      "OpenManager": "Open RN Portrait Stage",
+      "Edit": "Configure portrait",
+      "Remove": "Remove portrait",
+      "MoveToPcs": "Move to Characters",
+      "MoveToNpcs": "Move to NPCs",
+      "OpenActor": "Open actor sheet",
+      "AddActor": "Drop an Actor here"
+    },
+    "Manager": {
+      "Title": "RN Portrait Stage — Scene Cast",
+      "Hint": "Drag Actors from the Actors directory into either group. Drag entries to reorder or move them between groups.",
+      "Empty": "Drop Actors here",
+      "NoScene": "No active scene is available."
+    },
+    "Editor": {
+      "Title": "Configure Portrait",
+      "Actor": "Actor",
+      "Group": "Group",
+      "ImageSource": "Image source",
+      "ActorImage": "Actor portrait",
+      "PrototypeTokenImage": "Prototype token",
+      "CustomImage": "Custom image",
+      "CustomImagePath": "Custom image path",
+      "Visible": "Visible",
+      "Save": "Save"
+    },
+    "Notifications": {
+      "Initialized": "RN Portrait Stage initialized.",
+      "UnsupportedVersion": "RN Portrait Stage requires Foundry VTT v13 or v14.",
+      "GmOnly": "Only a Gamemaster can change the scene portrait cast.",
+      "ActorDropOnly": "Only Actors can be added to RN Portrait Stage.",
+      "ActorUnavailable": "The selected Actor is unavailable.",
+      "SceneUnavailable": "No active Scene is available."
+    }
+  }
+}

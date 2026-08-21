@@ -1,0 +1,50 @@
+{{#if missing}}
+  <p class="notification warning">{{localize "RNPS.Notifications.ActorUnavailable"}}</p>
+{{else}}
+  <div class="rnps-editor-content">
+    <div class="rnps-editor-preview">
+      <img src="{{previewImage}}" alt="">
+      <strong>{{actorName}}</strong>
+    </div>
+
+    <div class="form-group">
+      <label for="rnps-group-id">{{localize "RNPS.Editor.Group"}}</label>
+      <div class="form-fields">
+        <select id="rnps-group-id" name="groupId">
+          <option value="pcs" {{#if isPcs}}selected{{/if}}>{{localize "RNPS.Groups.Pcs"}}</option>
+          <option value="npcs" {{#if isNpcs}}selected{{/if}}>{{localize "RNPS.Groups.Npcs"}}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="rnps-image-source">{{localize "RNPS.Editor.ImageSource"}}</label>
+      <div class="form-fields">
+        <select id="rnps-image-source" name="imageSource">
+          <option value="actor" {{#if isActorImage}}selected{{/if}}>{{localize "RNPS.Editor.ActorImage"}}</option>
+          <option value="prototypeToken" {{#if isPrototypeTokenImage}}selected{{/if}}>{{localize "RNPS.Editor.PrototypeTokenImage"}}</option>
+          <option value="custom" {{#if isCustomImage}}selected{{/if}}>{{localize "RNPS.Editor.CustomImage"}}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group stacked">
+      <label>{{localize "RNPS.Editor.CustomImagePath"}}</label>
+      <file-picker name="customSrc" type="imagevideo" value="{{entry.image.customSrc}}"></file-picker>
+    </div>
+
+    <div class="form-group">
+      <label for="rnps-visible">{{localize "RNPS.Editor.Visible"}}</label>
+      <div class="form-fields">
+        <input id="rnps-visible" type="checkbox" name="visible" {{checked entry.visible}}>
+      </div>
+    </div>
+
+    <footer class="form-footer">
+      <button type="submit">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        {{localize "RNPS.Editor.Save"}}
+      </button>
+    </footer>
+  </div>
+{{/if}}

@@ -1,0 +1,10 @@
+{
+  "name": "rn-portrait-stage",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/dev/check.mjs",
+    "test": "node scripts/dev/foundation-tests.mjs && node scripts/dev/module-import-test.mjs"
+  }
+}

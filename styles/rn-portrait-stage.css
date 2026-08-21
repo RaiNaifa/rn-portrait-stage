@@ -1,0 +1,304 @@
+/*
+ * RN Portrait Stage foundation styles.
+ * User-facing portrait layout is introduced in Milestone 1.
+ */
+
+:root {
+  --rn-portrait-stage-size: 160px;
+  --rn-portrait-stage-gap: 8px;
+  --rn-portrait-stage-hover-color: #ffffff;
+  --rn-portrait-stage-speaking-color: #72d7ff;
+}
+
+#rn-portrait-stage-navigation-button {
+  position: fixed;
+  z-index: 70;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border-light-primary, #b5b3a4);
+  border-radius: 4px;
+  background: rgba(20, 20, 20, 0.72);
+  color: var(--color-text-light-highlight, #f0f0e0);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.55);
+}
+
+#rn-portrait-stage-navigation-button:hover {
+  border-color: var(--color-border-highlight, #ff6400);
+  color: var(--color-text-hyperlink, #ff6400);
+}
+
+.rnps-stage-group {
+  display: flex;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  flex-direction: column;
+  gap: var(--rnps-gap, 8px);
+  max-height: calc(100vh - 96px);
+  pointer-events: none;
+  transform: translate(var(--rnps-offset-x, 0), var(--rnps-offset-y, 0));
+}
+
+.rnps-stage-group[data-direction="up"] {
+  flex-direction: column-reverse;
+  margin-top: auto;
+}
+
+.rnps-stage-group--npcs {
+  align-self: flex-end;
+}
+
+#ui-left #ui-left-column-2.rnps-pc-layout {
+  flex-basis: calc(200px + var(--rnps-size, 160px) + var(--rnps-gap, 8px));
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--rnps-gap, 8px);
+}
+
+#ui-left-column-2.rnps-pc-layout > .rnps-stage-group--pcs {
+  order: 1;
+  flex: 0 0 var(--rnps-size, 160px);
+}
+
+#ui-left-column-2.rnps-pc-layout > #scene-navigation {
+  order: 2;
+  flex: 0 0 200px;
+}
+
+.rnps-portrait {
+  position: relative;
+  width: var(--rnps-size, 160px);
+  height: var(--rnps-size, 160px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(10, 10, 10, 0.52);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.rnps-portrait:hover,
+.rnps-portrait:focus-visible {
+  z-index: 2;
+  border-color: var(--rn-portrait-stage-hover-color);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.rnps-portrait > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.rnps-portrait-name {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 4px 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px #000;
+  white-space: nowrap;
+}
+
+.rnps-portrait-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.rnps-portrait:hover .rnps-portrait-actions,
+.rnps-portrait:focus-within .rnps-portrait-actions {
+  opacity: 1;
+}
+
+.rnps-portrait-actions button {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 12px;
+}
+
+.rn-portrait-stage-app .window-content {
+  padding: 0;
+}
+
+.rnps-manager-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+}
+
+.rnps-manager-content > .hint {
+  margin: 0 0 10px;
+}
+
+.rnps-manager-groups {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rnps-manager-group {
+  display: flex;
+  min-height: 260px;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--color-border-light-primary, #777);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.rnps-manager-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-light-primary, #777);
+}
+
+.rnps-manager-group h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.rnps-count {
+  min-width: 24px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.rnps-manager-list {
+  display: flex;
+  overflow-y: auto;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.rnps-manager-entry {
+  display: grid;
+  min-height: 56px;
+  align-items: center;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.rnps-manager-entry[draggable="true"] {
+  cursor: grab;
+}
+
+.rnps-manager-entry--hidden {
+  opacity: 0.5;
+}
+
+.rnps-manager-entry--missing {
+  border-color: var(--color-level-warning, #9f6b00);
+}
+
+.rnps-manager-entry img {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  object-fit: contain;
+}
+
+.rnps-entry-name {
+  overflow: hidden;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rnps-entry-actions {
+  display: flex;
+  gap: 3px;
+}
+
+.rnps-entry-actions button {
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+}
+
+.rnps-manager-empty {
+  display: grid;
+  flex: 1;
+  min-height: 160px;
+  place-content: center;
+  gap: 8px;
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  color: var(--color-text-dark-secondary, #777);
+  text-align: center;
+}
+
+.rnps-editor-content {
+  padding: 12px;
+}
+
+.rnps-editor-preview {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.rnps-editor-preview img {
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--color-border-light-primary, #777);
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-portrait-stage,
+  .rn-portrait-stage * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
