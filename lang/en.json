@@ -15,12 +15,24 @@
         "Hint": "Write additional RN Portrait Stage diagnostic information to the browser console."
       },
       "ExperimentalVoiceEnabled": {
-        "Name": "Use voice activation on this client",
+        "Name": "Use voice activation on this client (experimental)",
         "Hint": "Locally enables experimental microphone activity detection when allowed by the GM. No audio is transmitted or recorded."
       },
       "ExperimentalVoiceAllowed": {
-        "Name": "Allow experimental voice activation",
+        "Name": "Allow voice activation (experimental)",
         "Hint": "Allows users to use local microphone activity detection for portraits. This feature remains experimental."
+      },
+      "VoiceThreshold": {
+        "Name": "Voice activation threshold",
+        "Hint": "Minimum microphone signal level treated as speech. Lower it when phrase beginnings are missed; raise it when background noise triggers the portrait."
+      },
+      "VoiceAttack": {
+        "Name": "Voice indication attack delay",
+        "Hint": "How many milliseconds the signal must remain above the threshold before activating the portrait."
+      },
+      "VoiceRelease": {
+        "Name": "Voice indication release delay",
+        "Hint": "How many milliseconds of silence are required before deactivating the portrait."
       },
       "PortraitScale": {
         "Name": "Personal portrait scale",
@@ -126,6 +138,7 @@
       "Npcs": "NPCs"
     },
     "Controls": {
+      "VoiceActivation": "Voice indication",
       "OpenManager": "Open RN Portrait Stage",
       "Edit": "Configure portrait",
       "Remove": "Remove portrait",
@@ -299,6 +312,7 @@
       "OtherAssignment": "This user has a different individual variant assigned"
     },
     "Notifications": {
+      "MicrophoneUnavailable": "Microphone access is unavailable. Check browser permissions and use a secure HTTPS or localhost connection.",
       "Initialized": "RN Portrait Stage initialized.",
       "UnsupportedVersion": "RN Portrait Stage requires Foundry VTT v13 or v14.",
       "GmOnly": "Only a Gamemaster can change the scene portrait cast.",

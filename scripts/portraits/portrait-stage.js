@@ -9,6 +9,7 @@ import { canUserAccessVariant } from "../data/actor-library.js";
 import { isPreviewActive } from "../data/preview-service.js";
 import { getCompatibilityAdapter } from "../compatibility/index.js";
 import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/image-hover.js";
+import { voiceController } from "../voice/voice-controller.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -112,6 +113,11 @@ export class PortraitStage {
       card.dataset.actorUuid = view.actorUuid;
       card.tabIndex = 0;
       card.dataset.layer = view.entry.layer;
+      card.dataset.voiceEnabled = String(voiceController.isEnabled(view.entry));
+      card.classList.toggle(
+        "rnps-speaking",
+        voiceController.isEnabled(view.entry) && voiceController.isSpeaking(view.actorUuid)
+      );
 
       const imageLayer = document.createElement("div");
       imageLayer.className = "rnps-portrait-image";
@@ -209,6 +215,29 @@ export class PortraitStage {
     }
 
     if (groupId === GROUP_IDS.PCS) this.#setPcLayoutActive(views.length > 0);
+  }
+
+  setSpeaking(actorUuid, speaking) {
+    for (const group of this.#groups.values()) {
+      for (const card of group.querySelectorAll(".rnps-portrait")) {
+        if (card.dataset.actorUuid !== actorUuid) continue;
+        card.classList.toggle("rnps-speaking", speaking && card.dataset.voiceEnabled === "true");
+        const voiceButton = card.querySelector('[data-rnps-action="rn-portrait-stage.voice"]');
+        const assignedOnline = game.users.find(
+          user => user.active && !user.isGM && user.character?.uuid === actorUuid
+        );
+        if (voiceButton && game.user.isGM) {
+          const enabled = card.dataset.voiceEnabled === "true";
+          voiceButton.classList.toggle(
+            "active",
+            assignedOnline ? !enabled : voiceController.isGmActor(actorUuid)
+          );
+          const icon = voiceButton.querySelector("i");
+          icon?.classList.toggle("fa-microphone", !assignedOnline || enabled);
+          icon?.classList.toggle("fa-microphone-slash", Boolean(assignedOnline) && !enabled);
+        }
+      }
+    }
   }
 
   #setPcLayoutActive(active) {
@@ -378,7 +407,9 @@ export class PortraitStage {
         if (definition.isVisible && !definition.isVisible(context)) continue;
         const button = this.#portraitButton(
           "rnps-ui-extension-action",
-          definition.icon ?? "fa-solid fa-puzzle-piece",
+          typeof definition.icon === "function"
+            ? definition.icon(context)
+            : definition.icon ?? "fa-solid fa-puzzle-piece",
           definition.label ?? definition.id,
           async () => {
             try {
@@ -393,6 +424,7 @@ export class PortraitStage {
           }
         );
         button.style.setProperty("--rnps-action-index", String(actionIndex));
+        button.dataset.rnpsAction = definition.id;
         actionIndex += 1;
         button.classList.toggle("active", Boolean(definition.isActive?.(context)));
         card.append(button);

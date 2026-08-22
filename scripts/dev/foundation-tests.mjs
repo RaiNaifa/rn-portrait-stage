@@ -73,6 +73,8 @@ assert.equal(normalizedLibrary.variants[2].image.customSrc, "angry.webp");
 assert.equal(normalizedLibrary.variants[2].access.mode, "owners");
 assert.equal(normalizedLibrary.variants[2].settings.label.inherit, true);
 assert.equal(normalizedLibrary.variants[2].settings.hover.source, "inherit");
+assert.equal(normalizedLibrary.variants[2].settings.speaking.image.source, "inherit");
+assert.deepEqual(normalizedLibrary.variants[2].settings.speaking.effects, []);
 const hoverLibrary = normalizeActorLibrary({
   variants: [{
     id: "hover",

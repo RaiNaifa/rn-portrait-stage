@@ -1,6 +1,6 @@
 # RN Portrait Stage API
 
-> API status: Scene Portraits and Hover Extensions (`apiVersion: 1`). Voice methods remain placeholders.
+> API status: Scene Portraits, Hover Extensions, and experimental Voice Activation (`apiVersion: 1`).
 
 Access the API after the `rnPortraitStageReady` hook:
 

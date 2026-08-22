@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — Unreleased
+
+- Added experimental local microphone activity detection without recording or transmitting audio.
+- Added client threshold, attack, and release controls with more responsive defaults.
+- Added a subtle speaking scale animation and kept portrait labels visually unchanged.
+- Routed ordinary users through their Foundry-assigned character and allowed GM routing only for Actors without an active assigned player.
+- Added transition-only speaking socket events, heartbeat recovery, and automatic stale-state expiry.
+- Added per-cast voice indication controls and an initial speaking glow effect without full portrait rerenders.
+- Reserved per-variant speaking image and effect settings for later configurable effects.
+
 ## 0.6.0 — Unreleased
 
 - Added enlarged hover art with per-variant source, custom image/video, scale, mirroring, and disable controls.

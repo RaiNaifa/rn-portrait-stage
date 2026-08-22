@@ -547,10 +547,10 @@ scene.flags["rn-portrait-stage"] = {
 - [ ] **VOICE-001 — Experimental.** Функция полностью выключена по умолчанию.
 - [ ] **VOICE-002 — Experimental.** Пометка «Экспериментальная» во всех настройках.
 - [ ] **VOICE-003 — Experimental.** Ясное описание приватности перед запросом микрофона.
-- [ ] **VOICE-004 — Experimental.** Использовать `getUserMedia({audio: true, video: false})`.
-- [ ] **VOICE-005 — Experimental.** Анализ через Web Audio `AnalyserNode`.
-- [ ] **VOICE-006 — Experimental.** Не подключать анализируемый stream к audio destination.
-- [ ] **VOICE-007 — Experimental.** Не использовать Foundry AV как обязательный backend.
+- [~] **VOICE-004 — Experimental.** Использовать `getUserMedia({audio: true, video: false})`.
+- [~] **VOICE-005 — Experimental.** Анализ через Web Audio `AnalyserNode`.
+- [~] **VOICE-006 — Experimental.** Не подключать анализируемый stream к audio destination.
+- [~] **VOICE-007 — Experimental.** Не использовать Foundry AV как обязательный backend.
 
 ### 15.2. Требования окружения
 
@@ -562,10 +562,10 @@ scene.flags["rn-portrait-stage"] = {
 
 ### 15.3. Назначение User → Actor
 
-- [ ] **VOICE-020.** Один обычный Foundry User назначается максимум одному Actor.
-- [ ] **VOICE-021.** Назначение задаётся GM.
+- [~] **VOICE-020.** Обычный Foundry User маршрутизируется только в Actor из `User.character`.
+- [~] **VOICE-021.** Назначение Actor задаётся штатной настройкой персонажа участника Foundry.
 - [ ] **VOICE-022.** При отсутствии назначения speaking events игнорируются.
-- [ ] **VOICE-023.** GM может выбрать временный `currentlyVoicedActorUuid`.
+- [~] **VOICE-023.** GM может выбрать временный `currentlyVoicedActorUuid`, если Actor не назначен активному игроку.
 - [ ] **VOICE-024.** GM может включать/выключать маршрутизацию своего speaking state.
 - [ ] **VOICE-025.** Смена GM Actor завершает speaking state предыдущего портрета.
 
@@ -581,10 +581,10 @@ scene.flags["rn-portrait-stage"] = {
 
 ### 15.5. Сеть и очистка
 
-- [ ] **VOICE-040.** Передавать только `userId`, `actorUuid`, `speaking`, `timestamp`, `protocolVersion`.
-- [ ] **VOICE-041.** Ограничивать частоту socket events переходами состояния и heartbeat.
-- [ ] **VOICE-042.** Auto-timeout снимает залипшее speaking state.
-- [ ] **VOICE-043.** При disable/logout/reload вызывать `track.stop()` и закрывать AudioContext.
+- [~] **VOICE-040.** Передавать только `userId`, `actorUuid`, `speaking`, `timestamp`, `protocolVersion`.
+- [~] **VOICE-041.** Ограничивать частоту socket events переходами состояния и heartbeat.
+- [~] **VOICE-042.** Auto-timeout снимает залипшее speaking state.
+- [~] **VOICE-043.** При disable/logout/reload вызывать `track.stop()` и закрывать AudioContext.
 - [ ] **VOICE-044.** Speaking effect является настраиваемым portrait effect preset.
 - [ ] **VOICE-045.** Локальная настройка позволяет не показывать voice effects.
 

@@ -17,6 +17,7 @@ import {
   updateCastEntry
 } from "./data/cast-service.js";
 import { getActorLibrary, getActorVariant, setActorLibrary } from "./data/actor-library.js";
+import { voiceController } from "./voice/voice-controller.js";
 
 function notImplemented(feature) {
   throw new Error(`${MODULE_ID} | ${feature} is not implemented in Milestone 0.`);
@@ -112,9 +113,9 @@ export function createPublicApi() {
     }),
 
     voice: Object.freeze({
-      setGmActor: () => notImplemented("Voice activation"),
-      setGmRouting: () => notImplemented("Voice activation"),
-      getState: () => Object.freeze({ enabled: false, speaking: false })
+      setGmActor: actorUuid => voiceController.setGmActor(actorUuid),
+      setGmRouting: enabled => voiceController.setGmRouting(enabled),
+      getState: () => voiceController.getState()
     })
   });
 }

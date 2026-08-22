@@ -67,6 +67,12 @@ export function createDefaultVariantSettings() {
       scale: 1,
       mirrored: false
     },
+    speaking: {
+      image: { source: "inherit", customSrc: null },
+      scale: 1,
+      mirrored: null,
+      effects: []
+    },
     effects: []
   };
 }
@@ -183,6 +189,8 @@ export function normalizeVariantSettings(source) {
   const media = isPlainObject(source?.media) ? source.media : {};
   const transition = isPlainObject(source?.transition) ? source.transition : {};
   const hover = isPlainObject(source?.hover) ? source.hover : {};
+  const speaking = isPlainObject(source?.speaking) ? source.speaking : {};
+  const speakingImage = isPlainObject(speaking.image) ? speaking.image : {};
   return {
     label: {
       ...fallback.label,
@@ -214,6 +222,19 @@ export function normalizeVariantSettings(source) {
           : null,
       scale: Number.isFinite(hover.scale) ? Math.max(0.1, Math.min(5, hover.scale)) : 1,
       mirrored: hover.mirrored === true
+    },
+    speaking: {
+      image: {
+        source: ["inherit", "current", "actor", "prototypeToken", "custom"].includes(speakingImage.source)
+          ? speakingImage.source
+          : "inherit",
+        customSrc: typeof speakingImage.customSrc === "string" && speakingImage.customSrc
+          ? speakingImage.customSrc
+          : null
+      },
+      scale: Number.isFinite(speaking.scale) ? Math.max(0.1, Math.min(5, speaking.scale)) : 1,
+      mirrored: typeof speaking.mirrored === "boolean" ? speaking.mirrored : null,
+      effects: Array.isArray(speaking.effects) ? [...speaking.effects] : []
     },
     effects: Array.isArray(source?.effects) ? [...source.effects] : []
   };

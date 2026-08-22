@@ -2,7 +2,7 @@ export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
 export const SCENE_SCHEMA_VERSION = 5;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 4;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 5;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -27,6 +27,9 @@ export const SETTING_KEYS = Object.freeze({
   DEBUG_LOGGING: "debugLogging",
   EXPERIMENTAL_VOICE_ALLOWED: "experimentalVoiceAllowed",
   EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabledClient",
+  VOICE_THRESHOLD: "voiceThreshold",
+  VOICE_ATTACK: "voiceAttack",
+  VOICE_RELEASE: "voiceRelease",
   PORTRAIT_SCALE: "portraitScale",
   LABEL_FONT_FAMILY: "labelFontFamily",
   LABEL_FONT_SIZE: "labelFontSize",
@@ -57,5 +60,6 @@ export const HOOKS = Object.freeze({
   READY: "rnPortraitStageReady",
   SETTINGS_CHANGED: "rnPortraitStageSettingsChanged",
   STATE_CHANGED: "rnPortraitStageStateChanged",
-  LAYOUT_CHANGED: "rnPortraitStageLayoutChanged"
+  LAYOUT_CHANGED: "rnPortraitStageLayoutChanged",
+  SPEAKING_CHANGED: "rnPortraitStageSpeakingChanged"
 });

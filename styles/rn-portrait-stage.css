@@ -123,6 +123,25 @@
   transition: transform 120ms ease;
 }
 
+.rnps-portrait.rnps-speaking .rnps-portrait-image > img,
+.rnps-portrait.rnps-speaking .rnps-portrait-image > video {
+  filter: drop-shadow(0 0 5px var(--rn-portrait-stage-speaking-color))
+    drop-shadow(0 0 12px var(--rn-portrait-stage-speaking-color));
+}
+
+.rnps-portrait.rnps-speaking .rnps-portrait-image {
+  animation: rnps-speaking-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes rnps-speaking-pulse {
+  from { scale: 1; }
+  to { scale: 1.025; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rnps-portrait.rnps-speaking .rnps-portrait-image { animation: none; }
+}
+
 .rnps-ui-action {
   position: absolute;
   right: 4px;
@@ -210,6 +229,14 @@
 .rnps-stage-group--npcs .rnps-ui-extension-action {
   right: auto;
   left: calc(38px + var(--rnps-action-index, 0) * 30px);
+}
+
+.rnps-stage-group--npcs [data-rnps-action="rn-portrait-stage.voice"] {
+  left: 38px;
+}
+
+.rnps-stage-group--npcs [data-rnps-action="litm-rn.toggle-tags"] {
+  left: 68px;
 }
 
 .rnps-hover-layer {

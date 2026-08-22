@@ -83,6 +83,36 @@ export function registerSettings() {
     default: true
   });
 
+  register(SETTING_KEYS.VOICE_THRESHOLD, {
+    name: "RNPS.Settings.VoiceThreshold.Name",
+    hint: "RNPS.Settings.VoiceThreshold.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 0.02,
+    range: { min: 0.005, max: 0.15, step: 0.005 }
+  });
+
+  register(SETTING_KEYS.VOICE_ATTACK, {
+    name: "RNPS.Settings.VoiceAttack.Name",
+    hint: "RNPS.Settings.VoiceAttack.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 75,
+    range: { min: 0, max: 500, step: 25 }
+  });
+
+  register(SETTING_KEYS.VOICE_RELEASE, {
+    name: "RNPS.Settings.VoiceRelease.Name",
+    hint: "RNPS.Settings.VoiceRelease.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 250,
+    range: { min: 50, max: 1000, step: 25 }
+  });
+
   register(SETTING_KEYS.PORTRAIT_SCALE, {
     name: "RNPS.Settings.PortraitScale.Name",
     hint: "RNPS.Settings.PortraitScale.Hint",
