@@ -2,17 +2,16 @@
 
 RN Portrait Stage is a system-agnostic Foundry VTT module for displaying character and NPC portraits in the game interface independently of scene tokens.
 
-The module is currently in the Scene Portraits MVP stage.
+The module is currently in beta.
 
 ## Compatibility
 
 - Minimum Foundry VTT version: 13
-- Verified: Foundry VTT 13
-- Foundry VTT 14 support is designed into the compatibility layer but must be verified in a running v14 world before it is declared in `module.json`.
+- Verified: Foundry VTT 14 (also tested on 13)
 
 ## Documentation
 
-- [Technical specification](docs/TECHNICAL_SPECIFICATION.md)
+- [Public API](docs/API.md)
 
 ## Development status
 

@@ -2,6 +2,8 @@
 
 ## 0.7.0 — Unreleased
 
+- Added a public portrait drop API and `litm-rn` drop integration for characters, challenges, and journeys.
+- Highlighted valid portrait drop targets along the visible image silhouette.
 - Added experimental local microphone activity detection without recording or transmitting audio.
 - Added client threshold, attack, and release controls with more responsive defaults.
 - Added a subtle speaking scale animation and kept portrait labels visually unchanged.
