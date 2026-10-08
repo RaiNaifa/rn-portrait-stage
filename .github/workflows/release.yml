@@ -41,8 +41,14 @@ jobs:
 
       - name: Build installable archive
         run: |
-          git archive --format=zip --output=rn-portrait-stage.zip HEAD \
-            module.json scripts styles templates lang README.md CHANGELOG.md LICENSE docs/API.md
+          mkdir "$RUNNER_TEMP/package"
+          git archive --format=tar HEAD \
+            module.json scripts styles templates lang README.md CHANGELOG.md LICENSE docs/API.md \
+            | tar -xf - -C "$RUNNER_TEMP/package"
+          node -e "const fs = require('fs'); const path = process.env.RUNNER_TEMP + '/package/module.json'; const data = JSON.parse(fs.readFileSync(path, 'utf8')); data.manifest = 'https://github.com/RaiNaifa/rn-portrait-stage/releases/latest/download/module.json'; fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');"
+          cp "$RUNNER_TEMP/package/module.json" module.json
+          (cd "$RUNNER_TEMP/package" && zip -qr "$GITHUB_WORKSPACE/rn-portrait-stage.zip" \
+            module.json scripts styles templates lang README.md CHANGELOG.md LICENSE docs/API.md)
           unzip -t rn-portrait-stage.zip
 
       - name: Attach manifest and archive to release
