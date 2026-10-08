@@ -1,0 +1,52 @@
+name: Build release package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to package
+        required: true
+        default: v0.7.0
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Check module
+        run: |
+          npm run check
+          npm test
+
+      - name: Verify tag matches module version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          MODULE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('module.json', 'utf8')).version")"
+          test "v${MODULE_VERSION}" = "$RELEASE_TAG"
+
+      - name: Build installable archive
+        run: |
+          git archive --format=zip --output=rn-portrait-stage.zip HEAD \
+            module.json scripts styles templates lang README.md CHANGELOG.md LICENSE docs/API.md
+          unzip -t rn-portrait-stage.zip
+
+      - name: Attach archive to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$RELEASE_TAG" rn-portrait-stage.zip
