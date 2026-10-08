@@ -311,6 +311,23 @@
   outline: none;
 }
 
+.rnps-portrait.rnps-drop-target {
+  z-index: 3;
+}
+
+.rnps-portrait.rnps-drop-target .rnps-portrait-image > img,
+.rnps-portrait.rnps-drop-target .rnps-portrait-image > video {
+  filter: drop-shadow(0 0 2px var(--color-border-highlight, #f6d77a))
+    drop-shadow(0 0 9px var(--color-border-highlight, #f6d77a));
+}
+
+.rnps-portrait.rnps-drop-target.rnps-speaking .rnps-portrait-image > img,
+.rnps-portrait.rnps-drop-target.rnps-speaking .rnps-portrait-image > video {
+  filter: drop-shadow(0 0 2px var(--color-border-highlight, #f6d77a))
+    drop-shadow(0 0 9px var(--color-border-highlight, #f6d77a))
+    drop-shadow(0 0 12px var(--rn-portrait-stage-speaking-color));
+}
+
 .rnps-portrait-image {
   position: absolute;
   inset: 0;

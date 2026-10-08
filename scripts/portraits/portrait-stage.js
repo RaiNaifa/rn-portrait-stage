@@ -25,6 +25,20 @@ export class PortraitStage {
   #hoverBlocks = null;
   #hoverVersion = 0;
   #highlightedTokens = [];
+  #dragData = null;
+  #onDragStart = event => {
+    try {
+      this.#dragData = JSON.parse(event.dataTransfer?.getData("text/plain") ?? "");
+    } catch {
+      this.#dragData = null;
+    }
+  };
+  #onDragEnd = () => {
+    this.#dragData = null;
+    for (const group of this.#groups.values()) {
+      group.querySelectorAll(".rnps-drop-target").forEach(card => card.classList.remove("rnps-drop-target"));
+    }
+  };
 
   initialize() {
     for (const groupId of Object.values(GROUP_IDS)) {
@@ -42,6 +56,8 @@ export class PortraitStage {
     this.#createHoverLayer();
     this.#observeRightColumn();
     window.addEventListener("resize", this.#resizeHandler);
+    document.addEventListener("dragstart", this.#onDragStart);
+    document.addEventListener("dragend", this.#onDragEnd);
     this.render();
   }
 
@@ -57,6 +73,8 @@ export class PortraitStage {
     this.#notificationObserver?.disconnect();
     this.#resizeObserver?.disconnect();
     window.removeEventListener("resize", this.#resizeHandler);
+    document.removeEventListener("dragstart", this.#onDragStart);
+    document.removeEventListener("dragend", this.#onDragEnd);
   }
 
   async render() {
@@ -207,6 +225,11 @@ export class PortraitStage {
 
       card.addEventListener("mouseenter", () => this.#showHover(card, view, groupId, tokenHighlight));
       card.addEventListener("mouseleave", () => this.#hideHover());
+      card.addEventListener("dragover", event => this.#onPortraitDragOver(event, card, view, groupId));
+      card.addEventListener("dragleave", event => {
+        if (!card.contains(event.relatedTarget)) card.classList.remove("rnps-drop-target");
+      });
+      card.addEventListener("drop", event => this.#onPortraitDrop(event, card, view, groupId));
 
       card.addEventListener("dblclick", () => {
         if (view.canOpenSheet) view.actor.sheet?.render({ force: true });
@@ -400,6 +423,50 @@ export class PortraitStage {
     this.#hoverArt?.replaceChildren();
     this.#hoverBlocks?.replaceChildren();
     if (this.#hoverLayer) this.#hoverLayer.hidden = true;
+  }
+
+  #matchingDropHandlers(context) {
+    const definitions = game.modules.get(MODULE_ID)?.api?.drop?.list?.() ?? [];
+    return definitions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).filter(definition => {
+      try {
+        return definition.canDrop(context) === true;
+      } catch (error) {
+        console.error(`${MODULE_ID} | Drop handler '${definition.id}' failed`, error);
+        return false;
+      }
+    });
+  }
+
+  #onPortraitDragOver(event, card, view, groupId) {
+    const context = { event, card, view, entry: view.entry, actor: view.actor, variant: view.variant, groupId, data: this.#dragData };
+    const accepted = this.#matchingDropHandlers(context).length > 0;
+    card.classList.toggle("rnps-drop-target", accepted);
+    if (!accepted) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  async #onPortraitDrop(event, card, view, groupId) {
+    card.classList.remove("rnps-drop-target");
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer?.getData("text/plain") ?? "");
+    } catch {
+      return;
+    }
+    const context = { event, card, view, entry: view.entry, actor: view.actor, variant: view.variant, groupId, data };
+    const handler = this.#matchingDropHandlers(context)[0];
+    if (!handler) return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      await handler.onDrop(context);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Drop handler '${handler.id}' failed`, error);
+      ui.notifications.error(error.message);
+    } finally {
+      this.#dragData = null;
+    }
   }
 
 

@@ -1,6 +1,11 @@
 import { MODULE_ID, SETTING_KEYS } from "../constants.js";
 
 const INTEGRATION_ID = "litm-rn";
+const DROPPABLE_TYPES = {
+  character: ["tag", "status"],
+  challenge: ["tag", "status", "might", "limit"],
+  journey: ["tag", "status", "might"]
+};
 
 export function registerLitmIntegration(api) {
   if (game.system.id !== INTEGRATION_ID || !api) return;
@@ -29,6 +34,18 @@ export function registerLitmIntegration(api) {
     isVisible: ({ entry }) => game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED)
       && entry.flags?.[INTEGRATION_ID]?.tagsVisible === true,
     render: ({ actor }) => renderTags(actor)
+  });
+
+  api.drop.register({
+    id: `${INTEGRATION_ID}.actor-tags`,
+    order: 100,
+    canDrop: ({ actor, data, event }) => game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED)
+      && Array.isArray(DROPPABLE_TYPES[actor.type])
+      && (game.user.isGM || actor.isOwner)
+      && (data
+        ? DROPPABLE_TYPES[actor.type].includes(data.type) && typeof data.name === "string"
+        : [...(event.dataTransfer?.types ?? [])].includes("text/plain")),
+    onDrop: ({ actor, event }) => actor.sheet._onDrop(event)
   });
 }
 

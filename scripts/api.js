@@ -26,6 +26,7 @@ function notImplemented(feature) {
 export function createPublicApi() {
   const hoverBlocks = new ExtensionRegistry("Hover block");
   const actions = new ExtensionRegistry("Portrait action");
+  const dropHandlers = new ExtensionRegistry("Portrait drop handler");
   const imageResolvers = new ExtensionRegistry("Image resolver");
   const effects = new EffectRegistry();
 
@@ -68,6 +69,18 @@ export function createPublicApi() {
       unregister: id => actions.unregister(id),
       get: id => actions.get(id),
       list: () => actions.list()
+    }),
+
+    drop: Object.freeze({
+      register: definition => {
+        if (typeof definition?.canDrop !== "function" || typeof definition?.onDrop !== "function") {
+          throw new TypeError("Portrait drop handlers require canDrop and onDrop functions.");
+        }
+        return dropHandlers.register(definition);
+      },
+      unregister: id => dropHandlers.unregister(id),
+      get: id => dropHandlers.get(id),
+      list: () => dropHandlers.list()
     }),
 
     images: Object.freeze({

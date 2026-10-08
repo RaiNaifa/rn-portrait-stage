@@ -105,6 +105,24 @@ api.actions.register({
 
 Registered actions are placed beside the built-in lower portrait action. `onClick` receives the hover context plus `updateEntry(changes)`.
 
+## Register a portrait drop handler
+
+```js
+api.drop.register({
+  id: "my-package.item-drop",
+  order: 100,
+  canDrop: ({ actor, data, event }) => actor.isOwner
+    && (data ? data.type === "Item" : [...event.dataTransfer.types].includes("text/plain")),
+  onDrop: async ({ actor, data }) => {
+    // Apply the dropped data to the actor.
+  }
+});
+```
+
+`canDrop` is synchronous. During `dragover`, `data` is the parsed `text/plain` JSON for drags started in the same document when available, or `null` (for example, for drags from another window). It runs again on `drop` with the parsed data. A true result highlights the portrait and allows the drop. The first matching handler by ascending `order` handles the drop. Both callbacks receive `event`, `card`, `view`, `entry`, `actor`, `variant`, and `groupId`. `onDrop` may return a Promise. Handlers can be inspected or removed with `api.drop.get`, `list`, and `unregister`.
+
+For `litm-rn` portraits, the built-in handler accepts the same tag-like data as each Actor sheet: `tag` and `status` for characters; `tag`, `status`, `might`, and `limit` for challenges; `tag`, `status`, and `might` for journeys. It delegates to that Actor's sheet drop logic, including character and challenge status stacking. The integration setting must be enabled and the user must be able to edit the Actor.
+
 ## litm-rn example integration
 
 When the active system is `litm-rn`, RN Portrait Stage registers `litm-rn.toggle-tags` and `litm-rn.tags`. The action stores `flags["litm-rn"].tagsVisible` on the cast entry; the hover block renders visible tag, status, and might Active Effects. This is the reference implementation for system integrations.
