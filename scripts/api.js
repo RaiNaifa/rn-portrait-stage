@@ -19,15 +19,10 @@ import {
 import { getActorLibrary, getActorVariant, setActorLibrary } from "./data/actor-library.js";
 import { voiceController } from "./voice/voice-controller.js";
 
-function notImplemented(feature) {
-  throw new Error(`${MODULE_ID} | ${feature} is not implemented in Milestone 0.`);
-}
-
 export function createPublicApi() {
   const hoverBlocks = new ExtensionRegistry("Hover block");
   const actions = new ExtensionRegistry("Portrait action");
   const dropHandlers = new ExtensionRegistry("Portrait drop handler");
-  const imageResolvers = new ExtensionRegistry("Image resolver");
   const effects = new EffectRegistry();
 
   effects.registerEngine(`${MODULE_ID}.css`, cssEffectEngine);
@@ -83,13 +78,6 @@ export function createPublicApi() {
       list: () => dropHandlers.list()
     }),
 
-    images: Object.freeze({
-      registerResolver: definition => imageResolvers.register(definition),
-      unregisterResolver: id => imageResolvers.unregister(id),
-      getResolver: id => imageResolvers.get(id),
-      listResolvers: () => imageResolvers.list()
-    }),
-
     effects: Object.freeze({
       registerEngine: (id, engine) => effects.registerEngine(id, engine),
       registerPreset: definition => effects.registerPreset(definition),
@@ -117,12 +105,6 @@ export function createPublicApi() {
         { activeVariantId },
         options
       )
-    }),
-
-    presets: Object.freeze({
-      save: () => notImplemented("Scene presets"),
-      load: () => notImplemented("Scene presets"),
-      remove: () => notImplemented("Scene presets")
     }),
 
     voice: Object.freeze({

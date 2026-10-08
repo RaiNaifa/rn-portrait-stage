@@ -13,6 +13,18 @@ The module is currently in beta.
 
 - [Public API](docs/API.md)
 
+## Installation
+
+After the beta release is published, paste this manifest URL into Foundry's **Install Module** dialog:
+
+`https://raw.githubusercontent.com/RaiNaifa/rn-portrait-stage/master/module.json`
+
+The matching `v0.7.0` GitHub release must include `rn-portrait-stage.zip`. Future releases must update `module.json` and upload the matching archive before the manifest version changes.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
 ## Development status
 
 Milestone 0 provides:
@@ -20,7 +32,7 @@ Milestone 0 provides:
 - module bootstrap and localization;
 - world and user settings;
 - versioned scene-state schema and migration registry;
-- public API skeleton;
+- public API foundation for scene state and cast operations;
 - portrait effect registry foundation;
 - Foundry v13/v14 compatibility adapter.
 

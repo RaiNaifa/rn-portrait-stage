@@ -1,6 +1,7 @@
 {
   "name": "rn-portrait-stage",
   "version": "0.7.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {

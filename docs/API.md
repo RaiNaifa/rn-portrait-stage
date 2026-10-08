@@ -1,6 +1,8 @@
 # RN Portrait Stage API
 
-> API status: Scene Portraits, Hover Extensions, and experimental Voice Activation (`apiVersion: 1`).
+> Beta API (`apiVersion: 1`): scene portraits, variants, hover blocks, actions, and portrait drop handlers are available. Voice activation is experimental.
+
+Cast presets work in the module's manager, but there is no public `api.presets` interface yet. Custom image resolvers are planned; the renderer does not consult an image-resolver registry. `api.effects` currently supports registration and inspection only; registered effects are not applied to portraits. These planned interfaces are not part of the beta's functional API.
 
 Access the API after the `rnPortraitStageReady` hook:
 
@@ -143,4 +145,4 @@ api.effects.registerPreset({
 });
 ```
 
-The renderer that applies registered presets to portrait elements is scheduled for the Portrait FX milestone.
+Registration does not change a portrait's appearance yet. The renderer that applies registered presets to portrait elements is scheduled for the Portrait FX milestone.
