@@ -1,5 +1,5 @@
 import { CAST_LAYERS, GROUP_IDS } from "../constants.js";
-import { getActorLibrary } from "./actor-library.js";
+import { getActorLibrary, setActorLibrary } from "./actor-library.js";
 import { createPortraitEntry, normalizeGroupId } from "./portrait-entry.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 import { getSceneState, setSceneState } from "./scene-state.js";
@@ -103,7 +103,7 @@ export async function addActorToCast(actorUuid, {
   const library = getActorLibrary(actor);
   const entry = createPortraitEntry(actor.uuid, {
     groupId: targetGroupId,
-    activeVariantId: library.defaultVariantId
+    activeVariantId: library.lastActiveVariantId ?? library.defaultVariantId
   });
   const existingSorts = getCombinedCastState(scene).groups[targetGroupId].entries.map(item => item.sort);
   entry.sort = (Math.max(0, ...existingSorts) || 0) + 1000;
@@ -184,6 +184,15 @@ export async function updateCastEntry(entryId, changes, {
     targetState.groups[targetGroupId].entries.push({ ...transferred, ...updated, sort: transferred.sort });
     await setLayerState(targetLayer, scene, targetState);
     await setLayerState(sourceLayer, scene, normalizedSource);
+  }
+  if (changes.activeVariantId && !isPreviewActive()) {
+    const actor = await fromUuid(updated.actorUuid);
+    if (actor?.documentName === "Actor") {
+      const library = getActorLibrary(actor);
+      if (library.variants.some(variant => variant.id === changes.activeVariantId)) {
+        await setActorLibrary(actor, { ...library, lastActiveVariantId: changes.activeVariantId });
+      }
+    }
   }
   return { ...updated, groupId: targetGroupId, layer: targetLayer };
 }

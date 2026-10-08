@@ -3,7 +3,7 @@
 {{else}}
   <div class="rnps-variant-settings-content">
     <header class="rnps-variant-settings-preview">
-      {{#if isVideo}}<video src="{{image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{image}}" alt="">{{/if}}
+      {{#if isVideo}}<video class="{{#if mirrored}}mirrored{{/if}}" src="{{image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if mirrored}}mirrored{{/if}}" src="{{image}}" alt="">{{/if}}
       <div><strong>{{variantName}}</strong><span>{{actorName}}</span></div>
     </header>
 

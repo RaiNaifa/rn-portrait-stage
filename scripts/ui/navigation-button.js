@@ -1,31 +1,66 @@
 import { CastManager } from "../apps/cast-manager.js";
+import { HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 
 export class NavigationButton {
   #button;
   #resizeHandler = () => this.position();
+  #playerHidden = false;
 
   initialize() {
-    if (!game.user.isGM) {
-      this.destroy();
-      return;
-    }
     if (!this.#button) {
       this.#button = document.createElement("button");
       this.#button.id = "rn-portrait-stage-navigation-button";
       this.#button.type = "button";
       this.#button.className = "ui-control icon faded-ui";
-      this.#button.title = game.i18n.localize("RNPS.Controls.OpenManager");
-      this.#button.setAttribute("aria-label", this.#button.title);
-
       const icon = document.createElement("i");
       icon.className = "fa-solid fa-masks-theater";
       icon.setAttribute("aria-hidden", "true");
       this.#button.append(icon);
-      this.#button.addEventListener("click", () => CastManager.open());
+      this.#button.addEventListener("click", () => this.#onClick());
       document.body.append(this.#button);
       window.addEventListener("resize", this.#resizeHandler);
     }
+    this.#syncAppearance();
     this.position();
+  }
+
+  isPlayerHidden() {
+    return !game.user?.isGM && this.#playerHidden;
+  }
+
+  revealForSceneChange() {
+    const changed = !game.user?.isGM && this.#playerHidden;
+    if (changed) this.#playerHidden = false;
+    this.#syncAppearance();
+    return changed;
+  }
+
+  #onClick() {
+    if (game.user.isGM) return CastManager.open();
+    if (!game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED)) return;
+    this.#playerHidden = !this.#playerHidden;
+    this.#syncAppearance();
+    Hooks.callAll(HOOKS.STATE_CHANGED, { clientVisibility: true });
+  }
+
+  #syncAppearance() {
+    if (!this.#button) return;
+    const icon = this.#button.querySelector("i");
+    if (game.user?.isGM) {
+      this.#button.disabled = false;
+      this.#button.title = game.i18n.localize("RNPS.Controls.OpenManager");
+      if (icon) icon.className = "fa-solid fa-masks-theater";
+      this.#button.classList.remove("active");
+    } else {
+      const worldVisible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
+      this.#button.disabled = !worldVisible;
+      this.#button.title = game.i18n.localize(!worldVisible
+        ? "RNPS.Controls.PortraitsHiddenByGm"
+        : this.#playerHidden ? "RNPS.Controls.ShowPortraitsClient" : "RNPS.Controls.HidePortraitsClient");
+      if (icon) icon.className = `fa-solid ${!worldVisible || this.#playerHidden ? "fa-eye-slash" : "fa-eye"}`;
+      this.#button.classList.toggle("active", this.#playerHidden);
+    }
+    this.#button.setAttribute("aria-label", this.#button.title);
   }
 
   position() {

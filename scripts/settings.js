@@ -235,6 +235,15 @@ export function registerSettings() {
     default: false
   });
 
+  register(SETTING_KEYS.GM_STAGE_VISIBLE, {
+    name: "RNPS.Settings.GmStageVisible.Name",
+    hint: "RNPS.Settings.GmStageVisible.Hint",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: true
+  });
+
   register(SETTING_KEYS.PERSISTENT_STATE, {
     name: "RNPS.Settings.PersistentState.Name",
     hint: "RNPS.Settings.PersistentState.Hint",
@@ -260,6 +269,15 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {}
+  });
+
+  register(SETTING_KEYS.RESERVE_HEIGHT, {
+    name: "RNPS.Settings.ReserveHeight.Name",
+    hint: "RNPS.Settings.ReserveHeight.Hint",
+    scope: "client",
+    config: false,
+    type: Number,
+    default: 104
   });
 
   register(SETTING_KEYS.CAST_PRESETS, {

@@ -1,5 +1,5 @@
 import { GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
-import { capturePublishedSnapshot, getPreviewSession, isPreviewActive, markPreviewPresetSaved, replacePreviewDraft } from "./preview-service.js";
+import { capturePublishedSnapshot, closePreviewPreset, getPreviewSession, getPreviewSnapshot, isPreviewActive, markPreviewPresetSaved, replacePreviewDraft } from "./preview-service.js";
 import { normalizeSceneState, setSceneState } from "./scene-state.js";
 import { setPersistentState } from "./persistent-state.js";
 import { normalizePortraitEntry } from "./portrait-entry.js";
@@ -35,7 +35,7 @@ async function store(presets) {
 export async function saveCastPreset(name, scene = canvas.scene) {
   const session = getPreviewSession();
   const source = isPreviewActive() && session.draft?.sceneId === scene?.id
-    ? session.draft
+    ? getPreviewSnapshot(scene)
     : capturePublishedSnapshot(scene);
   const preset = normalizePreset({ ...clone(source), id: foundry.utils.randomID(), name });
   await store([...getCastPresets(), preset]);
@@ -51,7 +51,7 @@ export async function updateCastPreset(id, scene = canvas.scene) {
   const preset = getCastPresets().find(item => item.id === id);
   if (!preset || !session.draft || session.draft.sceneId !== scene?.id) return false;
   const updated = normalizePreset({
-    ...clone(session.draft),
+    ...clone(getPreviewSnapshot(scene)),
     id: preset.id,
     name: preset.name,
     createdAt: preset.createdAt,
@@ -63,6 +63,10 @@ export async function updateCastPreset(id, scene = canvas.scene) {
 }
 
 export async function previewCastPreset(id, scene = canvas.scene) {
+  if (getPreviewSession().presetId === id) {
+    await closePreviewPreset(scene);
+    return true;
+  }
   const preset = getCastPresets().find(item => item.id === id);
   if (!preset) return false;
   await replacePreviewDraft(preset, scene, { presetId: preset.id, presetName: preset.name });

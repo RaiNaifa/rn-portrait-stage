@@ -1,6 +1,9 @@
 {
   "RNPS": {
     "Name": "RN Portrait Stage",
+    "Common": {
+      "DragToSort": "Drag to reorder"
+    },
     "Settings": {
       "AllowPlayerPortraitChanges": {
         "Name": "Allow players to activate accessible variants",
@@ -138,6 +141,9 @@
       "Npcs": "NPCs"
     },
     "Controls": {
+      "HidePortraitsClient": "Hide portraits on this client",
+      "ShowPortraitsClient": "Show portraits on this client",
+      "PortraitsHiddenByGm": "Portraits are hidden by the GM",
       "VoiceActivation": "Voice indication",
       "OpenManager": "Open RN Portrait Stage",
       "Edit": "Configure portrait",
@@ -170,6 +176,9 @@
       "ReserveHint": "Actors prepared for quick cast placement",
       "ReserveEmpty": "Drop Actors from the directory here",
       "RemoveReserve": "Remove from reserve",
+      "AddFavorite": "Add to favorites",
+      "RemoveFavorite": "Remove from favorites",
+      "ResizeReserve": "Resize the reserve. Double-click to restore the default height",
       "Composition": "Cast",
       "TokenHighlight": "Highlight visible tokens on hover",
       "Disabled": "Disabled"
@@ -177,12 +186,18 @@
     "Preview": {
       "Button": "Preview",
       "Active": "Preview mode",
+      "Draft": "Cast draft",
+      "ShowSelf": "Show for myself",
+      "HideSelf": "Hide for myself",
       "PresetActive": "Preset preview",
-      "Stale": "The published cast changed after this draft was created",
+      "Stale": "Some draft fields conflict with changes made outside the manager",
+      "EntryConflict": "This portrait changed outside the manager. The GM draft value is retained.",
       "Apply": "Apply for everyone",
+      "ApplyChanges": "Apply changes",
       "SavePreset": "Save as preset",
       "UpdatePreset": "Save changes",
       "Reset": "Reset changes",
+      "ResetChanges": "Reset changes",
       "Applied": "The draft was applied for all users."
     },
     "Presets": {

@@ -21,15 +21,17 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = { content: { template: `modules/${MODULE_ID}/templates/variant-groups.hbs` } };
   #actor;
   #timer;
+  #onChange;
 
   constructor(actor, options = {}) {
     super(options);
     this.#actor = actor;
+    this.#onChange = typeof options.onChange === "function" ? options.onChange : null;
   }
 
-  static open(actor) {
+  static open(actor, options = {}) {
     if (!actor || !game.user.isGM) return null;
-    return new this(actor).render({ force: true });
+    return new this(actor, options).render({ force: true });
   }
 
   async _prepareContext(options) {
@@ -65,6 +67,54 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#schedule(0);
     });
     this.element.addEventListener("input", () => this.#schedule(250));
+    this.#activateGroupSorting();
+  }
+
+  #activateGroupSorting() {
+    const list = this.element.querySelector(".rnps-group-list");
+    if (!list) return;
+    for (const row of list.querySelectorAll("[data-group-id]")) {
+      const handle = row.querySelector(".rnps-group-drag-handle");
+      handle?.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", JSON.stringify({
+          type: "RNPortraitStageVariantGroup",
+          groupId: row.dataset.groupId
+        }));
+        event.dataTransfer.effectAllowed = "move";
+        row.classList.add("dragging");
+      });
+      handle?.addEventListener("dragend", () => row.classList.remove("dragging"));
+      row.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      });
+      row.addEventListener("drop", async event => {
+        event.preventDefault();
+        let data;
+        try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+        if (data?.type !== "RNPortraitStageVariantGroup") return;
+        const dragged = list.querySelector(`[data-group-id='${CSS.escape(data.groupId)}']`);
+        if (!dragged || dragged === row) return;
+        const rect = row.getBoundingClientRect();
+        list.insertBefore(dragged, event.clientY > rect.top + rect.height / 2 ? row.nextElementSibling : row);
+        dragged.classList.remove("dragging");
+        clearTimeout(this.#timer);
+        await VariantGroups.#persist(this, this.element);
+      });
+    }
+    list.addEventListener("dragover", event => event.preventDefault());
+    list.addEventListener("drop", async event => {
+      if (event.target.closest("[data-group-id]")) return;
+      let data;
+      try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+      if (data?.type !== "RNPortraitStageVariantGroup") return;
+      const dragged = list.querySelector(`[data-group-id='${CSS.escape(data.groupId)}']`);
+      if (!dragged) return;
+      list.append(dragged);
+      dragged.classList.remove("dragging");
+      clearTimeout(this.#timer);
+      await VariantGroups.#persist(this, this.element);
+    });
   }
 
   #schedule(delay) {
@@ -80,7 +130,10 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
       access: { mode: "everyone", userIds: [] },
       flags: {}
     });
-    setActorLibrary(this.#actor, library).then(() => this.render());
+    setActorLibrary(this.#actor, library).then(() => {
+      this.#onChange?.();
+      this.render();
+    });
   }
 
   static async #removeGroup(event, target) {
@@ -93,6 +146,7 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
     if (library.defaultGroupId === id) library.defaultGroupId = fallback.id;
     for (const variant of library.variants) if (variant.groupId === id) variant.groupId = fallback.id;
     await setActorLibrary(this.#actor, library);
+    this.#onChange?.();
     this.render();
   }
 
@@ -101,6 +155,7 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
     const library = getActorLibrary(this.#actor);
     library.defaultGroupId = target.closest("[data-group-id]")?.dataset.groupId ?? library.defaultGroupId;
     await setActorLibrary(this.#actor, library);
+    this.#onChange?.();
     this.render();
   }
 
@@ -125,5 +180,6 @@ export class VariantGroups extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!library.groups.length) return;
     await setActorLibrary(app.#actor, library);
+    app.#onChange?.();
   }
 }

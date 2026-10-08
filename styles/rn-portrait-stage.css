@@ -33,6 +33,10 @@
   opacity: 1;
 }
 
+#rn-portrait-stage-navigation-button.active {
+  color: rgb(255 179 0);
+}
+
 .rnps-stage-group {
   display: flex;
   position: relative;
@@ -446,6 +450,28 @@
   width: auto;
 }
 
+.rnps-preview-bar button.no-changes {
+  opacity: 0.55;
+}
+
+.rnps-preview-bar button.no-changes:hover,
+.rnps-preview-bar button.no-changes:focus-visible {
+  opacity: 1;
+}
+
+.rnps-preview-bar button.dirty::after {
+  content: " •";
+  color: rgb(255 179 0);
+}
+
+.rnps-entry-conflict {
+  position: absolute;
+  top: 50%;
+  right: 98px;
+  color: rgb(255 179 0);
+  transform: translateY(-50%);
+}
+
 .rnps-preview-bar select {
   width: 145px;
   min-width: 90px;
@@ -566,9 +592,18 @@
   pointer-events: none;
 }
 
+.rnps-composition-body {
+  display: flex;
+  overflow: hidden;
+  flex: 1 1 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .rnps-manager-groups {
   display: grid;
-  flex: 1;
+  overflow: hidden;
+  flex: 1 1 0;
   min-height: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -576,7 +611,7 @@
 
 .rnps-manager-group {
   display: flex;
-  min-height: 260px;
+  min-height: 0;
   overflow: hidden;
   flex-direction: column;
   border: 1px solid var(--color-border-light-primary, #777);
@@ -664,7 +699,8 @@
   object-fit: contain;
 }
 
-.rnps-manager-entry img.mirrored {
+.rnps-manager-entry img.mirrored,
+.rnps-manager-entry video.mirrored {
   transform: scaleX(-1);
 }
 
@@ -755,10 +791,33 @@
 }
 
 .rnps-reserve {
+  position: relative;
+  box-sizing: border-box;
+  height: var(--rnps-reserve-height, 104px);
+  flex: 0 0 var(--rnps-reserve-height, 104px);
+  min-height: 82px;
+  max-height: 55%;
   margin-top: 10px;
   padding: 8px;
   border: 1px solid var(--color-border-light-primary, #777);
   border-radius: 6px;
+}
+
+.rnps-reserve-resize {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  left: 50%;
+  width: 56px;
+  height: 9px;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 20%);
+  cursor: ns-resize;
+  transform: translateX(-50%);
+}
+
+.rnps-reserve-resize:hover {
+  background: rgb(255 179 0 / 70%);
 }
 
 .rnps-reserve > header {
@@ -773,15 +832,22 @@
 }
 
 .rnps-reserve-list {
-  display: flex;
-  min-height: 64px;
-  align-items: center;
+  display: grid;
+  height: calc(100% - 24px);
+  min-height: 48px;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  align-content: start;
+  align-items: start;
+  grid-template-columns: repeat(auto-fill, 150px);
   gap: 6px;
+  padding: 5px 2px 2px;
+  scrollbar-width: thin;
 }
 
 .rnps-reserve-actor {
   width: 150px;
-  flex: 0 0 150px;
 }
 
 .rnps-reserve-empty {
@@ -816,6 +882,16 @@
   gap: 10px;
 }
 
+.rnps-add-variant {
+  position: sticky;
+  z-index: 4;
+  bottom: 0;
+  margin-top: 10px;
+  background: rgb(18 16 22 / 92%);
+  box-shadow: 0 -8px 14px rgb(0 0 0 / 35%);
+  backdrop-filter: blur(4px);
+}
+
 .rnps-editor-variant-group {
   padding: 6px;
   border: 1px solid var(--color-border-light-primary, #777);
@@ -837,14 +913,22 @@
   opacity: 0.65;
 }
 
-.rnps-editor-variant-group .rnps-variant-grid:empty {
+.rnps-editor-variant-group .rnps-variant-grid {
   min-height: 72px;
+}
+
+.rnps-editor-variant-group .rnps-variant-grid:not(:has(.rnps-variant-tile)) {
   border: 1px dashed rgb(255 255 255 / 20%);
   border-radius: 4px;
 }
 
 .rnps-variant-tile[draggable="true"] {
   cursor: grab;
+}
+
+.rnps-variant-tile.dragging {
+  cursor: grabbing;
+  opacity: 0.55;
 }
 
 .rnps-variant-groups-content {
@@ -863,13 +947,30 @@
 .rnps-group-list > article {
   display: grid;
   align-items: center;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.8fr) 32px 32px;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(150px, 0.8fr) 32px 32px;
   gap: 6px;
+}
+
+.rnps-group-drag-handle {
+  display: grid;
+  height: 100%;
+  min-height: 32px;
+  place-items: center;
+  cursor: grab;
+  opacity: 0.65;
+}
+
+.rnps-group-drag-handle:hover {
+  opacity: 1;
+}
+
+.rnps-group-list > article.dragging {
+  opacity: 0.55;
 }
 
 .rnps-group-users {
   display: flex;
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
   flex-wrap: wrap;
   gap: 4px 12px;
 }
@@ -910,6 +1011,12 @@
   border: 1px solid var(--color-border-light-primary, #777);
   border-radius: 4px;
   object-fit: contain;
+}
+
+.rnps-editor-preview .mirrored,
+.rnps-variant-tile > .mirrored,
+.rnps-variant-settings-preview .mirrored {
+  transform: scaleX(-1);
 }
 
 .rnps-editor-label {
@@ -1048,6 +1155,10 @@
   height: 130px;
   border: 0;
   object-fit: contain;
+}
+
+.rnps-picker-variant .mirrored {
+  transform: scaleX(-1);
 }
 
 .rnps-manager-entry video {

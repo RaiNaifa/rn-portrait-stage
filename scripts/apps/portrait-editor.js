@@ -1,5 +1,5 @@
 import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
-import { canUserAccessVariant, createPortraitVariant, setActorLibrary } from "../data/actor-library.js";
+import { canUserAccessGroup, canUserAccessVariant, createPortraitVariant, setActorLibrary } from "../data/actor-library.js";
 import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry, updateReserveEntry } from "../data/reserve-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
@@ -40,17 +40,19 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #entryId;
   #layer;
+  #draft;
   #autosaveTimer = null;
 
   constructor(entryId, layer = CAST_LAYERS.SCENE, options = {}) {
     super(options);
     this.#entryId = entryId;
     this.#layer = Object.values(CAST_LAYERS).includes(layer) ? layer : CAST_LAYERS.SCENE;
+    this.#draft = options.draft === true;
   }
 
-  static open(entryId, layer) {
+  static open(entryId, layer, options = {}) {
     if (!entryId) return null;
-    return new this(entryId, layer).render({ force: true });
+    return new this(entryId, layer, options).render({ force: true });
   }
 
   async _prepareContext(options) {
@@ -80,11 +82,14 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       hasImage,
       previewImage,
       isVideo: isVideoPath(previewImage),
+      mirrored: Boolean(entry.mirrored) !== Boolean(variant.settings?.media?.mirrored),
       selected: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? library.defaultVariantId),
       isDefault: variant.id === library.defaultVariantId,
       assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
     }});
-    const variantGroups = library.groups.map(group => ({
+    const variantGroups = library.groups
+      .filter(group => game.user.isGM || canUserAccessGroup(group, view.actor))
+      .map(group => ({
       ...group,
       displayName: group.flags?.builtin ? game.i18n.localize("RNPS.VariantGroups.DefaultGroup") : group.name,
       isDefault: group.id === library.defaultGroupId,
@@ -97,6 +102,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       actorName: view.actorName,
       previewImage: view.image,
       previewIsVideo: view.isVideo,
+      previewMirrored: view.mirrored,
       variants,
       variantGroups,
       canConfigure,
@@ -132,7 +138,17 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       if (event.target.matches("input[type='text']")) this.#scheduleAutosave(250);
     });
     for (const picker of this.element.querySelectorAll("file-picker[name='variantPath']")) {
+      const rememberValue = event => {
+        const value = filePickerValue(picker, event);
+        if (value || event?.target === picker) picker.dataset.rnpsValue = value;
+        this.#refreshVariantPreview(picker.closest("[data-variant-tile]"));
+        this.#scheduleAutosave(0);
+      };
+      picker.addEventListener("change", rememberValue);
+      picker.addEventListener("input", rememberValue);
       new MutationObserver(() => {
+        const value = filePickerValue(picker);
+        if (value) picker.dataset.rnpsValue = value;
         this.#refreshVariantPreview(picker.closest("[data-variant-tile]"));
         this.#scheduleAutosave(0);
       }).observe(picker, { attributes: true, attributeFilter: ["value"] });
@@ -145,14 +161,16 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       if (tile.dataset.sortingBound === "true") continue;
       tile.dataset.sortingBound = "true";
       tile.draggable = true;
-      tile.querySelectorAll("img, video").forEach(media => { media.draggable = false; });
+      tile.querySelectorAll("img, video").forEach(media => { media.draggable = true; });
       tile.addEventListener("dragstart", event => {
         event.dataTransfer.setData("text/plain", JSON.stringify({
           type: "RNPortraitStageVariant",
           variantId: tile.dataset.variantId
         }));
         event.dataTransfer.effectAllowed = "move";
+        tile.classList.add("dragging");
       });
+      tile.addEventListener("dragend", () => tile.classList.remove("dragging"));
     }
     for (const grid of this.element.querySelectorAll("[data-variant-group]")) {
       if (grid.dataset.sortingBound === "true") continue;
@@ -161,7 +179,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         event.dataTransfer.dropEffect = "move";
       });
-      grid.addEventListener("drop", event => {
+      grid.addEventListener("drop", async event => {
         event.preventDefault();
         let data;
         try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
@@ -171,7 +189,9 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
         const target = event.target.closest("[data-variant-tile]");
         if (target && target !== tile && target.parentElement === grid) grid.insertBefore(tile, target);
         else grid.append(tile);
-        this.#scheduleAutosave(0);
+        tile.classList.remove("dragging");
+        clearTimeout(this.#autosaveTimer);
+        await PortraitEditor.#persist(this, this.element);
       });
     }
   }
@@ -190,6 +210,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const needsVideo = isVideoPath(path);
     if (!image || (image instanceof HTMLVideoElement) !== needsVideo) {
       const replacement = createPortraitMedia(path);
+      replacement.classList.toggle("mirrored", tile.dataset.mirrored === "true");
       (image ?? tile.querySelector(".rnps-variant-placeholder"))?.replaceWith(replacement);
       image = replacement;
     } else image.src = path;
@@ -197,6 +218,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       const preview = this.element.querySelector(".rnps-editor-preview img, .rnps-editor-preview video");
       if (preview) {
         const replacement = createPortraitMedia(path);
+        replacement.classList.toggle("mirrored", tile.dataset.mirrored === "true");
         preview.replaceWith(replacement);
       }
     }
@@ -232,7 +254,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#scheduleAutosave(0);
   }
 
-  static #activateVariant(event, target) {
+  static async #activateVariant(event, target) {
     const tile = target.closest("[data-variant-tile]");
     const activeInput = this.element.querySelector("[name='activeVariantId']");
     if (!tile || !activeInput || target.disabled) return;
@@ -245,7 +267,14 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const preview = this.element.querySelector(".rnps-editor-preview img, .rnps-editor-preview video");
     const tileMedia = tile.querySelector(":scope > img, :scope > video");
     const draftImage = source === "custom" ? path : tileMedia?.getAttribute("src");
-    if (preview && draftImage) preview.replaceWith(createPortraitMedia(draftImage));
+    if (preview && draftImage) {
+      const replacement = createPortraitMedia(draftImage);
+      replacement.classList.toggle("mirrored", tile.dataset.mirrored === "true");
+      preview.replaceWith(replacement);
+    }
+    if (this.#layer === CAST_LAYERS.RESERVE) {
+      await updateReserveEntry(this.#entryId, { activeVariantId: tile.dataset.variantId });
+    }
     this.#scheduleAutosave(0);
   }
 
@@ -268,11 +297,13 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #configureGroups() {
+    clearTimeout(this.#autosaveTimer);
+    await PortraitEditor.#persist(this, this.element);
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
-    if (view) VariantGroups.open(view.actor);
+    if (view) VariantGroups.open(view.actor, { onChange: () => this.render() });
   }
 
   static async #onSubmit(event, form) {
@@ -328,7 +359,10 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       variants,
       defaultVariantId: variants.some(variant => variant.id === existing.defaultVariantId)
         ? existing.defaultVariantId
-        : "actor"
+        : "actor",
+      lastActiveVariantId: variants.some(variant => variant.id === existing.lastActiveVariantId)
+        ? existing.lastActiveVariantId
+        : activeVariantId
     });
     const entryChanges = {
       activeVariantId,
@@ -341,7 +375,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     } else {
       await requestCastEntryUpdate(app.#entryId, entryChanges, {
         layer: app.#layer,
-        actor: view.actor
+        actor: view.actor,
+        draft: app.#draft
       });
     }
   }
@@ -350,11 +385,28 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 function readTileValue(tile, name) {
   const field = tile.querySelector(`[name='${name}']`);
   if (!field) return "";
+  if (field.localName === "file-picker") return filePickerValue(field);
   if (typeof field.value === "string" && field.value.trim()) return field.value.trim();
   const attribute = field.getAttribute?.("value");
   if (typeof attribute === "string" && attribute.trim()) return attribute.trim();
   const nested = field.shadowRoot?.querySelector("input") ?? field.querySelector?.("input");
   return typeof nested?.value === "string" ? nested.value.trim() : "";
+}
+
+function filePickerValue(picker, event) {
+  const candidates = [
+    event?.detail?.path,
+    event?.detail?.value,
+    event?.target !== picker ? event?.target?.value : null,
+    picker.input?.value,
+    picker._input?.value,
+    picker.shadowRoot?.querySelector("input")?.value,
+    picker.querySelector?.("input")?.value,
+    picker.value,
+    picker.dataset?.rnpsValue,
+    picker.getAttribute?.("value")
+  ];
+  return String(candidates.find(value => typeof value === "string" && value.trim()) ?? "").trim();
 }
 
 function createEmptyVariantPlaceholder() {

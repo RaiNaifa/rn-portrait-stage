@@ -3,6 +3,7 @@
   <div class="rnps-group-list">
     {{#each groups as |group|}}
       <article data-group-id="{{group.id}}">
+        <span class="rnps-group-drag-handle" draggable="true" data-tooltip="{{localize 'RNPS.Common.DragToSort'}}"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>
         <input type="text" name="groupName" value="{{group.displayName}}">
         <select name="groupAccess">
           <option value="gm" {{#if group.gm}}selected{{/if}}>{{localize "RNPS.VariantSettings.GmOnly"}}</option>

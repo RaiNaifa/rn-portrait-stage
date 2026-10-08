@@ -11,6 +11,7 @@ import {
 import {
   addActorToReserve,
   getReserveEntry,
+  moveReserveEntry,
   prepareReserveActors,
   removeActorFromReserve,
   updateReserveEntry
@@ -18,7 +19,7 @@ import {
 import { preparePortraitView } from "../portraits/portrait-data.js";
 import { PortraitEditor } from "./portrait-editor.js";
 import { logger } from "../logger.js";
-import { applyPreview, getPreviewSession, previewIsStale, resetPreview, togglePreview } from "../data/preview-service.js";
+import { applyPreview, ensurePreviewDraft, getPreviewConflicts, getPreviewSession, resetPreview, togglePreview, withoutPreview } from "../data/preview-service.js";
 import { applyCastPreset, deleteCastPreset, getCastPresets, previewCastPreset, saveCastPreset, updateCastPreset } from "../data/preset-service.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -42,6 +43,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleMirror: CastManager.#toggleMirror,
       toggleVisible: CastManager.#toggleVisible,
       editReserve: CastManager.#editReserve,
+      toggleReserveFavorite: CastManager.#toggleReserveFavorite,
       toggleReserveMirror: CastManager.#toggleReserveMirror,
       toggleReservePersistent: CastManager.#toggleReservePersistent,
       toggleReserveVisible: CastManager.#toggleReserveVisible,
@@ -67,6 +69,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #instance;
   #tab = "composition";
+  #scrollPositions = new Map();
 
   static open() {
     if (!this.#instance) this.#instance = new this();
@@ -82,22 +85,26 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const scene = canvas.scene;
     if (!scene) return { ...context, hasScene: false, groups: [] };
+    await ensurePreviewDraft(scene);
     const state = getCombinedCastState(scene);
     const groups = await Promise.all([
       this.#prepareGroup(GROUP_IDS.PCS, "RNPS.Groups.Pcs", state),
       this.#prepareGroup(GROUP_IDS.NPCS, "RNPS.Groups.Npcs", state)
     ]);
     const preview = getPreviewSession();
+    const conflicts = getPreviewConflicts(scene);
     return {
       ...context,
       hasScene: true,
       isGM: game.user.isGM,
       stageEnabled: game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED),
+      gmStageVisible: game.settings.get(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE),
       previewActive: preview.active,
       previewDirty: preview.dirty,
-      previewStale: preview.active && previewIsStale(scene),
+      previewStale: conflicts.length > 0,
       previewPresetId: preview.presetId,
       previewPresetName: preview.presetName,
+      reserveHeight: game.settings.get(MODULE_ID, SETTING_KEYS.RESERVE_HEIGHT),
       litmIntegrationEnabled: game.system.id === "litm-rn"
         && game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED),
       compositionTab: this.#tab === "composition",
@@ -107,7 +114,14 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       tokenHighlightEnabled: state.layout.tokenHighlight === true,
       tokenHighlightDisabled: state.layout.tokenHighlight === false,
       hint: game.i18n.localize("RNPS.Manager.Hint"),
-      groups,
+      groups: groups.map(group => ({
+        ...group,
+        entries: group.entries.map(portrait => ({
+          ...portrait,
+          draftConflict: conflicts.some(path => path.includes(`.${portrait.id}.`)),
+          draftConflictTooltip: game.i18n.localize("RNPS.Preview.EntryConflict")
+        }))
+      })),
       reserve: await prepareReserveActors()
     };
   }
@@ -167,6 +181,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender(context, options) {
     super._onRender(context, options);
+    this.#bindScrollState();
     if (!game.user.isGM) return;
     for (const target of this.element.querySelectorAll("[data-group-id], [data-reserve-drop]")) {
       target.addEventListener("dragover", event => this.#onDragOver(event));
@@ -178,6 +193,12 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const reserve of this.element.querySelectorAll("[data-reserve-actor]")) {
       reserve.addEventListener("dragstart", event => this.#onReserveDragStart(event));
     }
+    const reserveHandle = this.element.querySelector("[data-reserve-resize]");
+    reserveHandle?.addEventListener("pointerdown", event => this.#startReserveResize(event));
+    reserveHandle?.addEventListener("dblclick", async () => {
+      await game.settings.set(MODULE_ID, SETTING_KEYS.RESERVE_HEIGHT, 104);
+      this.render();
+    });
     for (const groupId of Object.values(GROUP_IDS)) {
       const input = this.element.querySelector(`[name='${groupId}PortraitSize']`);
       const output = this.element.querySelector(`[data-size-output='${groupId}']`);
@@ -205,6 +226,35 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  #bindScrollState() {
+    const targets = [
+      ...[...this.element.querySelectorAll(".rnps-manager-list")].map(element => ({
+        element,
+        key: `group:${element.closest("[data-group-id]")?.dataset.groupId ?? "unknown"}`
+      })),
+      { element: this.element.querySelector(".rnps-reserve-list"), key: "reserve" },
+      { element: this.element.querySelector(".rnps-presets"), key: "presets" }
+    ].filter(item => item.element);
+    for (const { element, key } of targets) {
+      const saved = this.#scrollPositions.get(key);
+      if (saved) {
+        element.scrollLeft = saved.left;
+        element.scrollTop = saved.top;
+      }
+      element.addEventListener("scroll", () => {
+        this.#scrollPositions.set(key, { left: element.scrollLeft, top: element.scrollTop });
+      }, { passive: true });
+    }
+    requestAnimationFrame(() => {
+      for (const { element, key } of targets) {
+        const saved = this.#scrollPositions.get(key);
+        if (!saved) continue;
+        element.scrollLeft = saved.left;
+        element.scrollTop = saved.top;
+      }
+    });
+  }
+
   #onDragOver(event) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -217,6 +267,14 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     try {
       const data = parseDropData(event);
       if (target.hasAttribute("data-reserve-drop")) {
+        if (data.type === "RNPortraitStageReserve" && data.entryId) {
+          const targetEntry = event.target.closest("[data-reserve-actor]");
+          const entries = [...target.querySelectorAll("[data-reserve-actor]")];
+          const index = targetEntry ? entries.indexOf(targetEntry) : null;
+          await moveReserveEntry(data.entryId, index);
+          this.render();
+          return;
+        }
         const actorUuid = data.type === "RNPortraitStageEntry" ? data.actorUuid : data.uuid;
         if (!actorUuid) throw new Error(game.i18n.localize("RNPS.Notifications.ActorDropOnly"));
         const castEntry = data.type === "RNPortraitStageEntry"
@@ -248,7 +306,9 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
           mirrored: reserveEntry.mirrored,
           visible: reserveEntry.visible
         }, { layer: initialLayer });
-        await removeActorFromReserve(reserveEntry.id);
+        if (reserveEntry.flags?.reserveFavorite !== true) {
+          await removeActorFromReserve(reserveEntry.id);
+        }
       } else if (data.type === "Actor" && data.uuid) {
         await addActorToCast(data.uuid, { groupId, index });
       } else {
@@ -281,9 +341,31 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     event.dataTransfer.effectAllowed = "copyMove";
   }
 
+  #startReserveResize(event) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const reserve = event.currentTarget.closest(".rnps-reserve");
+    if (!reserve) return;
+    const startY = event.clientY;
+    const startHeight = reserve.getBoundingClientRect().height;
+    const maximum = Math.max(104, Math.floor(this.element.querySelector(".rnps-manager-content").clientHeight * 0.55));
+    const move = moveEvent => {
+      const height = Math.max(82, Math.min(maximum, startHeight + startY - moveEvent.clientY));
+      reserve.style.setProperty("--rnps-reserve-height", `${Math.round(height)}px`);
+    };
+    const finish = async upEvent => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      const height = Math.max(82, Math.min(maximum, startHeight + startY - upEvent.clientY));
+      await game.settings.set(MODULE_ID, SETTING_KEYS.RESERVE_HEIGHT, Math.round(height));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish, { once: true });
+  }
+
   static #editEntry(event, target) {
     const entry = target.closest("[data-entry-id]");
-    PortraitEditor.open(entry?.dataset.entryId, entry?.dataset.layer);
+    PortraitEditor.open(entry?.dataset.entryId, entry?.dataset.layer, { draft: true });
   }
 
   static async #removeEntry(event, target) {
@@ -333,7 +415,17 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #editReserve(event, target) {
     const entryId = target.closest("[data-reserve-actor]")?.dataset.entryId;
-    PortraitEditor.open(entryId, CAST_LAYERS.RESERVE);
+    PortraitEditor.open(entryId, CAST_LAYERS.RESERVE, { draft: true });
+  }
+
+  static async #toggleReserveFavorite(event, target) {
+    const entryId = target.closest("[data-reserve-actor]")?.dataset.entryId;
+    const entry = getReserveEntry(entryId);
+    if (!entry) return;
+    await updateReserveEntry(entry.id, {
+      flags: { reserveFavorite: entry.flags?.reserveFavorite !== true }
+    });
+    this.render();
   }
 
   static async #toggleReserveMirror(event, target) {
@@ -365,7 +457,9 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #toggleStage() {
     const current = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
-    await game.settings.set(MODULE_ID, SETTING_KEYS.STAGE_ENABLED, !current);
+    const visible = !current;
+    await game.settings.set(MODULE_ID, SETTING_KEYS.STAGE_ENABLED, visible);
+    await game.settings.set(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE, visible);
     this.render();
   }
 
@@ -379,7 +473,6 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       castMode: this.element.querySelector("[name='previewCastMode']")?.value ?? "replaceAll",
       reserveMode: this.element.querySelector("[name='previewReserveMode']")?.value ?? "replace"
     });
-    ui.notifications.info(game.i18n.localize("RNPS.Preview.Applied"));
     this.render();
   }
 
@@ -454,17 +547,19 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async #setAllLitmTags(visible) {
-    const state = getCombinedCastState(canvas.scene);
-    for (const entry of Object.values(GROUP_IDS).flatMap(groupId => state.groups[groupId].entries)) {
-      await updateCastEntry(entry.id, {
-        flags: {
-          "litm-rn": {
-            ...(entry.flags?.["litm-rn"] ?? {}),
-            tagsVisible: visible
+    await withoutPreview(async () => {
+      const state = getCombinedCastState(canvas.scene);
+      for (const entry of Object.values(GROUP_IDS).flatMap(groupId => state.groups[groupId].entries)) {
+        await updateCastEntry(entry.id, {
+          flags: {
+            "litm-rn": {
+              ...(entry.flags?.["litm-rn"] ?? {}),
+              tagsVisible: visible
+            }
           }
-        }
-      }, { layer: entry.layer });
-    }
+        }, { layer: entry.layer });
+      }
+    });
   }
 }
 

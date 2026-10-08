@@ -88,6 +88,7 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       variantName: variant.name,
       image,
       isVideo: isVideoPath(image),
+      mirrored: Boolean(entry.mirrored) !== Boolean(settings.media.mirrored),
       settings,
       variant,
       access,
@@ -130,6 +131,21 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#schedule(0);
     });
     this.element.addEventListener("input", () => this.#schedule(250));
+    const hoverPicker = this.element.querySelector("file-picker[name='hoverCustomSrc']");
+    if (hoverPicker) {
+      const rememberValue = event => {
+        const value = filePickerValue(hoverPicker, event);
+        if (value || event?.target === hoverPicker) hoverPicker.dataset.rnpsValue = value;
+        this.#schedule(0);
+      };
+      hoverPicker.addEventListener("change", rememberValue);
+      hoverPicker.addEventListener("input", rememberValue);
+      new MutationObserver(() => {
+        const value = filePickerValue(hoverPicker);
+        if (value) hoverPicker.dataset.rnpsValue = value;
+        this.#schedule(0);
+      }).observe(hoverPicker, { attributes: true, attributeFilter: ["value"] });
+    }
   }
 
   #syncConditionalFields() {
@@ -142,6 +158,14 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     if (selectedUsers) selectedUsers.hidden = this.element.querySelector("[name='accessMode']")?.value !== "selected";
     const hoverCustom = this.element.querySelector("[data-hover-custom-image]");
     if (hoverCustom) hoverCustom.hidden = this.element.querySelector("[name='hoverSource']")?.value !== "custom";
+    const preview = this.element.querySelector(".rnps-variant-settings-preview img, .rnps-variant-settings-preview video");
+    const entry = this.#layer === CAST_LAYERS.RESERVE
+      ? getReserveEntry(this.#entryId)
+      : getCastEntry(this.#entryId, { layer: this.#layer });
+    preview?.classList.toggle(
+      "mirrored",
+      Boolean(entry?.mirrored) !== Boolean(this.element.querySelector("[name='mediaMirrored']")?.checked)
+    );
   }
 
   #schedule(delay) {
@@ -197,7 +221,7 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hover: {
         enabled: true,
         source: String(values.get("hoverSource") || "inherit"),
-        customSrc: String(values.get("hoverCustomSrc") || "") || null,
+        customSrc: filePickerValue(form.querySelector("file-picker[name='hoverCustomSrc']")) || null,
         scale: number("hoverScale", 1),
         mirrored: values.get("hoverMirrored") === "on"
       },
@@ -218,9 +242,38 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
     await updateActorVariant(view.actor, variant.id, changes);
+    const mirrored = Boolean(entry.mirrored) !== Boolean(settings.media.mirrored);
+    const tile = document.querySelector(
+      `#rn-portrait-stage-portrait-editor [data-variant-tile][data-variant-id='${CSS.escape(variant.id)}']`
+    );
+    if (tile) {
+      tile.dataset.mirrored = String(mirrored);
+      tile.querySelector(":scope > img, :scope > video")?.classList.toggle("mirrored", mirrored);
+      if (tile.classList.contains("active")) {
+        document.querySelector("#rn-portrait-stage-portrait-editor .rnps-editor-preview img, #rn-portrait-stage-portrait-editor .rnps-editor-preview video")
+          ?.classList.toggle("mirrored", mirrored);
+      }
+    }
   }
 }
 
 function splitLines(value) {
   return String(value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+}
+
+function filePickerValue(picker, event) {
+  if (!picker) return "";
+  const candidates = [
+    event?.detail?.path,
+    event?.detail?.value,
+    event?.target !== picker ? event?.target?.value : null,
+    picker.input?.value,
+    picker._input?.value,
+    picker.shadowRoot?.querySelector("input")?.value,
+    picker.querySelector?.("input")?.value,
+    picker.value,
+    picker.dataset?.rnpsValue,
+    picker.getAttribute?.("value")
+  ];
+  return String(candidates.find(value => typeof value === "string" && value.trim()) ?? "").trim();
 }

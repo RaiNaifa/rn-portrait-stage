@@ -5,9 +5,9 @@
         <i class="fa-solid {{#if stageEnabled}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
         {{#if stageEnabled}}{{localize "RNPS.Manager.HideStage"}}{{else}}{{localize "RNPS.Manager.ShowStage"}}{{/if}}
       </button>
-      <button type="button" class="rnps-preview-toggle{{#if previewActive}} active{{/if}}{{#if previewDirty}} dirty{{/if}}" data-action="togglePreview">
-        <i class="fa-solid fa-eye-low-vision" aria-hidden="true"></i>
-        {{localize "RNPS.Preview.Button"}}
+      <button type="button" class="rnps-preview-toggle{{#if gmStageVisible}} active{{/if}}" data-action="togglePreview">
+        <i class="fa-solid {{#if gmStageVisible}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
+        {{#if gmStageVisible}}{{localize "RNPS.Preview.HideSelf"}}{{else}}{{localize "RNPS.Preview.ShowSelf"}}{{/if}}
       </button>
     </div>
     {{#if litmIntegrationEnabled}}
@@ -17,9 +17,13 @@
         <button type="button" data-action="hideAllLitmTags"><i class="fa-solid fa-eye-slash"></i> {{localize "RNPS.Integrations.Litm.HideAllTags"}}</button>
       </div>
     {{/if}}
-    {{#if previewActive}}
+    <nav class="rnps-manager-tabs">
+      <button type="button" class="{{#if compositionTab}}active{{/if}}" data-action="showComposition">{{localize "RNPS.Manager.Composition"}}</button>
+      <button type="button" class="{{#if presetsTab}}active{{/if}}" data-action="showPresets">{{localize "RNPS.Presets.Title"}}</button>
+    </nav>
+    {{#if compositionTab}}
       <div class="rnps-preview-bar">
-        <span><i class="fa-solid fa-flask" aria-hidden="true"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.PresetActive"}}: <strong>{{previewPresetName}}</strong>{{else}}{{localize "RNPS.Preview.Active"}}{{/if}}</span>
+        <span><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.PresetActive"}}: <strong>{{previewPresetName}}</strong>{{else}}{{localize "RNPS.Preview.Draft"}}{{/if}}</span>
         {{#if previewStale}}<span class="warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "RNPS.Preview.Stale"}}</span>{{/if}}
         {{#if previewPresetId}}
           <select name="previewCastMode" data-tooltip="{{localize 'RNPS.Presets.CastMode'}}">
@@ -34,16 +38,10 @@
             <option value="replace">{{localize "RNPS.Presets.ReplaceReserve"}}</option>
           </select>
         {{/if}}
-        <button type="button" data-action="applyPreview"><i class="fa-solid fa-users"></i> {{localize "RNPS.Preview.Apply"}}</button>
+        <button type="button" class="{{#if previewDirty}}dirty{{else}}no-changes{{/if}}" data-action="applyPreview"><i class="fa-solid fa-check"></i> {{localize "RNPS.Preview.ApplyChanges"}}</button>
+        <button type="button" class="{{#unless previewDirty}}no-changes{{/unless}}" data-action="resetPreview"><i class="fa-solid fa-rotate-left"></i> {{localize "RNPS.Preview.ResetChanges"}}</button>
         <button type="button" data-action="savePreset"><i class="fa-solid fa-floppy-disk"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.UpdatePreset"}}{{else}}{{localize "RNPS.Preview.SavePreset"}}{{/if}}</button>
-        <button type="button" data-action="resetPreview"><i class="fa-solid fa-rotate-left"></i> {{localize "RNPS.Preview.Reset"}}</button>
       </div>
-    {{/if}}
-    <nav class="rnps-manager-tabs">
-      <button type="button" class="{{#if compositionTab}}active{{/if}}" data-action="showComposition">{{localize "RNPS.Manager.Composition"}}</button>
-      <button type="button" class="{{#if presetsTab}}active{{/if}}" data-action="showPresets">{{localize "RNPS.Presets.Title"}}</button>
-    </nav>
-    {{#if compositionTab}}
     <div class="rnps-manager-scene-options">
       <label>{{localize "RNPS.Manager.TokenHighlight"}}</label>
       <select name="tokenHighlightMode">
@@ -53,6 +51,7 @@
       </select>
     </div>
     <p class="hint">{{hint}}</p>
+    <div class="rnps-composition-body">
     <div class="rnps-manager-groups">
       {{#each groups as |group|}}
         <section class="rnps-manager-group" data-group-id="{{group.id}}">
@@ -67,14 +66,15 @@
           <div class="rnps-manager-list">
             {{#each group.entries as |portrait|}}
               <article class="rnps-manager-entry{{#unless portrait.visible}} rnps-manager-entry--hidden{{/unless}}{{#if portrait.missing}} rnps-manager-entry--missing{{/if}}" draggable="{{@root.isGM}}" data-entry-id="{{portrait.id}}" data-layer="{{portrait.entry.layer}}" data-actor-uuid="{{portrait.actorUuid}}">
-                {{#if portrait.isVideo}}<video class="{{#if portrait.entry.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.entry.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="" loading="lazy">{{/if}}
+                {{#if portrait.draftConflict}}<i class="rnps-entry-conflict fa-solid fa-triangle-exclamation" data-tooltip="{{portrait.draftConflictTooltip}}"></i>{{/if}}
+                {{#if portrait.isVideo}}<video class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="" loading="lazy">{{/if}}
                 {{#if portrait.missing}}
                   <span class="rnps-entry-name">{{portrait.name}}</span>
                 {{else}}
                   <span class="rnps-entry-name">{{portrait.name}}</span>
                 {{/if}}
                 {{#if @root.isGM}}
-                  {{#if portrait.personalizedUsers}}<span class="rnps-manager-assignment" data-tooltip="{{portrait.personalizedSummary}}">{{#each portrait.personalizedVariants as |assignment|}}<span class="rnps-manager-assignment-variant" data-tooltip="{{assignment.tooltip}}">{{#if assignment.isVideo}}<video src="{{assignment.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{assignment.image}}" alt="">{{/if}}<b>{{assignment.count}}</b></span>{{/each}}</span>{{/if}}
+                  {{#if portrait.personalizedUsers}}<span class="rnps-manager-assignment" data-tooltip="{{portrait.personalizedSummary}}">{{#each portrait.personalizedVariants as |assignment|}}<span class="rnps-manager-assignment-variant" data-tooltip="{{assignment.tooltip}}">{{#if assignment.isVideo}}<video class="{{#if assignment.mirrored}}mirrored{{/if}}" src="{{assignment.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if assignment.mirrored}}mirrored{{/if}}" src="{{assignment.image}}" alt="">{{/if}}<b>{{assignment.count}}</b></span>{{/each}}</span>{{/if}}
                   <div class="rnps-entry-actions rnps-entry-actions--top">
                     {{#unless portrait.missing}}<button type="button" data-action="edit" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>{{/unless}}
                     <button type="button" data-action="remove" data-tooltip="{{localize 'RNPS.Controls.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
@@ -94,13 +94,15 @@
       {{/each}}
     </div>
 
-    <footer class="rnps-reserve" data-reserve-drop>
+    <footer class="rnps-reserve" data-reserve-drop style="--rnps-reserve-height: {{reserveHeight}}px">
+      <div class="rnps-reserve-resize" data-reserve-resize data-tooltip="{{localize 'RNPS.Manager.ResizeReserve'}}"></div>
       <header><h2>{{localize "RNPS.Manager.Reserve"}}</h2><span class="hint">{{localize "RNPS.Manager.ReserveHint"}}</span></header>
       <div class="rnps-reserve-list">
         {{#each reserve as |actor|}}
           <article class="rnps-manager-entry rnps-reserve-actor{{#unless actor.visible}} rnps-manager-entry--hidden{{/unless}}" draggable="true" data-reserve-actor data-entry-id="{{actor.id}}" data-actor-uuid="{{actor.actorUuid}}" data-tooltip="{{actor.name}}">
-            {{#if actor.isVideo}}<video class="{{#if actor.entry.mirrored}}mirrored{{/if}}" src="{{actor.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if actor.entry.mirrored}}mirrored{{/if}}" src="{{actor.image}}" alt="">{{/if}}
+            {{#if actor.isVideo}}<video class="{{#if actor.mirrored}}mirrored{{/if}}" src="{{actor.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if actor.mirrored}}mirrored{{/if}}" src="{{actor.image}}" alt="">{{/if}}
             <div class="rnps-entry-actions rnps-entry-actions--top">
+              <button type="button" class="{{#if actor.entry.flags.reserveFavorite}}active{{/if}}" data-action="toggleReserveFavorite" data-tooltip="{{#if actor.entry.flags.reserveFavorite}}{{localize 'RNPS.Manager.RemoveFavorite'}}{{else}}{{localize 'RNPS.Manager.AddFavorite'}}{{/if}}"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
               <button type="button" data-action="editReserve" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
               <button type="button" data-action="removeReserve" data-tooltip="{{localize 'RNPS.Manager.RemoveReserve'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
             </div>
@@ -115,6 +117,7 @@
         {{/each}}
       </div>
     </footer>
+    </div>
     {{else}}
       <section class="rnps-presets">
         <div class="rnps-preset-create">

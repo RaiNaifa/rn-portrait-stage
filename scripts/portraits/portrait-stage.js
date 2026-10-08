@@ -1,5 +1,6 @@
 import { GROUP_IDS, HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
-import { getCombinedCastState, updateCastEntry } from "../data/cast-service.js";
+import { getCombinedCastState } from "../data/cast-service.js";
+import { requestCastEntryUpdate } from "../data/socket-service.js";
 import { resolveUiAnchor } from "../compatibility/ui-anchors.js";
 import { preparePortraitView } from "./portrait-data.js";
 import { PortraitEditor } from "../apps/portrait-editor.js";
@@ -10,6 +11,7 @@ import { isPreviewActive } from "../data/preview-service.js";
 import { getCompatibilityAdapter } from "../compatibility/index.js";
 import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/image-hover.js";
 import { voiceController } from "../voice/voice-controller.js";
+import { navigationButton } from "../ui/navigation-button.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -62,8 +64,11 @@ export class PortraitStage {
     this.#attachGroups();
     if (!this.#groups.size) return;
     const version = ++this.#renderVersion;
-    const visible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED) || isPreviewActive();
-    for (const group of this.#groups.values()) group.classList.toggle("rnps-preview-stage", isPreviewActive());
+    const preview = isPreviewActive();
+    const visible = game.user?.isGM
+      ? game.settings.get(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE)
+      : game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED) && !navigationButton.isPlayerHidden();
+    for (const group of this.#groups.values()) group.classList.toggle("rnps-preview-stage", preview);
     for (const group of this.#groups.values()) group.hidden = !visible;
     if (!visible) {
       this.#setPcLayoutActive(false);
@@ -397,6 +402,7 @@ export class PortraitStage {
     if (this.#hoverLayer) this.#hoverLayer.hidden = true;
   }
 
+
   #renderRegisteredActions(card, view, groupId) {
     const api = game.modules.get(MODULE_ID)?.api;
     const definitions = (api?.actions?.list?.() ?? []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -415,7 +421,10 @@ export class PortraitStage {
             try {
               await definition.onClick?.({
                 ...context,
-                updateEntry: changes => updateCastEntry(view.id, changes, { layer: view.entry.layer })
+                updateEntry: changes => requestCastEntryUpdate(view.id, changes, {
+                  layer: view.entry.layer,
+                  actor: view.actor
+                })
               });
             } catch (error) {
               console.error(`${MODULE_ID} | Portrait action '${definition.id}' failed`, error);

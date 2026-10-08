@@ -1,5 +1,6 @@
 import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { createPortraitEntry, normalizePortraitEntry } from "./portrait-entry.js";
+import { getActorLibrary } from "./actor-library.js";
 import { preparePortraitView } from "../portraits/portrait-data.js";
 import { getPreviewReserve, isPreviewActive, setPreviewReserve } from "./preview-service.js";
 
@@ -39,7 +40,10 @@ export async function addActorToReserve(actorUuid, { entry = null } = {}) {
   }
   const reserve = getReserveEntries();
   if (reserve.some(item => item.actorUuid === actor.uuid)) return;
-  const source = entry ? normalizePortraitEntry(entry, entry.groupId) : createPortraitEntry(actor.uuid);
+  const library = getActorLibrary(actor);
+  const source = entry ? normalizePortraitEntry(entry, entry.groupId) : createPortraitEntry(actor.uuid, {
+    activeVariantId: library.lastActiveVariantId ?? library.defaultVariantId
+  });
   source.id = foundry.utils.randomID();
   source.flags = {
     ...source.flags,
@@ -62,6 +66,21 @@ export async function updateReserveEntry(entryId, changes) {
   }, reserve[index].groupId);
   await setReserveEntries(reserve);
   return { ...reserve[index], layer: CAST_LAYERS.RESERVE };
+}
+
+export async function moveReserveEntry(entryId, index = null) {
+  requireGm();
+  const reserve = getReserveEntries();
+  const sourceIndex = reserve.findIndex(entry => entry.id === entryId);
+  if (sourceIndex < 0) return null;
+  const [entry] = reserve.splice(sourceIndex, 1);
+  let targetIndex = Number.isInteger(index)
+    ? Math.max(0, Math.min(index, reserve.length))
+    : reserve.length;
+  if (Number.isInteger(index) && sourceIndex < index) targetIndex = Math.max(0, targetIndex - 1);
+  reserve.splice(targetIndex, 0, entry);
+  await setReserveEntries(reserve);
+  return { ...entry, layer: CAST_LAYERS.RESERVE };
 }
 
 export async function removeActorFromReserve(entryIdOrActorUuid) {

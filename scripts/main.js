@@ -1,4 +1,4 @@
-import { HOOKS, MODULE_ID, MODULE_TITLE, SETTING_KEYS } from "./constants.js";
+import { FLAGS, HOOKS, MODULE_ID, MODULE_TITLE, SETTING_KEYS } from "./constants.js";
 import { createPublicApi } from "./api.js";
 import { getCompatibilityAdapter, isSupportedFoundryVersion } from "./compatibility/index.js";
 import { logger } from "./logger.js";
@@ -54,18 +54,25 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("canvasReady", async () => {
+  navigationButton.revealForSceneChange();
   await syncPreviewScene(canvas.scene);
   portraitStage.render();
   navigationButton.position();
   CastManager.refresh();
 });
 
-Hooks.on("updateScene", scene => {
+Hooks.on("updateScene", (scene, changes) => {
   if (scene.id !== canvas.scene?.id) return;
+  if (foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.SCENE_STATE}`)) {
+    navigationButton.revealForSceneChange();
+  }
   scheduleUiRefresh();
 });
 
-Hooks.on("updateActor", () => {
+Hooks.on("updateActor", (actor, changes) => {
+  if (foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${FLAGS.ACTOR_LIBRARY}`)) {
+    navigationButton.revealForSceneChange();
+  }
   scheduleUiRefresh();
 });
 
@@ -76,7 +83,10 @@ Hooks.on("updateUser", () => scheduleUiRefresh());
 
 Hooks.on("renderSceneNavigation", () => navigationButton.position());
 Hooks.on("collapseSceneNavigation", () => requestAnimationFrame(() => navigationButton.position()));
-Hooks.on(HOOKS.SETTINGS_CHANGED, () => {
+Hooks.on(HOOKS.SETTINGS_CHANGED, ({ key }) => {
+  if ([SETTING_KEYS.STAGE_ENABLED, SETTING_KEYS.PERSISTENT_STATE].includes(key)) {
+    navigationButton.revealForSceneChange();
+  }
   scheduleUiRefresh();
 });
 Hooks.on(HOOKS.STATE_CHANGED, () => scheduleUiRefresh());
@@ -84,7 +94,7 @@ Hooks.on(HOOKS.SPEAKING_CHANGED, ({ actorUuid, speaking }) => {
   portraitStage.setSpeaking(actorUuid, speaking);
 });
 Hooks.on(HOOKS.LAYOUT_CHANGED, () => requestAnimationFrame(() => navigationButton.position()));
-window.addEventListener("beforeunload", () => voiceController.stop());
+globalThis.window?.addEventListener("beforeunload", () => voiceController.stop());
 
 let uiRefreshTimer;
 function scheduleUiRefresh() {

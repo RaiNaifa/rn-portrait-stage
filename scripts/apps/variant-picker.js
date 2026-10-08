@@ -57,6 +57,7 @@ export class VariantPicker extends HandlebarsApplicationMixin(ApplicationV2) {
           previewImage,
           hasImage,
           isVideo: isVideoPath(previewImage),
+          mirrored: Boolean(entry.mirrored) !== Boolean(variant.settings?.media?.mirrored),
           active: variant.id === (entry.userVariants?.[game.user.id] ?? entry.activeVariantId ?? view.library.defaultVariantId),
           assignedUsers: Object.values(entry.userVariants ?? {}).filter(id => id === variant.id).length
         };

@@ -37,9 +37,9 @@ export function emitVoiceState(payload) {
 }
 
 export function requestVoiceEntryToggle(entryId, enabled, { layer, actor } = {}) {
-  if (game.user.isGM) return updateCastEntry(entryId, {
+  if (game.user.isGM) return withoutPreview(() => updateCastEntry(entryId, {
     flags: { [MODULE_ID]: { voiceEnabled: enabled === true } }
-  }, { layer });
+  }, { layer }));
   if (game.user.character?.uuid !== actor?.uuid) {
     throw new Error(game.i18n.localize("RNPS.Notifications.ActorPermission"));
   }
@@ -52,8 +52,14 @@ export function requestVoiceEntryToggle(entryId, enabled, { layer, actor } = {})
   });
 }
 
-export async function requestCastEntryUpdate(entryId, changes, { layer, actor } = {}) {
-  if (game.user.isGM) return updateCastEntry(entryId, changes, { layer });
+export async function requestCastEntryUpdate(entryId, changes, { layer, actor, draft = false } = {}) {
+  if (game.user.isGM) {
+    if (draft) return updateCastEntry(entryId, changes, { layer });
+    const published = await withoutPreview(() => getCastEntry(entryId, { layer }));
+    return published
+      ? withoutPreview(() => updateCastEntry(entryId, changes, { layer }))
+      : updateCastEntry(entryId, changes, { layer });
+  }
   if (!game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_PLAYER_PORTRAIT_CHANGES)) {
     throw new Error(game.i18n.localize("RNPS.Notifications.PlayerChangesDisabled"));
   }

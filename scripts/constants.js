@@ -2,7 +2,7 @@ export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
 export const SCENE_SCHEMA_VERSION = 5;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 5;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 6;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -35,6 +35,7 @@ export const SETTING_KEYS = Object.freeze({
   LABEL_FONT_SIZE: "labelFontSize",
   PERSISTENT_STATE: "persistentState",
   STAGE_ENABLED: "stageEnabled",
+  GM_STAGE_VISIBLE: "gmStageVisible",
   RESERVE_ACTORS: "reserveActors",
   PORTRAIT_GAP: "portraitGap",
   PC_OFFSET_X: "pcOffsetX",
@@ -53,6 +54,7 @@ export const SETTING_KEYS = Object.freeze({
   IMAGE_HOVER_PRIORITY: "imageHoverPriority",
   LITM_INTEGRATION_ENABLED: "litmIntegrationEnabled",
   PREVIEW_SESSION: "previewSession",
+  RESERVE_HEIGHT: "reserveHeight",
   CAST_PRESETS: "castPresets"
 });
 

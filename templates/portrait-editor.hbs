@@ -3,7 +3,7 @@
 {{else}}
   <div class="rnps-editor-content">
     <div class="rnps-editor-preview">
-      {{#if previewIsVideo}}<video src="{{previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{previewImage}}" alt="">{{/if}}
+      {{#if previewIsVideo}}<video class="{{#if previewMirrored}}mirrored{{/if}}" src="{{previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if previewMirrored}}mirrored{{/if}}" src="{{previewImage}}" alt="">{{/if}}
       <fieldset class="rnps-editor-label">
         <legend>{{localize "RNPS.Editor.Label"}}</legend>
         <div class="form-group">
@@ -32,11 +32,11 @@
           <header><h3>{{group.displayName}}</h3><span>{{group.variants.length}}</span></header>
           <div class="rnps-variant-grid" data-variant-group="{{group.id}}" data-default-group="{{group.isDefault}}">
         {{#each group.variants as |variant|}}
-          <section class="rnps-variant-tile{{#if variant.selected}} active{{/if}}" data-variant-tile data-variant-id="{{variant.id}}">
+          <section class="rnps-variant-tile{{#if variant.selected}} active{{/if}}" data-variant-tile data-variant-id="{{variant.id}}" data-mirrored="{{variant.mirrored}}">
             <input type="hidden" name="variantId" value="{{variant.id}}">
             <input type="hidden" name="variantSource" value="{{variant.image.source}}">
             {{#if variant.hasImage}}
-              {{#if variant.isVideo}}<video src="{{variant.previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img src="{{variant.previewImage}}" alt="">{{/if}}
+              {{#if variant.isVideo}}<video class="{{#if variant.mirrored}}mirrored{{/if}}" src="{{variant.previewImage}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if variant.mirrored}}mirrored{{/if}}" src="{{variant.previewImage}}" alt="">{{/if}}
             {{else}}
               <div class="rnps-variant-placeholder" data-tooltip="{{localize 'RNPS.Editor.ImageNotSelected'}}"><i class="fa-solid fa-image" aria-hidden="true"></i><span>{{localize "RNPS.Editor.ImageNotSelected"}}</span></div>
             {{/if}}
@@ -64,9 +64,9 @@
         </section>
       {{/each}}
       </div>
-      <button type="button" data-action="addVariant"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{localize "RNPS.Editor.AddVariant"}}</button>
+      <button type="button" class="rnps-add-variant" data-action="addVariant"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{localize "RNPS.Editor.AddVariant"}}</button>
       <template id="rnps-new-variant-template">
-        <section class="rnps-variant-tile" data-variant-tile data-variant-id="">
+        <section class="rnps-variant-tile" data-variant-tile data-variant-id="" data-mirrored="false">
           <input type="hidden" name="variantId" value="">
           <input type="hidden" name="variantSource" value="custom">
           <div class="rnps-variant-placeholder"><i class="fa-solid fa-image" aria-hidden="true"></i><span>{{localize "RNPS.Editor.ImageNotSelected"}}</span></div>

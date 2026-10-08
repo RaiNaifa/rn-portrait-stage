@@ -59,6 +59,9 @@ export async function preparePortraitView(entry) {
     ...group,
     count: group.users.length,
     isVideo: isVideoPath(group.image),
+    mirrored: Boolean(entry.mirrored) !== Boolean(
+      library.variants.find(item => item.id === group.id)?.settings?.media?.mirrored
+    ),
     tooltip: `${group.name}: ${group.users.join(", ")}`
   }));
   return {
@@ -78,6 +81,7 @@ export async function preparePortraitView(entry) {
     personalizedVariants,
     image: portraitImage,
     isVideo: isVideoPath(portraitImage),
+    mirrored: Boolean(entry.mirrored) !== Boolean(variant.settings?.media?.mirrored),
     visible: entry.visible,
     isOwner: actor.isOwner,
     canOpenSheet: actor.testUserPermission(game.user, "LIMITED")

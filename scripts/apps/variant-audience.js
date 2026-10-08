@@ -1,6 +1,7 @@
 import { CAST_LAYERS, MODULE_ID } from "../constants.js";
-import { getCastEntry, updateCastEntry } from "../data/cast-service.js";
+import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry, updateReserveEntry } from "../data/reserve-service.js";
+import { requestCastEntryUpdate } from "../data/socket-service.js";
 import { preparePortraitView } from "../portraits/portrait-data.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -83,7 +84,11 @@ export class VariantAudience extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.#layer === CAST_LAYERS.RESERVE) {
       await updateReserveEntry(this.#entryId, { userVariants });
     } else {
-      await updateCastEntry(this.#entryId, { userVariants }, { layer: this.#layer });
+      const view = await preparePortraitView(entry);
+      await requestCastEntryUpdate(this.#entryId, { userVariants }, {
+        layer: this.#layer,
+        actor: view.actor
+      });
     }
     this.render();
   }

@@ -12,7 +12,8 @@ export function createDefaultActorLibrary(actor = null) {
       createPortraitVariant({ id: "actor", name: "Actor portrait", source: "actor" }),
       createPortraitVariant({ id: "prototypeToken", name: "Actor token", source: "prototypeToken" })
     ],
-    defaultVariantId: "actor"
+    defaultVariantId: "actor",
+    lastActiveVariantId: "actor"
   };
 }
 
@@ -104,6 +105,9 @@ export function normalizeActorLibrary(source, actor = null) {
   const defaultVariantId = variants.some(variant => variant.id === source.defaultVariantId)
     ? source.defaultVariantId
     : variants[0].id;
+  const lastActiveVariantId = variants.some(variant => variant.id === source.lastActiveVariantId)
+    ? source.lastActiveVariantId
+    : defaultVariantId;
   return {
     schemaVersion: ACTOR_LIBRARY_SCHEMA_VERSION,
     label: {
@@ -115,7 +119,8 @@ export function normalizeActorLibrary(source, actor = null) {
     groups,
     defaultGroupId,
     variants,
-    defaultVariantId
+    defaultVariantId,
+    lastActiveVariantId
   };
 }
 
