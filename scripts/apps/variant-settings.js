@@ -228,7 +228,6 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         delay: number("transitionDelay", 0)
       },
       hover: {
-        enabled: true,
         source: String(values.get("hoverSource") || "inherit"),
         customSrc: filePickerValue(form.querySelector("file-picker[name='hoverCustomSrc']")) || null,
         scale: number("hoverScale", 1),

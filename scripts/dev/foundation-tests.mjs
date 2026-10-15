@@ -178,6 +178,12 @@ const hoverLibrary = normalizeActorLibrary({
 assert.equal(hoverLibrary.variants[2].settings.hover.customSrc, "close.webp");
 assert.equal(hoverLibrary.variants[2].settings.hover.scale, 1.5);
 assert.equal(hoverLibrary.variants[2].settings.hover.mirrored, true);
+const legacyDisabledHover = normalizeActorLibrary({
+  variants: [{ id: "legacy-hover", settings: { hover: { enabled: false, source: "custom", customSrc: "old.webp" } } }]
+}).variants[2].settings.hover;
+assert.equal(legacyDisabledHover.source, "none");
+assert.equal(Object.hasOwn(legacyDisabledHover, "enabled"), false);
+assert.equal(Object.hasOwn(library.variants[0].settings.hover, "enabled"), false);
 const owner = { id: "owner", isGM: false };
 const guest = { id: "guest", isGM: false };
 const actor = { testUserPermission: user => user.id === "owner" };

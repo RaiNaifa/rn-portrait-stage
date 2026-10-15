@@ -650,7 +650,6 @@ export class PortraitStage {
   #renderHoverArt(view, groupId) {
     this.#hoverArt.replaceChildren();
     const hover = view.variant.settings?.hover ?? {};
-    if (hover.enabled === false) return false;
     const configured = hover.source === "inherit" || !hover.source
       ? game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE)
       : hover.source;

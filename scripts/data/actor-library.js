@@ -62,7 +62,6 @@ export function createDefaultVariantSettings() {
     },
     transition: { enabled: false, enter: "none", exit: "none", duration: 300, delay: 0 },
     hover: {
-      enabled: true,
       source: "inherit",
       customSrc: null,
       scale: 1,
@@ -217,6 +216,7 @@ export function normalizeVariantSettings(source) {
   const media = isPlainObject(source?.media) ? source.media : {};
   const transition = isPlainObject(source?.transition) ? source.transition : {};
   const hover = isPlainObject(source?.hover) ? source.hover : {};
+  const { enabled: legacyHoverEnabled, ...hoverOptions } = hover;
   const focus = isPlainObject(source?.focus) ? source.focus : {};
   const speaking = isPlainObject(source?.speaking) ? source.speaking : {};
   const speakingImage = isPlainObject(speaking.image) ? speaking.image : {};
@@ -235,9 +235,10 @@ export function normalizeVariantSettings(source) {
     transition: { ...fallback.transition, ...transition },
     hover: {
       ...fallback.hover,
-      ...hover,
-      enabled: hover.enabled !== false,
-      source: ["inherit", "actor", "prototypeToken", "custom", "none"].includes(hover.source)
+      ...hoverOptions,
+      source: legacyHoverEnabled === false
+        ? "none"
+        : ["inherit", "actor", "prototypeToken", "custom", "none"].includes(hover.source)
         ? hover.source
         : hover.image
           ? "custom"
