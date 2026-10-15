@@ -90,9 +90,58 @@
   pointer-events: auto;
   cursor: grab;
   touch-action: none;
+  filter: drop-shadow(0 0 2px #ffe4a0) drop-shadow(0 0 7px rgb(255 179 0 / 0.9));
 }
 .rnps-focus-editing .rnps-focus-slot.active > .rnps-focus-dragging { cursor: grabbing; }
-#tooltip.rnps-focus-edit-tooltip { white-space: pre-line; }
+#tooltip.rnps-focus-edit-tooltip { max-width: min(420px, 90vw); white-space: normal; }
+.rnps-focus-tooltip { display: grid; gap: 5px; text-align: left; }
+.rnps-focus-tooltip-row { display: flex; align-items: center; gap: 6px; }
+.rnps-focus-tooltip-input { display: inline-flex; min-width: 148px; align-items: center; gap: 4px; white-space: nowrap; }
+.rnps-focus-tooltip kbd {
+  display: inline-block;
+  min-width: 28px;
+  padding: 1px 4px;
+  border: 1px solid #a9987a;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.08);
+  color: #f2e0bb;
+  font: inherit;
+  font-size: 0.9em;
+  text-align: center;
+}
+.rnps-focus-mouse {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 15px;
+  width: 15px;
+  height: 21px;
+  border: 1px solid #d3c5aa;
+  border-radius: 8px 8px 6px 6px;
+  vertical-align: middle;
+}
+.rnps-focus-mouse::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 6px;
+  height: 8px;
+  border-left: 1px solid #d3c5aa;
+}
+.rnps-focus-mouse::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 2px;
+  height: 5px;
+  border-radius: 2px;
+  background: #d3c5aa;
+}
+.rnps-focus-mouse--left { background: linear-gradient(to right, rgb(255 179 0 / 0.75) 0 48%, transparent 48%) top left / 100% 9px no-repeat; }
+.rnps-focus-mouse--middle::after,
+.rnps-focus-mouse--wheel::after { background: #ffb300; box-shadow: 0 0 3px #ffb300; }
+.rnps-focus-mouse--wheel { margin-right: 2px; }
+.rnps-focus-wheel-arrows { color: #ffb300; font-size: 10px; }
 .rnps-ui-action.rnps-ui-focus { top: 8px; right: 38px; }
 .rnps-focus-menu {
   position: absolute;

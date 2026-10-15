@@ -21,6 +21,7 @@ Hooks.once("init", () => {
     hint: "RNPS.Keybindings.HighlightPortraitTags.Hint",
     editable: [{ key: "AltLeft" }, { key: "AltRight" }],
     onDown: () => {
+      if (portraitStage.isFocusEditMode()) return false;
       portraitStage.setAllTagsHighlighted(true);
       return false;
     },
@@ -67,7 +68,7 @@ Hooks.once("ready", async () => {
   const coreHighlight = game.keybindings.actions.get("core.highlight");
   if (coreHighlight?.onDown) {
     const originalOnDown = coreHighlight.onDown;
-    coreHighlight.onDown = (...args) => portraitStage.isSceneBackgroundVisible()
+    coreHighlight.onDown = (...args) => (portraitStage.isSceneBackgroundVisible() || portraitStage.isFocusEditMode())
       ? false
       : originalOnDown(...args);
   }

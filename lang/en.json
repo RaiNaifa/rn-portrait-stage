@@ -373,7 +373,16 @@
       "Reset": "Reset position and size",
       "Apply": "Apply focus changes",
       "Discard": "Discard focus draft",
-      "DragHint": "Drag to move the portrait.\nScroll to resize.\nShift + scroll for fine scale adjustment.\nMiddle-click to reset position and scale.\nShift + click to bring the zone to front.\nCtrl + click to send the zone to back."
+      "Controls": {
+        "Wheel": "Wheel",
+        "MiddleButton": "Middle button",
+        "Click": "click",
+        "Scale": "change scale",
+        "Defaults": "reset to defaults",
+        "Mirror": "mirror",
+        "BringFront": "bring to front",
+        "SendBack": "send to back"
+      }
     },
     "Integrations": {
       "Litm": {

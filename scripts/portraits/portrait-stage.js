@@ -13,7 +13,7 @@ import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/im
 import { voiceController } from "../voice/voice-controller.js";
 import { isLayerVisible } from "../data/visibility-service.js";
 import { navigationButton } from "../ui/navigation-button.js";
-import { assignFocus, getPresentation, moveFocusZone, removeFocusActor, setFocusOrder } from "../data/scene-presentation.js";
+import { assignFocus, getPresentation, moveFocusZone, removeFocusActor, setFocusOrder, updateFocusEntry } from "../data/scene-presentation.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -43,6 +43,7 @@ export class PortraitStage {
   #focusDrag = null;
   #focusDrafts = new Map();
   #focusOrderDrafts = new Map();
+  #focusMirrorDrafts = new Map();
   #focusApplying = false;
   #focusPointerMoveHandler = event => this.#onFocusPointerMove(event);
   #focusPointerUpHandler = event => this.#onFocusPointerUp(event);
@@ -118,10 +119,11 @@ export class PortraitStage {
     if (!game.user?.isGM) return false;
     if (this.#focusApplying) return this.#focusEditMode;
     this.#focusEditMode = Boolean(enabled);
+    if (this.#focusEditMode) this.setAllTagsHighlighted(false);
     this.#focusLayer?.classList.toggle("rnps-focus-editing", this.#focusEditMode);
     for (const image of this.#focusLayer?.querySelectorAll(".rnps-focus-slot > img, .rnps-focus-slot > video") ?? []) {
       if (this.#focusEditMode) {
-        image.dataset.tooltip = game.i18n.localize("RNPS.FocusEdit.DragHint");
+        image.dataset.tooltip = focusEditTooltip();
         image.dataset.tooltipClass = "rnps-focus-edit-tooltip";
       } else {
         delete image.dataset.tooltip;
@@ -155,7 +157,7 @@ export class PortraitStage {
   #syncFocusControls() {
     navigationButton.setFocusEditControls({
       active: this.#focusEditMode,
-      dirty: (this.#focusDrafts.size > 0 || this.#focusOrderDrafts.size > 0) && !this.#focusApplying,
+      dirty: (this.#focusDrafts.size > 0 || this.#focusOrderDrafts.size > 0 || this.#focusMirrorDrafts.size > 0) && !this.#focusApplying,
       onToggle: () => this.setFocusEditMode(false),
       onApply: () => void this.applyFocusDrafts(),
       onReset: () => this.resetFocusDrafts()
@@ -166,7 +168,9 @@ export class PortraitStage {
     if (!game.user?.isGM || this.#focusApplying) return;
     this.#focusDrafts.clear();
     this.#focusOrderDrafts.clear();
+    this.#focusMirrorDrafts.clear();
     for (const slot of this.#focusLayer?.querySelectorAll(".rnps-focus-slot.active") ?? []) {
+      slot.dataset.mirrored = slot.dataset.savedMirrored;
       this.#applyFocusTransform(slot, {
         scale: Number(slot.dataset.focusScale) || 1,
         offsetX: Number(slot.dataset.focusOffsetX) || 0,
@@ -198,6 +202,12 @@ export class PortraitStage {
         if (!scene) throw new Error(`Scene not found: ${sceneId}`);
         await setFocusOrder(order, { scene });
         this.#focusOrderDrafts.delete(sceneId);
+      }
+      for (const [entryId, draft] of [...this.#focusMirrorDrafts]) {
+        const scene = game.scenes?.get(draft.sceneId);
+        if (!scene) throw new Error(`Scene not found: ${draft.sceneId}`);
+        await updateFocusEntry(entryId, { mirrored: draft.mirrored }, { scene, immediate: true });
+        this.#focusMirrorDrafts.delete(entryId);
       }
     } catch (error) {
       ui.notifications.error(error.message);
@@ -266,10 +276,12 @@ export class PortraitStage {
       return;
     }
     if (event.button !== 0) return;
-    if (event.shiftKey || event.ctrlKey) {
+    if (event.shiftKey || event.ctrlKey || event.altKey) {
       event.preventDefault();
       event.stopPropagation();
-      this.#changeFocusOrder(slot.dataset.zone, event.shiftKey ? "front" : "back");
+      if (event.shiftKey && !event.ctrlKey && !event.altKey) this.#toggleFocusMirror(slot);
+      else if (event.ctrlKey && !event.shiftKey && !event.altKey) this.#changeFocusOrder(slot.dataset.zone, "front");
+      else if (event.altKey && !event.shiftKey && !event.ctrlKey) this.#changeFocusOrder(slot.dataset.zone, "back");
       return;
     }
     const edit = this.#focusEditForSlot(slot);
@@ -282,6 +294,29 @@ export class PortraitStage {
       offsetX: edit.draft.offsetX, offsetY: edit.draft.offsetY
     };
     image.classList.add("rnps-focus-dragging");
+  }
+
+  #toggleFocusMirror(slot) {
+    const sceneId = canvas.scene?.id;
+    const item = getPresentation(canvas.scene).focus[slot.dataset.zone];
+    const entryId = item?.entry?.id;
+    if (!sceneId || !entryId) return;
+    const saved = Boolean(item.entry.mirrored);
+    const current = this.#focusMirrorDrafts.get(entryId)?.mirrored ?? saved;
+    const mirrored = !current;
+    if (mirrored === saved) this.#focusMirrorDrafts.delete(entryId);
+    else this.#focusMirrorDrafts.set(entryId, { sceneId, mirrored });
+    slot.dataset.mirrored = String(Boolean(slot.dataset.savedMirrored === "true") !== (mirrored !== saved));
+    const image = slot.querySelector(":scope > img, :scope > video");
+    image?.classList.add("rnps-focus-local-draft");
+    const position = this.#focusDrafts.get(this.#focusEditKey(slot.dataset.actorUuid, slot.dataset.variantId)) ?? {
+      scale: Number(slot.dataset.focusScale) || 1,
+      offsetX: Number(slot.dataset.focusOffsetX) || 0,
+      offsetY: Number(slot.dataset.focusOffsetY) || 0
+    };
+    this.#applyFocusTransform(slot, position);
+    this.#syncFocusControls();
+    void this.render();
   }
 
   #changeFocusOrder(zone, direction) {
@@ -399,6 +434,7 @@ export class PortraitStage {
     this.#backgroundLayer = null;
     this.#focusDrafts.clear();
     this.#focusOrderDrafts.clear();
+    this.#focusMirrorDrafts.clear();
     this.#focusDrag = null;
     this.#focusEditMode = false;
     document.body.classList.remove("rnps-scene-background-visible");
@@ -771,7 +807,7 @@ export class PortraitStage {
           const image = createPortraitMedia(view.image);
           image.classList.toggle("mirrored", view.mirrored);
           if (this.#focusEditMode) {
-            image.dataset.tooltip = game.i18n.localize("RNPS.FocusEdit.DragHint");
+            image.dataset.tooltip = focusEditTooltip();
             image.dataset.tooltipClass = "rnps-focus-edit-tooltip";
           }
           if (previousTransform && previousTransform !== "none") {
@@ -784,7 +820,9 @@ export class PortraitStage {
       }
       slot.dataset.actorUuid = view.actorUuid;
       slot.dataset.variantId = view.variant.id;
-      slot.dataset.mirrored = String(view.mirrored);
+      slot.dataset.savedMirrored = String(view.mirrored);
+      const mirrorDraft = this.#focusEditMode ? this.#focusMirrorDrafts.get(item.entry.id) : null;
+      slot.dataset.mirrored = String(mirrorDraft ? !view.mirrored : view.mirrored);
       const focusSettings = view.variant.settings?.focus ?? {};
       slot.dataset.focusScale = String(focusSettings.scale ?? 1);
       slot.dataset.focusOffsetX = String(focusSettings.offsetX ?? 0);
@@ -792,7 +830,7 @@ export class PortraitStage {
       const draft = this.#focusEditMode
         ? this.#focusDrafts.get(this.#focusEditKey(view.actorUuid, view.variant.id)) : null;
       const image = slot.querySelector(":scope > img, :scope > video");
-      image?.classList.toggle("rnps-focus-local-draft", Boolean(draft?.revision));
+      image?.classList.toggle("rnps-focus-local-draft", Boolean(draft?.revision || mirrorDraft));
       if (draft && image?.dataset.focusTransitionFrom) {
         delete image.dataset.focusTransitionFrom;
         image.style.removeProperty("transition");
@@ -1230,6 +1268,19 @@ export class PortraitStage {
 }
 
 export const portraitStage = new PortraitStage();
+
+function focusEditTooltip() {
+  const label = key => foundry.utils.escapeHTML(game.i18n.localize(`RNPS.FocusEdit.Controls.${key}`));
+  const mouse = type => `<span class="rnps-focus-mouse rnps-focus-mouse--${type}" aria-hidden="true"></span>`;
+  const row = (input, action) => `<div class="rnps-focus-tooltip-row"><span class="rnps-focus-tooltip-input">${input}</span><span>— ${label(action)}</span></div>`;
+  return `<div class="rnps-focus-tooltip">${[
+    row(`${mouse("wheel")}<i class="fa-solid fa-arrows-up-down rnps-focus-wheel-arrows" aria-hidden="true"></i> ${label("Wheel")}`, "Scale"),
+    row(`${mouse("middle")} ${label("MiddleButton")}`, "Defaults"),
+    row(`<kbd>Shift</kbd> + ${mouse("left")} ${label("Click")}`, "Mirror"),
+    row(`<kbd>Ctrl</kbd> + ${mouse("left")} ${label("Click")}`, "BringFront"),
+    row(`<kbd>Alt</kbd> + ${mouse("left")} ${label("Click")}`, "SendBack")
+  ].join("")}</div>`;
+}
 
 function cssUrl(value) {
   const escaped = String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
