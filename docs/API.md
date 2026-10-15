@@ -63,7 +63,7 @@ await api.portraits.setSize(180, { scene: canvas.scene, layer: "scene", groupId:
 
 Variant libraries persist in Actor flags and remain available after the Actor is removed from a cast.
 
-Actor-library schema version `7` adds per-variant `settings.focus` with `source` (`inherit`, `portrait`, `hover`, or `custom`), `customSrc`, and `mirrored`. The world setting `focusImageDefaultSource` resolves inherited sources.
+Actor-library schema version `7` adds per-variant `settings.focus` with `source` (`inherit`, `portrait`, `hover`, or `custom`), `customSrc`, and `mirrored`. The world setting `focusImageDefaultSource` resolves inherited sources to the hover image, actor portrait, or prototype token portrait. The per-variant `portrait` source still uses that variant's selected image.
 
 ```js
 const actor = game.actors.get("actorId");

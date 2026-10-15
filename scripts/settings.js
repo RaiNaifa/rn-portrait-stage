@@ -161,10 +161,11 @@ export function registerSettings() {
     config: true,
     type: String,
     choices: {
-      portrait: "RNPS.FocusImage.Portrait",
-      hover: "RNPS.FocusImage.Hover"
+      hover: "RNPS.FocusImage.AsHover",
+      actor: "RNPS.HoverArt.ActorImage",
+      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage"
     },
-    default: "portrait"
+    default: "actor"
   });
 
   register(SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET, {

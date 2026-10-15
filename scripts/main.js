@@ -40,7 +40,7 @@ Hooks.once("init", () => {
   module.api = createPublicApi();
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   if (!isSupportedFoundryVersion()) {
     const message = game.i18n.localize("RNPS.Notifications.UnsupportedVersion");
     ui.notifications.error(message, { permanent: true });
@@ -49,6 +49,10 @@ Hooks.once("ready", () => {
   }
 
   refreshFontChoices();
+  if (game.user?.isGM && (!game.users?.activeGM || game.users.activeGM.id === game.user.id)
+    && game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE) === "portrait") {
+    await game.settings.set(MODULE_ID, SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "actor");
+  }
   if (game.user?.isGM && (!game.users?.activeGM || game.users.activeGM.id === game.user.id)) {
     void importLegacySceneBackgrounds().catch(error => logger.error("Background migration failed", error));
   }

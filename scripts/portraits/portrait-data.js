@@ -116,6 +116,10 @@ export function resolveFocusView(view) {
     if (hoverSource === "actor") image = view.actor.img || image;
     else if (hoverSource === "prototypeToken") image = view.actor.prototypeToken?.texture?.src || view.actor.img || image;
     else if (hoverSource === "custom") image = hover.customSrc || image;
+  } else if (source === "actor" || source === "portrait") {
+    image = view.actor.img || view.actor.prototypeToken?.texture?.src || image;
+  } else if (source === "prototypeToken") {
+    image = view.actor.prototypeToken?.texture?.src || view.actor.img || image;
   } else if (source === "custom") image = focus.customSrc || image;
   return {
     ...view,

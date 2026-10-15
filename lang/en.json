@@ -123,7 +123,7 @@
       },
       "FocusImageDefaultSource": {
         "Name": "Default focus image",
-        "Hint": "Use the portrait or hover image when the variant does not override the focus source."
+        "Hint": "Image source in scene focus when the variant does not override it."
       },
       "HoverArtBottomOffset": {
         "Name": "Enlarged art bottom offset",
@@ -318,7 +318,7 @@
       "Left": "Left",
       "Center": "Center",
       "Right": "Right",
-      "Media": "Image and video",
+      "Media": "Portrait",
       "Fit": "Fit",
       "Scale": "Scale",
       "OffsetX": "Offset X",
@@ -331,7 +331,7 @@
       "Duration": "Duration, ms",
       "Delay": "Delay, ms",
       "Hover": "Hover",
-      "HoverImage": "Hover image",
+      "HoverImage": "Image",
       "Enlarged": "Show enlarged portrait",
       "TokenHighlight": "Highlight linked token",
       "Effects": "Portrait effects",
@@ -357,10 +357,11 @@
       "None": "Do not show"
     },
     "FocusImage": {
-      "Title": "In focus",
+      "Title": "In scene focus",
       "Image": "Image",
       "Portrait": "Portrait image",
-      "Hover": "Hover image"
+      "Hover": "Hover image",
+      "AsHover": "As on hover"
     },
     "Integrations": {
       "Litm": {

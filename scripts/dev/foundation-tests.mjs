@@ -266,6 +266,18 @@ const focusView = resolveFocusView({
 });
 assert.equal(focusView.image, "hover.webp");
 assert.equal(focusView.mirrored, true);
+const inheritedFocus = {
+  image: "variant.webp", entry: { mirrored: false },
+  actor: { img: "actor.webp", prototypeToken: { texture: { src: "token.webp" } } },
+  variant: { settings: { focus: { source: "inherit", mirrored: false } } }
+};
+visibilitySettings.set(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "actor");
+assert.equal(resolveFocusView(inheritedFocus).image, "actor.webp");
+visibilitySettings.set(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "prototypeToken");
+assert.equal(resolveFocusView(inheritedFocus).image, "token.webp");
+visibilitySettings.set(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "portrait");
+assert.equal(resolveFocusView(inheritedFocus).image, "actor.webp");
+visibilitySettings.set(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "actor");
 globalThis.Hooks = { callAll() {} };
 globalThis.canvas = { scene: focusScene };
 game.user = { isGM: true };
