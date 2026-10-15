@@ -3,6 +3,7 @@ import { canUserAccessGroup, canUserAccessVariant, createPortraitVariant, setAct
 import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry, updateReserveEntry } from "../data/reserve-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
+import { getFocusEntry, updateFocusEntry } from "../data/scene-presentation.js";
 import { preparePortraitView, resolvePortraitImage } from "../portraits/portrait-data.js";
 import { createPortraitMedia, isVideoPath } from "../media.js";
 import { VariantSettings } from "./variant-settings.js";
@@ -59,6 +60,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     if (!entry || !view) return { ...context, missing: true };
@@ -274,6 +276,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (this.#layer === CAST_LAYERS.RESERVE) {
       await updateReserveEntry(this.#entryId, { activeVariantId: tile.dataset.variantId });
+    } else if (this.#layer === CAST_LAYERS.FOCUS) {
+      await updateFocusEntry(this.#entryId, { activeVariantId: tile.dataset.variantId });
     }
     this.#scheduleAutosave(0);
   }
@@ -301,6 +305,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     await PortraitEditor.#persist(this, this.element);
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     if (view) VariantGroups.open(view.actor, { onChange: () => this.render() });
@@ -314,6 +319,7 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const values = new FormData(form);
     const entry = app.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(app.#entryId)
+      : app.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(app.#entryId)
       : getCastEntry(app.#entryId, { layer: app.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     if (!entry || !view) return;
@@ -372,6 +378,8 @@ export class PortraitEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     if (app.#layer === CAST_LAYERS.RESERVE) {
       await updateReserveEntry(app.#entryId, entryChanges);
+    } else if (app.#layer === CAST_LAYERS.FOCUS) {
+      await updateFocusEntry(app.#entryId, entryChanges);
     } else {
       await requestCastEntryUpdate(app.#entryId, entryChanges, {
         layer: app.#layer,

@@ -1,5 +1,5 @@
-import { CAST_LAYERS, GROUP_IDS } from "../constants.js";
-import { getActorLibrary, setActorLibrary } from "./actor-library.js";
+import { CAST_LAYERS, CAST_PORTRAIT_SIZE, GROUP_IDS } from "../constants.js";
+import { getStartingVariantId, rememberActorVariant } from "./actor-library.js";
 import { createPortraitEntry, normalizeGroupId } from "./portrait-entry.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 import { getSceneState, setSceneState } from "./scene-state.js";
@@ -76,7 +76,6 @@ export function getCombinedCastState(scene = canvas.scene) {
     ?? layers[CAST_LAYERS.PERSISTENT].layout.pcPortraitSize;
   combined.layout.npcPortraitSize = sceneState.layout.npcPortraitSize
     ?? layers[CAST_LAYERS.PERSISTENT].layout.npcPortraitSize;
-  combined.layout.tokenHighlight = sceneState.layout.tokenHighlight;
   return resequence(combined);
 }
 
@@ -100,10 +99,9 @@ export async function addActorToCast(actorUuid, {
     .find(entry => entry.actorUuid === actor.uuid);
   if (existing) return moveCastEntry(existing.id, { scene, layer: normalizedLayer, groupId, index });
   const targetGroupId = normalizeGroupId(groupId);
-  const library = getActorLibrary(actor);
   const entry = createPortraitEntry(actor.uuid, {
     groupId: targetGroupId,
-    activeVariantId: library.lastActiveVariantId ?? library.defaultVariantId
+    activeVariantId: getStartingVariantId(actor)
   });
   const existingSorts = getCombinedCastState(scene).groups[targetGroupId].entries.map(item => item.sort);
   entry.sort = (Math.max(0, ...existingSorts) || 0) + 1000;
@@ -186,13 +184,19 @@ export async function updateCastEntry(entryId, changes, {
     await setLayerState(sourceLayer, scene, normalizedSource);
   }
   if (changes.activeVariantId && !isPreviewActive()) {
-    const actor = await fromUuid(updated.actorUuid);
-    if (actor?.documentName === "Actor") {
-      const library = getActorLibrary(actor);
-      if (library.variants.some(variant => variant.id === changes.activeVariantId)) {
-        await setActorLibrary(actor, { ...library, lastActiveVariantId: changes.activeVariantId });
-      }
-    }
+    await rememberActorVariant(updated.actorUuid, changes.activeVariantId);
+  }
+  if (typeof changes.activeVariantId === "string"
+    && changes.activeVariantId !== location.entry.activeVariantId) {
+    const { syncFocusVariantForActor } = await import("./scene-presentation.js");
+    const { syncReserveVariantForActor } = await import("./reserve-service.js");
+    await syncFocusVariantForActor(updated.actorUuid, changes.activeVariantId, {
+      scene,
+      immediate: !isPreviewActive()
+    });
+    await syncReserveVariantForActor(updated.actorUuid, changes.activeVariantId, {
+      immediate: !isPreviewActive()
+    });
   }
   return { ...updated, groupId: targetGroupId, layer: targetLayer };
 }
@@ -243,16 +247,9 @@ export async function setCastPortraitSize(size, {
   if (normalizedLayer === CAST_LAYERS.SCENE) requireScene(scene);
   const state = getLayerState(normalizedLayer, scene);
   const key = normalizeGroupId(groupId) === GROUP_IDS.NPCS ? "npcPortraitSize" : "pcPortraitSize";
-  state.layout[key] = Number.isFinite(size) ? Math.max(48, Math.min(480, size)) : null;
+  state.layout[key] = Number.isFinite(size)
+    ? Math.max(CAST_PORTRAIT_SIZE.MIN, Math.min(CAST_PORTRAIT_SIZE.MAX, size)) : null;
   return setLayerState(normalizedLayer, scene, state);
-}
-
-export async function setCastTokenHighlight(value, { scene = canvas.scene } = {}) {
-  requireGm();
-  requireScene(scene);
-  const state = getLayerState(CAST_LAYERS.SCENE, scene);
-  state.layout.tokenHighlight = typeof value === "boolean" ? value : null;
-  return setLayerState(CAST_LAYERS.SCENE, scene, state);
 }
 
 export async function clearCast({ scene = canvas.scene, layer = CAST_LAYERS.SCENE, groupId = null } = {}) {

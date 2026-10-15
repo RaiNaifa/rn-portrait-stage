@@ -1,8 +1,8 @@
 import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { createPortraitEntry, normalizePortraitEntry } from "./portrait-entry.js";
-import { getActorLibrary } from "./actor-library.js";
+import { getStartingVariantId, rememberActorVariant } from "./actor-library.js";
 import { preparePortraitView } from "../portraits/portrait-data.js";
-import { getPreviewReserve, isPreviewActive, setPreviewReserve } from "./preview-service.js";
+import { getPreviewReserve, isPreviewActive, setPreviewReserve, withoutPreview } from "./preview-service.js";
 
 function requireGm() {
   if (!game.user?.isGM) throw new Error(game.i18n.localize("RNPS.Notifications.GmOnly"));
@@ -40,9 +40,8 @@ export async function addActorToReserve(actorUuid, { entry = null } = {}) {
   }
   const reserve = getReserveEntries();
   if (reserve.some(item => item.actorUuid === actor.uuid)) return;
-  const library = getActorLibrary(actor);
   const source = entry ? normalizePortraitEntry(entry, entry.groupId) : createPortraitEntry(actor.uuid, {
-    activeVariantId: library.lastActiveVariantId ?? library.defaultVariantId
+    activeVariantId: getStartingVariantId(actor)
   });
   source.id = foundry.utils.randomID();
   source.flags = {
@@ -59,13 +58,43 @@ export async function updateReserveEntry(entryId, changes) {
   const reserve = getReserveEntries();
   const index = reserve.findIndex(entry => entry.id === entryId);
   if (index < 0) return null;
+  const previousVariantId = reserve[index].activeVariantId;
   reserve[index] = normalizePortraitEntry({
     ...reserve[index],
     ...changes,
     flags: { ...reserve[index].flags, ...(changes.flags ?? {}) }
   }, reserve[index].groupId);
   await setReserveEntries(reserve);
+  if (typeof changes.activeVariantId === "string" && changes.activeVariantId !== previousVariantId) {
+    if (!isPreviewActive()) await rememberActorVariant(reserve[index].actorUuid, changes.activeVariantId);
+    const { getCombinedCastState, updateCastEntry } = await import("./cast-service.js");
+    const { syncFocusVariantForActor } = await import("./scene-presentation.js");
+    const actorUuid = reserve[index].actorUuid;
+    const cast = getCombinedCastState();
+    for (const groupId of Object.values(GROUP_IDS)) {
+      for (const entry of cast.groups[groupId].entries.filter(item => item.actorUuid === actorUuid)) {
+        await updateCastEntry(entry.id, { activeVariantId: changes.activeVariantId }, { layer: entry.layer });
+      }
+    }
+    await syncFocusVariantForActor(actorUuid, changes.activeVariantId, { immediate: !isPreviewActive() });
+  }
   return { ...reserve[index], layer: CAST_LAYERS.RESERVE };
+}
+
+export async function syncReserveVariantForActor(actorUuid, activeVariantId, { immediate = false } = {}) {
+  if (!actorUuid || !activeVariantId) return false;
+  const sync = async () => {
+    const reserve = getReserveEntries();
+    let changed = false;
+    for (const entry of reserve) {
+      if (entry.actorUuid !== actorUuid || entry.activeVariantId === activeVariantId) continue;
+      entry.activeVariantId = activeVariantId;
+      changed = true;
+    }
+    if (changed) await setReserveEntries(reserve);
+    return changed;
+  };
+  return immediate ? withoutPreview(sync) : sync();
 }
 
 export async function moveReserveEntry(entryId, index = null) {

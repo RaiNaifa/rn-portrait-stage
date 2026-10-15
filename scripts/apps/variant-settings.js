@@ -8,6 +8,7 @@ import {
 } from "../data/actor-library.js";
 import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry } from "../data/reserve-service.js";
+import { getFocusEntry } from "../data/scene-presentation.js";
 import { preparePortraitView, resolvePortraitImage } from "../portraits/portrait-data.js";
 import { isVideoPath } from "../media.js";
 
@@ -52,6 +53,7 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     const variant = view?.library.variants.find(item => item.id === this.#variantId);
@@ -118,6 +120,10 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hoverToken: settings.hover.source === "prototypeToken",
       hoverCustom: settings.hover.source === "custom",
       hoverNone: settings.hover.source === "none",
+      focusInherit: settings.focus.source === "inherit",
+      focusPortrait: settings.focus.source === "portrait",
+      focusHover: settings.focus.source === "hover",
+      focusCustom: settings.focus.source === "custom",
       gmMacrosText: (variant.gm?.macros ?? []).join("\n"),
       gmScriptsText: (variant.gm?.scripts ?? []).join("\n")
     };
@@ -131,20 +137,19 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#schedule(0);
     });
     this.element.addEventListener("input", () => this.#schedule(250));
-    const hoverPicker = this.element.querySelector("file-picker[name='hoverCustomSrc']");
-    if (hoverPicker) {
+    for (const picker of this.element.querySelectorAll("file-picker[name='hoverCustomSrc'], file-picker[name='focusCustomSrc']")) {
       const rememberValue = event => {
-        const value = filePickerValue(hoverPicker, event);
-        if (value || event?.target === hoverPicker) hoverPicker.dataset.rnpsValue = value;
+        const value = filePickerValue(picker, event);
+        if (value || event?.target === picker) picker.dataset.rnpsValue = value;
         this.#schedule(0);
       };
-      hoverPicker.addEventListener("change", rememberValue);
-      hoverPicker.addEventListener("input", rememberValue);
+      picker.addEventListener("change", rememberValue);
+      picker.addEventListener("input", rememberValue);
       new MutationObserver(() => {
-        const value = filePickerValue(hoverPicker);
-        if (value) hoverPicker.dataset.rnpsValue = value;
+        const value = filePickerValue(picker);
+        if (value) picker.dataset.rnpsValue = value;
         this.#schedule(0);
-      }).observe(hoverPicker, { attributes: true, attributeFilter: ["value"] });
+      }).observe(picker, { attributes: true, attributeFilter: ["value"] });
     }
   }
 
@@ -158,9 +163,12 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     if (selectedUsers) selectedUsers.hidden = this.element.querySelector("[name='accessMode']")?.value !== "selected";
     const hoverCustom = this.element.querySelector("[data-hover-custom-image]");
     if (hoverCustom) hoverCustom.hidden = this.element.querySelector("[name='hoverSource']")?.value !== "custom";
+    const focusCustom = this.element.querySelector("[data-focus-custom-image]");
+    if (focusCustom) focusCustom.hidden = this.element.querySelector("[name='focusSource']")?.value !== "custom";
     const preview = this.element.querySelector(".rnps-variant-settings-preview img, .rnps-variant-settings-preview video");
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     preview?.classList.toggle(
       "mirrored",
@@ -182,6 +190,7 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #persist(app, form) {
     const entry = app.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(app.#entryId)
+      : app.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(app.#entryId)
       : getCastEntry(app.#entryId, { layer: app.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     const variant = view ? getActorLibrary(view.actor).variants.find(item => item.id === app.#variantId) : null;
@@ -225,6 +234,12 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         scale: number("hoverScale", 1),
         mirrored: values.get("hoverMirrored") === "on"
       },
+      focus: {
+        source: String(values.get("focusSource") || "inherit"),
+        customSrc: filePickerValue(form.querySelector("file-picker[name='focusCustomSrc']")) || null,
+        mirrored: values.get("focusMirrored") === "on"
+      },
+      speaking: variant.settings?.speaking,
       effects: variant.settings?.effects ?? []
     });
     const changes = {

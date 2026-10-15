@@ -2,7 +2,7 @@ import { GROUP_IDS, HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { getCombinedCastState } from "../data/cast-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
 import { resolveUiAnchor } from "../compatibility/ui-anchors.js";
-import { preparePortraitView } from "./portrait-data.js";
+import { preparePortraitView, resolveFocusView } from "./portrait-data.js";
 import { PortraitEditor } from "../apps/portrait-editor.js";
 import { VariantPicker } from "../apps/variant-picker.js";
 import { createPortraitMedia } from "../media.js";
@@ -11,7 +11,9 @@ import { isPreviewActive } from "../data/preview-service.js";
 import { getCompatibilityAdapter } from "../compatibility/index.js";
 import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/image-hover.js";
 import { voiceController } from "../voice/voice-controller.js";
+import { isLayerVisible } from "../data/visibility-service.js";
 import { navigationButton } from "../ui/navigation-button.js";
+import { assignFocus, getPresentation, moveFocusZone, removeFocusActor } from "../data/scene-presentation.js";
 
 export class PortraitStage {
   #groups = new Map();
@@ -19,13 +21,32 @@ export class PortraitStage {
   #rightUiObserver = null;
   #notificationObserver = null;
   #resizeObserver = null;
-  #resizeHandler = () => this.#updateRightColumnLayout();
+  #resizeHandler = () => {
+    this.#updateRightColumnLayout();
+    void this.#refreshPinnedTags();
+  };
   #hoverLayer = null;
   #hoverArt = null;
   #hoverBlocks = null;
   #hoverVersion = 0;
+  #hoverCard = null;
+  #tagLayer = null;
+  #tagViews = new WeakMap();
+  #tagVersion = 0;
+  #selectedPortraitId = null;
+  #selectedSceneId = null;
+  #allTagsHeld = false;
   #highlightedTokens = [];
   #dragData = null;
+  #focusLayer = null;
+  #backgroundLayer = null;
+  #focusMenu = null;
+  #closeFocusMenu = event => {
+    if (this.#focusMenu && !this.#focusMenu.contains(event.target) && !event.target.closest(".rnps-ui-focus")) {
+      this.#focusMenu.remove();
+      this.#focusMenu = null;
+    }
+  };
   #onDragStart = event => {
     try {
       this.#dragData = JSON.parse(event.dataTransfer?.getData("text/plain") ?? "");
@@ -39,6 +60,47 @@ export class PortraitStage {
       group.querySelectorAll(".rnps-drop-target").forEach(card => card.classList.remove("rnps-drop-target"));
     }
   };
+  #onHighlightBlur = () => {
+    this.setAllTagsHighlighted(false);
+  };
+  #onPortraitPointerDown = event => {
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    const card = target?.closest(".rnps-portrait");
+    if (card && [...this.#groups.values()].some(group => group.contains(card))) {
+      this.#setSelectedPortrait(card.dataset.entryId);
+      return;
+    }
+    if (target?.closest("[data-rnps-portrait-owner]")?.dataset.rnpsPortraitOwner === this.#selectedPortraitId) return;
+    this.#setSelectedPortrait(null);
+  };
+
+  #setSelectedPortrait(entryId) {
+    if (this.#selectedPortraitId === entryId) return;
+    this.#selectedPortraitId = entryId;
+    this.#syncSelectedPortrait();
+    void this.#refreshPinnedTags();
+  }
+
+  #syncSelectedPortrait() {
+    for (const group of this.#groups.values()) {
+      for (const card of group.querySelectorAll(".rnps-portrait")) {
+        const selected = card.dataset.entryId === this.#selectedPortraitId;
+        card.classList.toggle("rnps-portrait-selected", selected);
+      }
+    }
+  }
+
+  setAllTagsHighlighted(highlighted) {
+    if (this.#allTagsHeld === highlighted) return;
+    this.#allTagsHeld = highlighted;
+    void this.#refreshPinnedTags();
+  }
+
+  isSceneBackgroundVisible() {
+    return Boolean(getPresentation(canvas?.scene).background.src)
+      && !navigationButton.isPlayerHidden()
+      && isLayerVisible("background");
+  }
 
   initialize() {
     for (const groupId of Object.values(GROUP_IDS)) {
@@ -54,10 +116,15 @@ export class PortraitStage {
     }
     this.#attachGroups();
     this.#createHoverLayer();
+    this.#createTagLayer();
+    this.#createPresentationLayers();
+    document.addEventListener("pointerdown", this.#closeFocusMenu);
+    document.addEventListener("pointerdown", this.#onPortraitPointerDown);
     this.#observeRightColumn();
     window.addEventListener("resize", this.#resizeHandler);
     document.addEventListener("dragstart", this.#onDragStart);
     document.addEventListener("dragend", this.#onDragEnd);
+    window.addEventListener("blur", this.#onHighlightBlur);
     this.render();
   }
 
@@ -68,6 +135,21 @@ export class PortraitStage {
     this.#hideHover();
     this.#hoverLayer?.remove();
     this.#hoverLayer = null;
+    this.#tagLayer?.remove();
+    this.#tagLayer = null;
+    this.#tagVersion += 1;
+    this.#allTagsHeld = false;
+    this.#selectedPortraitId = null;
+    this.#selectedSceneId = null;
+    this.#focusLayer?.remove();
+    this.#backgroundLayer?.remove();
+    this.#focusLayer = null;
+    this.#backgroundLayer = null;
+    document.body.classList.remove("rnps-scene-background-visible");
+    this.#focusMenu?.remove();
+    this.#focusMenu = null;
+    document.removeEventListener("pointerdown", this.#closeFocusMenu);
+    document.removeEventListener("pointerdown", this.#onPortraitPointerDown);
     this.#groups.clear();
     this.#rightUiObserver?.disconnect();
     this.#notificationObserver?.disconnect();
@@ -75,39 +157,59 @@ export class PortraitStage {
     window.removeEventListener("resize", this.#resizeHandler);
     document.removeEventListener("dragstart", this.#onDragStart);
     document.removeEventListener("dragend", this.#onDragEnd);
+    window.removeEventListener("blur", this.#onHighlightBlur);
   }
 
   async render() {
     this.#hideHover();
     this.#attachGroups();
     if (!this.#groups.size) return;
+    if (this.#selectedSceneId !== canvas.scene?.id) {
+      this.#selectedSceneId = canvas.scene?.id ?? null;
+      this.#selectedPortraitId = null;
+    }
     const version = ++this.#renderVersion;
     const preview = isPreviewActive();
-    const visible = game.user?.isGM
-      ? game.settings.get(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE)
-      : game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED) && !navigationButton.isPlayerHidden();
+    const playerHidden = navigationButton.isPlayerHidden();
+    const sideVisible = !playerHidden && isLayerVisible("side");
+    const focusVisible = !playerHidden && isLayerVisible("focus");
+    const backgroundVisible = !playerHidden && isLayerVisible("background");
+    document.body.classList.toggle("rnps-scene-background-visible", backgroundVisible && Boolean(getPresentation(canvas?.scene).background.src));
     for (const group of this.#groups.values()) group.classList.toggle("rnps-preview-stage", preview);
-    for (const group of this.#groups.values()) group.hidden = !visible;
-    if (!visible) {
-      this.#setPcLayoutActive(false);
+    for (const group of this.#groups.values()) group.hidden = !sideVisible;
+    if (this.#focusLayer) this.#focusLayer.hidden = !focusVisible;
+    if (this.#backgroundLayer) this.#backgroundLayer.hidden = !backgroundVisible;
+    if (!backgroundVisible) this.#backgroundLayer?.querySelector("video")?.pause();
+    if (!focusVisible) this.#focusLayer?.querySelectorAll("video").forEach(video => video.pause());
+    if (!sideVisible) this.#setPcLayoutActive(false);
+    if (!sideVisible) this.#clearPinnedTags();
+    if (!sideVisible && !focusVisible && !backgroundVisible) {
       return;
     }
 
     const scene = canvas.scene;
     const state = getCombinedCastState(scene);
-    const tokenHighlight = state.layout.tokenHighlight
-      ?? game.settings.get(MODULE_ID, SETTING_KEYS.TOKEN_HIGHLIGHT_DEFAULT);
+    const tokenHighlight = game.settings.get(MODULE_ID, SETTING_KEYS.TOKEN_HIGHLIGHT_ENABLED);
 
-    for (const groupId of Object.values(GROUP_IDS)) {
-      const views = await Promise.all(
-        state.groups[groupId].entries.map(entry => preparePortraitView(entry))
-      );
-      if (version !== this.#renderVersion) return;
-      this.#renderGroup(groupId, views.filter(view => view?.visible), tokenHighlight);
+    if (sideVisible) {
+      for (const groupId of Object.values(GROUP_IDS)) {
+        const views = await Promise.all(
+          state.groups[groupId].entries.map(entry => preparePortraitView(entry))
+        );
+        if (version !== this.#renderVersion) return;
+        this.#renderGroup(groupId, views.filter(view => view && (view.visible || game.user.isGM)), tokenHighlight);
+      }
+      if (this.#selectedPortraitId && ![...this.#groups.values()].some(group =>
+        [...group.querySelectorAll(".rnps-portrait")].some(card => card.dataset.entryId === this.#selectedPortraitId)
+      )) {
+        this.#selectedPortraitId = null;
+      }
+      this.#syncSelectedPortrait();
+      this.#applySettings();
+      this.#updateRightColumnLayout();
+      await this.#refreshPinnedTags();
     }
-
-    this.#applySettings();
-    this.#updateRightColumnLayout();
+    await this.#renderPresentation(version);
   }
 
   #attachGroups() {
@@ -132,6 +234,7 @@ export class PortraitStage {
     for (const view of views) {
       const card = document.createElement("article");
       card.className = "rnps-portrait";
+      card.classList.toggle("rnps-portrait--hidden", !view.visible);
       card.dataset.entryId = view.id;
       card.dataset.actorUuid = view.actorUuid;
       card.tabIndex = 0;
@@ -222,9 +325,15 @@ export class PortraitStage {
       }
 
       this.#renderRegisteredActions(card, view, groupId);
+      if (game.user.isGM) {
+        card.append(this.#portraitButton("rnps-ui-focus", "fa-solid fa-expand", "RNPS.Focus.Button", () => {
+          this.#toggleFocusMenu(card, view);
+        }));
+      }
 
       card.addEventListener("mouseenter", () => this.#showHover(card, view, groupId, tokenHighlight));
       card.addEventListener("mouseleave", () => this.#hideHover());
+      this.#tagViews.set(card, { view, groupId });
       card.addEventListener("dragover", event => this.#onPortraitDragOver(event, card, view, groupId));
       card.addEventListener("dragleave", event => {
         if (!card.contains(event.relatedTarget)) card.classList.remove("rnps-drop-target");
@@ -235,6 +344,10 @@ export class PortraitStage {
         if (view.canOpenSheet) view.actor.sheet?.render({ force: true });
       });
       card.addEventListener("keydown", event => {
+        if (event.key === " " && event.target === card) {
+          event.preventDefault();
+          this.#setSelectedPortrait(view.id);
+        }
         if (event.key === "Enter" && view.canOpenSheet) {
           view.actor.sheet?.render({ force: true });
         }
@@ -291,6 +404,115 @@ export class PortraitStage {
     return button;
   }
 
+  #toggleFocusMenu(card, view) {
+    if (this.#focusMenu?.parentElement === card) {
+      this.#focusMenu.remove();
+      this.#focusMenu = null;
+      return;
+    }
+    this.#focusMenu?.remove();
+    const menu = document.createElement("div");
+    menu.className = "rnps-focus-menu";
+    for (const [zone, label] of [["left", "RNPS.Focus.Left"], ["center", "RNPS.Focus.Center"], ["right", "RNPS.Focus.Right"], ["remove", "RNPS.Focus.Remove"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = game.i18n.localize(label);
+      button.addEventListener("click", async event => {
+        event.stopPropagation();
+        if (zone === "remove") await removeFocusActor(view.actorUuid, { immediate: true });
+        else {
+          const focus = getPresentation(canvas.scene).focus;
+          const currentZone = ["left", "center", "right"]
+            .find(key => focus[key]?.entry?.actorUuid === view.actorUuid);
+          if (currentZone && currentZone !== zone) {
+            await moveFocusZone(currentZone, zone, { immediate: true });
+          } else if (!currentZone) {
+            await assignFocus(zone, view.actorUuid, { immediate: true });
+          }
+        }
+        menu.remove();
+        this.#focusMenu = null;
+      });
+      menu.append(button);
+    }
+    card.append(menu);
+    this.#focusMenu = menu;
+  }
+
+  #createPresentationLayers() {
+    if (!this.#backgroundLayer?.isConnected) {
+      this.#backgroundLayer = document.createElement("div");
+      this.#backgroundLayer.className = "rnps-scene-background";
+      document.body.append(this.#backgroundLayer);
+    }
+    if (!this.#focusLayer?.isConnected) {
+      this.#focusLayer = document.createElement("div");
+      this.#focusLayer.className = "rnps-focus-stage";
+      for (const zone of ["left", "center", "right"]) {
+        const slot = document.createElement("div");
+        slot.className = "rnps-focus-slot";
+        slot.dataset.zone = zone;
+        this.#focusLayer.append(slot);
+      }
+      document.body.append(this.#focusLayer);
+    }
+  }
+
+  async #renderPresentation(version) {
+    this.#createPresentationLayers();
+    const focusGap = Number(game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_GAP));
+    this.#focusLayer.style.setProperty("--rnps-focus-gap", `${Number.isFinite(focusGap) ? Math.max(0, Math.min(64, focusGap)) : 8}px`);
+    const { focus, background } = getPresentation(canvas.scene);
+    const bg = this.#backgroundLayer;
+    if (bg.dataset.src !== background.src) {
+      bg.replaceChildren();
+      bg.dataset.src = background.src;
+      if (background.src) bg.append(createPortraitMedia(background.src));
+    }
+    const backgroundVideo = bg.querySelector("video");
+    const backgroundVisible = !navigationButton.isPlayerHidden() && isLayerVisible("background");
+    if (backgroundVisible && backgroundVideo?.paused) backgroundVideo.play().catch(() => {});
+    if (!backgroundVisible) backgroundVideo?.pause();
+    bg.classList.toggle("rnps-background-active", Boolean(background.src));
+    bg.style.setProperty("--rnps-bg-fit", background.fit);
+    bg.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
+    bg.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
+    bg.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
+    const visibleCount = ["left", "center", "right"].filter(zone => focus[zone]?.visible).length;
+    this.#focusLayer.classList.toggle("rnps-focus-pair", visibleCount === 2 && !focus.center?.visible);
+    for (const zone of ["left", "center", "right"]) {
+      const slot = this.#focusLayer.querySelector(`[data-zone='${zone}']`);
+      const item = focus[zone];
+      const view = item?.visible ? resolveFocusView(await preparePortraitView(item.entry)) : null;
+      if (version !== this.#renderVersion) return;
+      const identity = view ? `${view.actorUuid}:${view.image}:${view.mirrored}` : "";
+      if (!view) {
+        if (slot.dataset.identity) {
+          slot.dataset.identity = "";
+          slot.classList.remove("active");
+          setTimeout(() => {
+            if (!slot.dataset.identity) slot.replaceChildren();
+          }, 360);
+        }
+        continue;
+      }
+      if (slot.dataset.identity !== identity) {
+        slot.replaceChildren();
+        slot.dataset.identity = identity;
+        if (view) {
+          const image = createPortraitMedia(view.image);
+          image.classList.toggle("mirrored", view.mirrored);
+          slot.append(image);
+        }
+      }
+      slot.classList.toggle("active", Boolean(view));
+    }
+    for (const video of this.#focusLayer.querySelectorAll("video")) {
+      if (!navigationButton.isPlayerHidden() && isLayerVisible("focus") && video.paused) video.play().catch(() => {});
+      else if (!isLayerVisible("focus")) video.pause();
+    }
+  }
+
   #createHoverLayer() {
     if (this.#hoverLayer?.isConnected) return;
     const layer = document.createElement("div");
@@ -306,8 +528,87 @@ export class PortraitStage {
     this.#hoverBlocks = blocks;
   }
 
+  #createTagLayer() {
+    if (this.#tagLayer?.isConnected) return;
+    this.#tagLayer = document.createElement("div");
+    this.#tagLayer.className = "rnps-pinned-tags-layer";
+    this.#tagLayer.hidden = true;
+    document.body.append(this.#tagLayer);
+  }
+
+  #clearPinnedTags() {
+    this.#tagVersion += 1;
+    this.#tagLayer?.replaceChildren();
+    if (this.#tagLayer) this.#tagLayer.hidden = true;
+  }
+
+  async #refreshPinnedTags() {
+    this.#createTagLayer();
+    const version = ++this.#tagVersion;
+    const definitions = game.modules.get(MODULE_ID)?.api?.hover?.listBlocks?.()
+      .filter(block => block.persistOnPortraitFocus) ?? [];
+    if (!definitions.length || navigationButton.isPlayerHidden() || !isLayerVisible("side")) {
+      this.#clearPinnedTags();
+      return;
+    }
+    const panels = [];
+    for (const groupId of Object.values(GROUP_IDS)) {
+      const group = this.#groups.get(groupId);
+      if (!group || group.hidden) continue;
+      for (const card of group.querySelectorAll(".rnps-portrait")) {
+        if (!this.#allTagsHeld && card.dataset.entryId !== this.#selectedPortraitId) continue;
+        if (card === this.#hoverCard) continue;
+        const view = this.#tagViews.get(card)?.view;
+        if (!view) continue;
+        const context = { card, view, entry: view.entry, actor: view.actor, variant: view.variant, groupId };
+        const panel = document.createElement("div");
+        panel.className = "rnps-pinned-tags";
+        panel.dataset.rnpsPortraitOwner = card.dataset.entryId;
+        for (const block of definitions) {
+          try {
+            if (block.isVisible && !await block.isVisible(context)) continue;
+            const rendered = await block.render?.(context);
+            if (version !== this.#tagVersion) return;
+            if (!rendered) continue;
+            const element = rendered instanceof HTMLElement ? rendered : htmlToElement(String(rendered));
+            if (element) panel.append(element);
+          } catch (error) {
+            console.error(`${MODULE_ID} | Pinned block '${block.id}' failed`, error);
+          }
+        }
+        if (!panel.childElementCount) continue;
+        const rect = card.getBoundingClientRect();
+        panel.dataset.side = groupId === GROUP_IDS.NPCS ? "right" : "left";
+        panel.style.top = `${Math.max(8, rect.top)}px`;
+        if (groupId === GROUP_IDS.NPCS) panel.style.right = `${window.innerWidth - rect.left + 8}px`;
+        else panel.style.left = `${rect.right + 8}px`;
+        panels.push(panel);
+      }
+    }
+    if (version !== this.#tagVersion) return;
+    this.#tagLayer.replaceChildren(...panels);
+    this.#tagLayer.hidden = panels.length === 0;
+    for (const side of ["left", "right"]) {
+      const column = panels.filter(panel => panel.dataset.side === side);
+      let bottom = 4;
+      for (const panel of column) {
+        const top = Math.max(Number.parseFloat(panel.style.top), bottom + 4);
+        panel.style.top = `${top}px`;
+        bottom = top + panel.getBoundingClientRect().height;
+      }
+      const overflow = Math.max(0, bottom - window.innerHeight + 8);
+      const shift = Math.min(overflow, Math.max(0, Number.parseFloat(column[0]?.style.top) - 8));
+      if (shift) for (const panel of column) {
+        panel.style.top = `${Number.parseFloat(panel.style.top) - shift}px`;
+      }
+    }
+  }
+
   async #showHover(card, view, groupId, tokenHighlight) {
+    this.#hoverCard = card;
+    void this.#refreshPinnedTags();
     this.#createHoverLayer();
+    this.#hoverLayer.dataset.rnpsPortraitOwner = card.dataset.entryId;
     const version = ++this.#hoverVersion;
     this.#hideTokenHighlight();
     const imageHoverMode = game.settings.get(MODULE_ID, SETTING_KEYS.IMAGE_HOVER_PRIORITY);
@@ -419,10 +720,12 @@ export class PortraitStage {
 
   #hideHover() {
     this.#hoverVersion += 1;
+    this.#hoverCard = null;
     this.#hideTokenHighlight();
     this.#hoverArt?.replaceChildren();
     this.#hoverBlocks?.replaceChildren();
     if (this.#hoverLayer) this.#hoverLayer.hidden = true;
+    void this.#refreshPinnedTags();
   }
 
   #matchingDropHandlers(context) {
@@ -520,9 +823,9 @@ export class PortraitStage {
     const fontFamily = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_FAMILY);
     const fontSize = game.settings.get(MODULE_ID, SETTING_KEYS.LABEL_FONT_SIZE);
 
-    for (const [groupId, directionKey, directionOverrideKey, offsetXKey, offsetYKey] of [
-      [GROUP_IDS.PCS, SETTING_KEYS.PC_DIRECTION, SETTING_KEYS.PC_DIRECTION_OVERRIDE, SETTING_KEYS.PC_OFFSET_X, SETTING_KEYS.PC_OFFSET_Y],
-      [GROUP_IDS.NPCS, SETTING_KEYS.NPC_DIRECTION, SETTING_KEYS.NPC_DIRECTION_OVERRIDE, SETTING_KEYS.NPC_OFFSET_X, SETTING_KEYS.NPC_OFFSET_Y]
+    for (const [groupId, offsetXKey, offsetYKey] of [
+      [GROUP_IDS.PCS, SETTING_KEYS.PC_OFFSET_X, SETTING_KEYS.PC_OFFSET_Y],
+      [GROUP_IDS.NPCS, SETTING_KEYS.NPC_OFFSET_X, SETTING_KEYS.NPC_OFFSET_Y]
     ]) {
       const group = this.#groups.get(groupId);
       const size = groupId === GROUP_IDS.PCS ? pcSize : npcSize;
@@ -532,10 +835,6 @@ export class PortraitStage {
       group.style.setProperty("--rnps-label-font-size", `${fontSize}px`);
       group.style.setProperty("--rnps-offset-x", `${game.settings.get(MODULE_ID, offsetXKey)}px`);
       group.style.setProperty("--rnps-offset-y", `${game.settings.get(MODULE_ID, offsetYKey)}px`);
-      const directionOverride = game.settings.get(MODULE_ID, directionOverrideKey);
-      group.dataset.direction = directionOverride === "inherit"
-        ? game.settings.get(MODULE_ID, directionKey)
-        : directionOverride;
     }
 
     const leftColumn = document.querySelector("#ui-left-column-2");
@@ -602,10 +901,9 @@ export class PortraitStage {
     const rows = Math.max(1, Math.floor((available + gap) / (size + gap)));
     group.style.setProperty("--rnps-available-height", `${available}px`);
     group.style.setProperty("--rnps-rows", String(rows));
-    const upward = group.dataset.direction === "up";
     [...group.children].forEach((portrait, index) => {
       portrait.style.gridColumn = String(Math.floor(index / rows) + 1);
-      portrait.style.gridRow = String(upward ? rows - (index % rows) : (index % rows) + 1);
+      portrait.style.gridRow = String((index % rows) + 1);
     });
     group.classList.toggle(
       "rnps-notifications-active",

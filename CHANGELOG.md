@@ -2,6 +2,16 @@
 
 ## 0.7.0 — Unreleased
 
+- Added scene focus with three independently assigned, hideable Actor slots and responsive, animated presentation.
+- Added immediate focus controls to staged UI portraits and draft controls to the cast manager.
+- Added optional image/video scene backgrounds with fit, position, dimming, and blur settings.
+- Extended presets with independently selectable cast, focus, and background sections while retaining old cast-only presets.
+- Added immediate shared and GM-only visibility buttons for side portraits, focus art, and scene backgrounds in one manager toolbar.
+- Sized focus slots from the viewport width, added a shared focus gap setting, and placed focus art beneath the hotbar.
+- Reserved 300 pixels for Foundry's side UI on each side of the focus area and added All visibility controls for shared and GM-only views.
+- Removed the scene-specific token-highlight control; one world setting now applies live to all clients.
+- Matched focus cards to side portrait actions, added persistent focus assignments, and added per-variant focus image and mirroring settings.
+
 - Added a public portrait drop API and `litm-rn` drop integration for characters, challenges, and journeys.
 - Highlighted valid portrait drop targets along the visible image silhouette.
 - Added experimental local microphone activity detection without recording or transmitting audio.
@@ -17,7 +27,7 @@
 - Added enlarged hover art with per-variant source, custom image/video, scale, mirroring, and disable controls.
 - Added world defaults for hover-art source, bottom offset, and base size plus a client hover-art scale.
 - Added optional linked-token highlighting while hovering staged portraits.
-- Moved token highlighting from individual variants to a world default with a scene-level Default/Enabled/Disabled override.
+- Moved token highlighting from individual variants to a world setting.
 - Filtered token highlighting through each client's Foundry visibility state so players do not reveal hidden or unseen tokens.
 - Added Image Hover compatibility modes: prioritize RN Portrait Stage, prioritize Image Hover, or display both.
 - Removed the duplicate immediate portrait render after extension actions, preventing action-button flicker.

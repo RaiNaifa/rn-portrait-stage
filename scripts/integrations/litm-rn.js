@@ -31,6 +31,7 @@ export function registerLitmIntegration(api) {
   api.hover.registerBlock({
     id: `${INTEGRATION_ID}.tags`,
     order: 100,
+    persistOnPortraitFocus: true,
     isVisible: ({ entry }) => game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED)
       && entry.flags?.[INTEGRATION_ID]?.tagsVisible === true,
     render: ({ actor }) => renderTags(actor)

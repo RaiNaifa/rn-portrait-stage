@@ -6,6 +6,6 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/dev/check.mjs",
-    "test": "node scripts/dev/foundation-tests.mjs && node scripts/dev/module-import-test.mjs"
+    "test": "node scripts/dev/foundation-tests.mjs && node scripts/dev/background-tests.mjs && node scripts/dev/module-import-test.mjs"
   }
 }

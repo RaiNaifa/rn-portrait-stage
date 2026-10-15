@@ -2,6 +2,7 @@ import { CAST_LAYERS, MODULE_ID } from "../constants.js";
 import { getCastEntry } from "../data/cast-service.js";
 import { getReserveEntry, updateReserveEntry } from "../data/reserve-service.js";
 import { requestCastEntryUpdate } from "../data/socket-service.js";
+import { getFocusEntry, updateFocusEntry } from "../data/scene-presentation.js";
 import { preparePortraitView } from "../portraits/portrait-data.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -43,6 +44,7 @@ export class VariantAudience extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     const view = entry ? await preparePortraitView(entry) : null;
     const variant = view?.library.variants.find(item => item.id === this.#variantId);
@@ -71,6 +73,7 @@ export class VariantAudience extends HandlebarsApplicationMixin(ApplicationV2) {
   async #save(clearAll) {
     const entry = this.#layer === CAST_LAYERS.RESERVE
       ? getReserveEntry(this.#entryId)
+      : this.#layer === CAST_LAYERS.FOCUS ? getFocusEntry(this.#entryId)
       : getCastEntry(this.#entryId, { layer: this.#layer });
     if (!entry) return;
     const userVariants = clearAll ? {} : { ...(entry.userVariants ?? {}) };
@@ -83,6 +86,8 @@ export class VariantAudience extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (this.#layer === CAST_LAYERS.RESERVE) {
       await updateReserveEntry(this.#entryId, { userVariants });
+    } else if (this.#layer === CAST_LAYERS.FOCUS) {
+      await updateFocusEntry(this.#entryId, { userVariants });
     } else {
       const view = await preparePortraitView(entry);
       await requestCastEntryUpdate(this.#entryId, { userVariants }, {

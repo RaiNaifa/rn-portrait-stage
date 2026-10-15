@@ -10,10 +10,26 @@ import { initializeSocketService } from "./data/socket-service.js";
 import { syncPreviewScene } from "./data/preview-service.js";
 import { registerLitmIntegration } from "./integrations/litm-rn.js";
 import { voiceController } from "./voice/voice-controller.js";
+import { reconcileSharedVisibility } from "./data/visibility-service.js";
+import { importLegacySceneBackgrounds } from "./data/background-library.js";
 
 Hooks.once("init", () => {
   logger.info(`Initializing ${MODULE_TITLE}`);
   registerSettings();
+  game.keybindings.register(MODULE_ID, "highlightPortraitTags", {
+    name: "RNPS.Keybindings.HighlightPortraitTags.Name",
+    hint: "RNPS.Keybindings.HighlightPortraitTags.Hint",
+    editable: [{ key: "AltLeft" }, { key: "AltRight" }],
+    onDown: () => {
+      portraitStage.setAllTagsHighlighted(true);
+      return false;
+    },
+    onUp: () => {
+      portraitStage.setAllTagsHighlighted(false);
+      return false;
+    },
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+  });
 
   const module = game.modules.get(MODULE_ID);
   if (!module) {
@@ -33,6 +49,9 @@ Hooks.once("ready", () => {
   }
 
   refreshFontChoices();
+  if (game.user?.isGM && (!game.users?.activeGM || game.users.activeGM.id === game.user.id)) {
+    void importLegacySceneBackgrounds().catch(error => logger.error("Background migration failed", error));
+  }
   initializeSocketService();
   const adapter = getCompatibilityAdapter();
   const api = game.modules.get(MODULE_ID)?.api;
@@ -41,6 +60,13 @@ Hooks.once("ready", () => {
   voiceController.initialize();
 
   portraitStage.initialize();
+  const coreHighlight = game.keybindings.actions.get("core.highlight");
+  if (coreHighlight?.onDown) {
+    const originalOnDown = coreHighlight.onDown;
+    coreHighlight.onDown = (...args) => portraitStage.isSceneBackgroundVisible()
+      ? false
+      : originalOnDown(...args);
+  }
   navigationButton.initialize();
 
   logger.info(`${MODULE_TITLE} ready`, {
@@ -84,10 +110,9 @@ Hooks.on("updateUser", () => scheduleUiRefresh());
 Hooks.on("renderSceneNavigation", () => navigationButton.position());
 Hooks.on("collapseSceneNavigation", () => requestAnimationFrame(() => navigationButton.position()));
 Hooks.on(HOOKS.SETTINGS_CHANGED, ({ key }) => {
-  if ([SETTING_KEYS.STAGE_ENABLED, SETTING_KEYS.PERSISTENT_STATE].includes(key)) {
-    navigationButton.revealForSceneChange();
-  }
   scheduleUiRefresh();
+  if (key === SETTING_KEYS.LAYER_VISIBILITY) void reconcileSharedVisibility();
+  navigationButton.refresh();
 });
 Hooks.on(HOOKS.STATE_CHANGED, () => scheduleUiRefresh());
 Hooks.on(HOOKS.SPEAKING_CHANGED, ({ actorUuid, speaking }) => {

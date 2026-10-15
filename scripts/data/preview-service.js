@@ -3,6 +3,7 @@ import { getActorLibrary, setActorLibrary } from "./actor-library.js";
 import { normalizePortraitEntry } from "./portrait-entry.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 import { createDefaultSceneState, getSceneState, normalizeSceneState, setSceneState } from "./scene-state.js";
+import { ensureGlobalBackground, findBackground } from "./background-library.js";
 
 let previewSuspended = 0;
 const clone = value => foundry.utils.deepClone(value);
@@ -91,20 +92,23 @@ function effectiveDraft(session, scene = canvas.scene) {
 }
 
 export function getPreviewSession() {
-  const raw = game.settings.get(MODULE_ID, SETTING_KEYS.PREVIEW_SESSION);
+  const stored = game.settings.get(MODULE_ID, SETTING_KEYS.PREVIEW_SESSION);
+  const restoreDraft = value => {
+    if (!value?.presetId) return value;
+    const { presetId, presetName, resetDraft, returnBase, returnDraft, ...draftState } = value;
+    return { ...draftState, base: returnBase ?? null, draft: returnDraft ?? null };
+  };
+  const raw = restoreDraft(stored);
   const base = raw?.base && typeof raw.base === "object" ? clone(raw.base) : null;
   const draft = raw?.draft && typeof raw.draft === "object" ? clone(raw.draft) : null;
   return {
     active: Boolean(draft),
-    dirty: Boolean(draft && !equal(raw?.presetId ? raw?.resetDraft : base, draft)),
+    dirty: Boolean(draft && !equal(base, draft)),
     base,
     draft,
-    drafts: raw?.drafts && typeof raw.drafts === "object" ? clone(raw.drafts) : {},
-    presetId: typeof raw?.presetId === "string" ? raw.presetId : null,
-    presetName: typeof raw?.presetName === "string" ? raw.presetName : null,
-    resetDraft: raw?.resetDraft && typeof raw.resetDraft === "object" ? clone(raw.resetDraft) : null,
-    returnBase: raw?.returnBase && typeof raw.returnBase === "object" ? clone(raw.returnBase) : null,
-    returnDraft: raw?.returnDraft && typeof raw.returnDraft === "object" ? clone(raw.returnDraft) : null,
+    drafts: raw?.drafts && typeof raw.drafts === "object"
+      ? Object.fromEntries(Object.entries(raw.drafts).map(([sceneId, value]) => [sceneId, restoreDraft(value)]))
+      : {},
     conflicts: Array.isArray(raw?.conflicts) ? [...raw.conflicts] : []
   };
 }
@@ -121,14 +125,27 @@ export async function withoutPreview(callback) {
 async function store(session) {
   const drafts = { ...(session.drafts ?? {}) };
   if (session.draft?.sceneId) drafts[session.draft.sceneId] = {
-    base: clone(session.base), draft: clone(session.draft), presetId: session.presetId,
-    presetName: session.presetName, resetDraft: clone(session.resetDraft),
-    returnBase: clone(session.returnBase), returnDraft: clone(session.returnDraft),
+    base: clone(session.base), draft: clone(session.draft),
     conflicts: [...(session.conflicts ?? [])]
   };
   await game.settings.set(MODULE_ID, SETTING_KEYS.PREVIEW_SESSION, { ...session, drafts });
   Hooks.callAll(HOOKS.STATE_CHANGED, { preview: true });
+  if (game.settings.get(MODULE_ID, SETTING_KEYS.PREVIEW_AUTO_APPLY)
+    && session.draft?.sceneId === canvas.scene?.id
+    && !equal(session.base, session.draft)) {
+    await applyPreview(canvas.scene);
+  }
   return getPreviewSession();
+}
+
+export async function setPreviewAutoApply(enabled, scene = canvas.scene) {
+  if (!game.user?.isGM) return false;
+  await game.settings.set(MODULE_ID, SETTING_KEYS.PREVIEW_AUTO_APPLY, enabled);
+  const session = getPreviewSession();
+  if (enabled && scene && session.draft?.sceneId === scene.id && session.dirty) {
+    await applyPreview(scene);
+  }
+  return true;
 }
 
 export async function ensurePreviewDraft(scene = canvas.scene) {
@@ -138,26 +155,15 @@ export async function ensurePreviewDraft(scene = canvas.scene) {
   const saved = current.drafts?.[scene.id];
   if (saved?.draft) return store({ ...current, ...saved });
   const published = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
-  return store({ ...current, base: published, draft: clone(published), presetId: null, presetName: null, resetDraft: null, returnBase: null, returnDraft: null, conflicts: [] });
-}
-
-export async function togglePreview(scene = canvas.scene) {
-  await ensurePreviewDraft(scene);
-  const visible = game.settings.get(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE);
-  await game.settings.set(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE, !visible);
-  Hooks.callAll(HOOKS.STATE_CHANGED, { previewVisibility: true });
-  return getPreviewSession();
+  return store({ ...current, base: published, draft: clone(published), conflicts: [] });
 }
 
 export async function syncPreviewScene(scene = canvas.scene) { return ensurePreviewDraft(scene); }
 
 export async function resetPreview(scene = canvas.scene) {
   const current = await ensurePreviewDraft(scene);
-  if (current.presetId && current.resetDraft?.sceneId === scene?.id) {
-    return store({ ...current, draft: clone(current.resetDraft), conflicts: [] });
-  }
   const published = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
-  return store({ ...current, base: published, draft: clone(published), presetId: null, presetName: null, resetDraft: null, returnBase: null, returnDraft: null, conflicts: [] });
+  return store({ ...current, base: published, draft: clone(published), conflicts: [] });
 }
 
 export function getPreviewConflicts(scene = canvas.scene) {
@@ -183,6 +189,71 @@ export async function setPreviewLayer(layer, state, scene = canvas.scene) {
   const draft = clone(effective);
   draft[layer === CAST_LAYERS.PERSISTENT ? "persistent" : "scene"] = normalizeSceneState(state);
   return store({ ...session, base: published, draft, conflicts });
+}
+
+export async function syncImmediatePresentation(scene, mutateDraft, section) {
+  const session = getPreviewSession();
+  if (!session.draft || session.draft.sceneId !== scene?.id) return;
+  const published = getSceneState(scene);
+  const draft = clone(session.draft);
+  const base = clone(session.base ?? capturePublishedSnapshot(scene));
+  draft.scene = normalizeSceneState(draft.scene);
+  base.scene = normalizeSceneState(base.scene);
+  mutateDraft(draft.scene);
+  draft.scene = normalizeSceneState(draft.scene);
+  const sections = Array.isArray(section) ? section : [section];
+  for (const key of sections) base.scene[key] = clone(published[key]);
+  const prefixes = sections.map(key => `scene.${key}`);
+  await store({
+    ...session,
+    base,
+    draft,
+    conflicts: (session.conflicts ?? []).filter(path => !prefixes.some(prefix => path === prefix || path.startsWith(`${prefix}.`)))
+  });
+}
+
+export async function syncImmediateFocus(scene, mutateDraft) {
+  const session = getPreviewSession();
+  if (!session.draft || session.draft.sceneId !== scene?.id) return;
+  const draft = clone(session.draft);
+  const base = clone(session.base ?? capturePublishedSnapshot(scene));
+  for (const layer of ["scene", "persistent"]) {
+    draft[layer] = normalizeSceneState(draft[layer]);
+    base[layer] = normalizeSceneState(base[layer]);
+  }
+  mutateDraft(draft.scene.focus, draft.persistent.focus);
+  draft.scene = normalizeSceneState(draft.scene);
+  draft.persistent = normalizeSceneState(draft.persistent);
+  base.scene.focus = getSceneState(scene).focus;
+  base.persistent.focus = getPersistentState().focus;
+  await store({
+    ...session, base, draft,
+    conflicts: (session.conflicts ?? []).filter(path => !["scene.focus", "persistent.focus"].some(prefix => path === prefix || path.startsWith(`${prefix}.`)))
+  });
+}
+
+export async function syncImmediateBackgroundSelection(scene) {
+  const session = getPreviewSession();
+  if (!session.draft || session.draft.sceneId !== scene?.id) return;
+  const draft = clone(session.draft);
+  const base = clone(session.base ?? capturePublishedSnapshot(scene));
+  const publishedScene = getSceneState(scene);
+  const publishedPersistent = getPersistentState();
+  for (const snapshot of [draft, base]) {
+    snapshot.scene = normalizeSceneState(snapshot.scene);
+    snapshot.persistent = normalizeSceneState(snapshot.persistent);
+    snapshot.scene.activeBackgroundId = publishedScene.activeBackgroundId;
+    snapshot.scene.backgroundSuppressed = publishedScene.backgroundSuppressed;
+    snapshot.scene.background = clone(publishedScene.background);
+    snapshot.persistent.backgroundId = publishedPersistent.backgroundId;
+    snapshot.persistent.backgroundFollowActive = publishedPersistent.backgroundFollowActive;
+  }
+  await store({
+    ...session, base, draft,
+    conflicts: (session.conflicts ?? []).filter(path => ![
+      "scene.activeBackgroundId", "scene.background", "scene.backgroundSuppressed", "persistent.backgroundId", "persistent.backgroundFollowActive"
+    ].some(prefix => path === prefix || path.startsWith(`${prefix}.`)))
+  });
 }
 
 export function getPreviewReserve(scene = canvas.scene) {
@@ -212,6 +283,8 @@ async function rememberActiveVariants(snapshot) {
   rememberLayer(snapshot.reserve);
   rememberLayer(Object.values(GROUP_IDS).flatMap(id => snapshot.persistent.groups[id].entries));
   rememberLayer(Object.values(GROUP_IDS).flatMap(id => snapshot.scene.groups[id].entries));
+  rememberLayer(Object.values(snapshot.persistent.focus).map(item => item?.entry).filter(Boolean));
+  rememberLayer(Object.values(snapshot.scene.focus).map(item => item?.entry).filter(Boolean));
   for (const entry of byActor.values()) {
     const actor = await fromUuid(entry.actorUuid);
     if (actor?.documentName !== "Actor") continue;
@@ -222,95 +295,25 @@ async function rememberActiveVariants(snapshot) {
   }
 }
 
-function mergeState(target, source) {
-  const result = normalizeSceneState(target);
-  const incoming = normalizeSceneState(source);
-  for (const groupId of Object.values(GROUP_IDS)) {
-    for (const entry of incoming.groups[groupId].entries) {
-      let found = null;
-      for (const id of Object.values(GROUP_IDS)) {
-        const index = result.groups[id].entries.findIndex(item => item.actorUuid === entry.actorUuid);
-        if (index >= 0) found = { id, index, entry: result.groups[id].entries[index] };
-      }
-      if (found) result.groups[found.id].entries.splice(found.index, 1);
-      result.groups[groupId].entries.push({ ...clone(entry), id: found?.entry.id ?? entry.id });
-    }
-  }
-  result.layout = { ...result.layout, ...incoming.layout };
-  return normalizeSceneState(result);
-}
-
-function mergeReserve(target, source) {
-  const result = target.map(entry => clone(entry));
-  for (const entry of source) {
-    const index = result.findIndex(item => item.actorUuid === entry.actorUuid);
-    if (index >= 0) result[index] = { ...clone(entry), id: result[index].id };
-    else result.push(clone(entry));
-  }
-  return result;
-}
-
-export async function applyPreview(scene = canvas.scene, { castMode = "replaceAll", reserveMode = "replace" } = {}) {
+export async function applyPreview(scene = canvas.scene) {
   const session = await ensurePreviewDraft(scene);
   const effective = effectiveDraft(session, scene)?.snapshot;
   if (!effective) return false;
-  const current = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
   let sceneState = effective.scene;
   let persistentState = effective.persistent;
-  if (castMode === "merge") {
-    sceneState = mergeState(current.scene, effective.scene);
-    persistentState = mergeState(current.persistent, effective.persistent);
-  } else if (castMode === "replaceScene") persistentState = current.persistent;
-  else if (castMode === "replacePersistent") sceneState = current.scene;
-  let reserve = effective.reserve;
-  if (reserveMode === "keep") reserve = current.reserve;
-  else if (reserveMode === "merge") reserve = mergeReserve(current.reserve, effective.reserve);
+  sceneState = normalizeSceneState({ ...sceneState, focus: effective.scene.focus, background: effective.scene.background, activeBackgroundId: effective.scene.activeBackgroundId, backgroundSuppressed: effective.scene.backgroundSuppressed });
+  if (!findBackground(sceneState.activeBackgroundId) && sceneState.background.src) {
+    const item = await ensureGlobalBackground(sceneState.background);
+    sceneState.activeBackgroundId = item?.id ?? null;
+  }
+  sceneState.backgrounds = [];
+  persistentState = normalizeSceneState({ ...persistentState, focus: effective.persistent.focus, backgroundId: effective.persistent.backgroundId, backgroundFollowActive: effective.persistent.backgroundFollowActive });
+  const reserve = effective.reserve;
   await setSceneState(scene, sceneState);
   await setPersistentState(persistentState);
   await game.settings.set(MODULE_ID, SETTING_KEYS.RESERVE_ACTORS, reserve);
   await rememberActiveVariants({ scene: sceneState, persistent: persistentState, reserve });
   const published = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
-  await store({ ...session, base: published, draft: clone(published), presetId: null, presetName: null, resetDraft: null, returnBase: null, returnDraft: null, conflicts: [] });
+  await store({ ...session, base: published, draft: clone(published), conflicts: [] });
   return true;
-}
-
-export async function replacePreviewDraft(snapshot, scene = canvas.scene, { presetId = null, presetName = null } = {}) {
-  const normalized = normalizeSnapshot(snapshot, scene);
-  const current = getPreviewSession();
-  const published = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
-  return store({
-    ...current,
-    base: published,
-    draft: clone(normalized),
-    presetId,
-    presetName,
-    resetDraft: presetId ? clone(normalized) : null,
-    returnBase: presetId && !current.presetId ? clone(current.base) : current.returnBase,
-    returnDraft: presetId && !current.presetId ? clone(current.draft) : current.returnDraft,
-    conflicts: []
-  });
-}
-
-export async function closePreviewPreset(scene = canvas.scene) {
-  const current = getPreviewSession();
-  if (!current.presetId) return current;
-  const published = normalizeSnapshot(capturePublishedSnapshot(scene), scene);
-  return store({
-    ...current,
-    base: current.returnBase ?? published,
-    draft: current.returnDraft ?? clone(published),
-    presetId: null,
-    presetName: null,
-    resetDraft: null,
-    returnBase: null,
-    returnDraft: null,
-    conflicts: []
-  });
-}
-
-export async function markPreviewPresetSaved(snapshot) {
-  const current = getPreviewSession();
-  if (!current.presetId) return current;
-  const normalized = normalizeSnapshot(snapshot, canvas.scene);
-  return store({ ...current, draft: clone(normalized), resetDraft: clone(normalized) });
 }

@@ -68,6 +68,7 @@ export function createDefaultVariantSettings() {
       scale: 1,
       mirrored: false
     },
+    focus: { source: "inherit", customSrc: null, mirrored: false },
     speaking: {
       image: { source: "inherit", customSrc: null },
       scale: 1,
@@ -128,6 +129,17 @@ export function getActorLibrary(actor) {
   return normalizeActorLibrary(actor?.getFlag(MODULE_ID, FLAGS.ACTOR_LIBRARY), actor);
 }
 
+export function getStartingVariantId(actor) {
+  const savedLibrary = actor?.getFlag(MODULE_ID, FLAGS.ACTOR_LIBRARY);
+  if (savedLibrary) {
+    const library = normalizeActorLibrary(savedLibrary, actor);
+    return library.lastActiveVariantId ?? library.defaultVariantId;
+  }
+  return game.settings.get(MODULE_ID, SETTING_KEYS.INITIAL_ACTOR_VARIANT) === "prototypeToken"
+    ? "prototypeToken"
+    : "actor";
+}
+
 export async function setActorLibrary(actor, library) {
   if (!actor?.isOwner && !game.user?.isGM) {
     throw new Error(game.i18n.localize("RNPS.Notifications.ActorPermission"));
@@ -138,6 +150,17 @@ export async function setActorLibrary(actor, library) {
   const normalized = normalizeActorLibrary(library, actor);
   await actor.setFlag(MODULE_ID, FLAGS.ACTOR_LIBRARY, normalized);
   return normalized;
+}
+
+export async function rememberActorVariant(actorUuid, variantId) {
+  if (!actorUuid || !variantId) return false;
+  const actor = await fromUuid(actorUuid);
+  if (actor?.documentName !== "Actor") return false;
+  const library = getActorLibrary(actor);
+  if (!library.variants.some(variant => variant.id === variantId)
+    || library.lastActiveVariantId === variantId) return false;
+  await setActorLibrary(actor, { ...library, lastActiveVariantId: variantId });
+  return true;
 }
 
 export async function updateActorVariant(actor, variantId, changes) {
@@ -194,6 +217,7 @@ export function normalizeVariantSettings(source) {
   const media = isPlainObject(source?.media) ? source.media : {};
   const transition = isPlainObject(source?.transition) ? source.transition : {};
   const hover = isPlainObject(source?.hover) ? source.hover : {};
+  const focus = isPlainObject(source?.focus) ? source.focus : {};
   const speaking = isPlainObject(source?.speaking) ? source.speaking : {};
   const speakingImage = isPlainObject(speaking.image) ? speaking.image : {};
   return {
@@ -227,6 +251,11 @@ export function normalizeVariantSettings(source) {
           : null,
       scale: Number.isFinite(hover.scale) ? Math.max(0.1, Math.min(5, hover.scale)) : 1,
       mirrored: hover.mirrored === true
+    },
+    focus: {
+      source: ["inherit", "portrait", "hover", "custom"].includes(focus.source) ? focus.source : "inherit",
+      customSrc: typeof focus.customSrc === "string" && focus.customSrc.trim() ? focus.customSrc.trim() : null,
+      mirrored: focus.mirrored === true
     },
     speaking: {
       image: {

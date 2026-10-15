@@ -1,5 +1,6 @@
 import { CastManager } from "../apps/cast-manager.js";
-import { HOOKS, MODULE_ID, SETTING_KEYS } from "../constants.js";
+import { HOOKS } from "../constants.js";
+import { getSharedVisibility, VISIBILITY_LAYERS } from "../data/visibility-service.js";
 
 export class NavigationButton {
   #button;
@@ -35,9 +36,13 @@ export class NavigationButton {
     return changed;
   }
 
+  refresh() {
+    this.#syncAppearance();
+  }
+
   #onClick() {
     if (game.user.isGM) return CastManager.open();
-    if (!game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED)) return;
+    if (!VISIBILITY_LAYERS.some(layer => getSharedVisibility()[layer])) return;
     this.#playerHidden = !this.#playerHidden;
     this.#syncAppearance();
     Hooks.callAll(HOOKS.STATE_CHANGED, { clientVisibility: true });
@@ -52,7 +57,8 @@ export class NavigationButton {
       if (icon) icon.className = "fa-solid fa-masks-theater";
       this.#button.classList.remove("active");
     } else {
-      const worldVisible = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
+      const shared = getSharedVisibility();
+      const worldVisible = VISIBILITY_LAYERS.some(layer => shared[layer]);
       this.#button.disabled = !worldVisible;
       this.#button.title = game.i18n.localize(!worldVisible
         ? "RNPS.Controls.PortraitsHiddenByGm"

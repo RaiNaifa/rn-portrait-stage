@@ -2,7 +2,7 @@
 
 > Beta API (`apiVersion: 1`): scene portraits, variants, hover blocks, actions, and portrait drop handlers are available. Voice activation is experimental.
 
-Cast presets work in the module's manager, but there is no public `api.presets` interface yet. Custom image resolvers are planned; the renderer does not consult an image-resolver registry. `api.effects` currently supports registration and inspection only; registered effects are not applied to portraits. These planned interfaces are not part of the beta's functional API.
+Cast presets are unavailable pending a redesign, and there is no public `api.presets` interface. Custom image resolvers are planned; the renderer does not consult an image-resolver registry. `api.effects` currently supports registration and inspection only; registered effects are not applied to portraits. These planned interfaces are not part of the beta's functional API.
 
 Access the API after the `rnPortraitStageReady` hook:
 
@@ -25,7 +25,7 @@ const state = api.state.get(canvas.scene);
 await api.state.set(canvas.scene, state);
 ```
 
-The current scene-state schema version is `5`. The state contains `pcs` and `npcs` groups with entry arrays, independent PC/NPC portrait-size overrides, and a scene-level token-highlight override.
+The current scene-state schema version is `11`. The state contains `pcs` and `npcs` groups with entry arrays, independent PC/NPC portrait-size overrides, three `focus` slots, a scene-specific `activeBackgroundId`, and `backgroundSuppressed` for hiding a background on one scene. Background variants and their groups live in the world setting `backgroundLibrary`. When `persistentState.backgroundFollowActive` is enabled, `persistentState.backgroundId` is the current background across Foundry scenes and updates on every activation. The scene's `background` field retains a legacy snapshot for migration. Legacy scene-local background lists are imported into the world library on GM startup. A focus slot stores a portrait entry snapshot and its independent visibility flag. Persistent focus slots use the persistent world state and fill zones that have no scene assignment. Token highlighting uses one world setting; shared and personal layer visibility are also stored in settings, outside scene state.
 
 `api.state.getLayers(scene)` returns the persistent and scene-specific layers. `api.state.getCombined(scene)` returns the effective cast; a scene entry overrides a persistent entry for the same Actor.
 
@@ -62,6 +62,8 @@ await api.portraits.setSize(180, { scene: canvas.scene, layer: "scene", groupId:
 ## Actor portrait variants
 
 Variant libraries persist in Actor flags and remain available after the Actor is removed from a cast.
+
+Actor-library schema version `7` adds per-variant `settings.focus` with `source` (`inherit`, `portrait`, `hover`, or `custom`), `customSrc`, and `mirrored`. The world setting `focusImageDefaultSource` resolves inherited sources.
 
 ```js
 const actor = game.actors.get("actorId");

@@ -1,10 +1,82 @@
 {
   "RNPS": {
     "Name": "RN Portrait Stage",
+    "Keybindings": {
+      "HighlightPortraitTags": {
+        "Name": "Highlight all portrait tags",
+        "Hint": "Shows LitM tags on all side portraits whose tags are enabled."
+      }
+    },
+    "Visibility": {
+      "All": "All",
+      "Side": "Scene portraits",
+      "Focus": "Focus",
+      "Background": "Scene background",
+      "ShowForAll": "Show for everyone",
+      "HideForAll": "Hide for everyone",
+      "ShowForSelf": "Show only for yourself",
+      "HideForSelf": "Hide only for yourself",
+      "OpenControls": "Visibility controls",
+      "HiddenForAll": "Hidden for everyone by the GM"
+    },
+    "Focus": {
+      "Title": "Scene focus",
+      "Button": "Focus",
+      "Left": "Left",
+      "Center": "Center",
+      "Right": "Right",
+      "Remove": "Remove",
+      "Empty": "No actor",
+      "DropHint": "Drop an Actor",
+      "Visible": "Show",
+      "ShowSideCast": "Show side portraits during focus"
+    },
+    "Background": {
+      "Title": "Scene background",
+      "Source": "Image or video path",
+      "NoSource": "No background selected",
+      "Browse": "Choose file",
+      "Clear": "Remove background",
+      "Placement": "Placement",
+      "Effects": "Effects",
+      "Expand": "Expand window and show background settings on the right",
+      "Collapse": "Hide background settings and restore window width",
+      "Add": "Add background",
+      "Empty": "No backgrounds added yet",
+      "Name": "Name",
+      "Search": "Search by name",
+      "NoResults": "No matching backgrounds",
+      "DefaultGroup": "Ungrouped",
+      "NewGroup": "New group",
+      "GroupName": "Group name",
+      "GroupNameHint": "Drag the name to reorder. Double-click to rename the group.",
+      "AddGroup": "Add group",
+      "RemoveGroup": "Remove group and move its backgrounds to Ungrouped",
+      "DropHint": "Drop a background or Scene here",
+      "Pin": "Keep the current active background when changing scenes",
+      "Unpin": "Stop keeping the active background between scenes",
+      "ExpandGroup": "Expand group",
+      "CollapseGroup": "Collapse group",
+      "SceneWithoutImage": "This Scene has no background image.",
+      "Settings": "Background settings",
+      "Missing": "This background is no longer in the scene.",
+      "DraftHint": "Background variant settings are saved for the whole world immediately.",
+      "Activate": "Show this background",
+      "Deactivate": "Deactivate background",
+      "Remove": "Remove background from list",
+      "RemoveConfirmTitle": "Delete background variant?",
+      "RemoveConfirmText": "The background variant will be removed from the shared library and will no longer appear in scenes.",
+      "Fit": "Fit",
+      "Dim": "Dimming",
+      "Blur": "Blur",
+      "OverUiLater": "Over the interface (later)"
+    },
     "Common": {
       "DragToSort": "Drag to reorder"
     },
     "Settings": {
+      "LayerVisibility": { "Name": "Shared layer visibility" },
+      "ClientLayerVisibility": { "Name": "Personal layer visibility" },
       "AllowPlayerPortraitChanges": {
         "Name": "Allow players to activate accessible variants",
         "Hint": "Players may activate for everyone variants which the GM has made available to them."
@@ -41,9 +113,17 @@
         "Name": "Personal portrait scale",
         "Hint": "Scales the GM-defined portrait sizes on this client."
       },
+      "InitialActorVariant": {
+        "Name": "Initial actor portrait variant",
+        "Hint": "Variant used when first adding an Actor to the cast, reserve, or focus. Existing portraits and saved Actor selections do not change."
+      },
       "HoverArtDefaultSource": {
         "Name": "Default enlarged hover art",
         "Hint": "The enlarged-art source used by variants which inherit the world setting."
+      },
+      "FocusImageDefaultSource": {
+        "Name": "Default focus image",
+        "Hint": "Use the portrait or hover image when the variant does not override the focus source."
       },
       "HoverArtBottomOffset": {
         "Name": "Enlarged art bottom offset",
@@ -57,9 +137,9 @@
         "Name": "Personal enlarged-art scale",
         "Hint": "Scales enlarged hover art on this client only."
       },
-      "TokenHighlightDefault": {
-        "Name": "Highlight tokens on hover by default",
-        "Hint": "World default for highlighting visible Actor tokens when a portrait is hovered. Individual Scenes may override it in the manager."
+      "TokenHighlightEnabled": {
+        "Name": "Highlight visible tokens on hover",
+        "Hint": "Shared setting for highlighting visible tokens when a portrait is hovered. Changes apply immediately for all players."
       },
       "ImageHoverPriority": {
         "Name": "Image Hover compatibility",
@@ -98,6 +178,10 @@
         "Name": "Portrait spacing",
         "Hint": "World-level gap between portraits in pixels, controlled by the GM."
       },
+      "FocusGap": {
+        "Name": "Focus portrait spacing",
+        "Hint": "Gap between focus slots in pixels, shared with all players."
+      },
       "PcOffsetX": {
         "Name": "Character group horizontal offset",
         "Hint": "Move the character portrait group horizontally, in pixels."
@@ -113,27 +197,6 @@
       "NpcOffsetY": {
         "Name": "NPC group vertical offset",
         "Hint": "Move the NPC portrait group vertically, in pixels."
-      },
-      "PcDirection": {
-        "Name": "Character group direction",
-        "Hint": "Choose whether character portraits are arranged from top to bottom or bottom to top."
-      },
-      "NpcDirection": {
-        "Name": "NPC group direction",
-        "Hint": "Choose whether NPC portraits are arranged from top to bottom or bottom to top."
-      },
-      "Direction": {
-        "Inherit": "Default",
-        "Down": "Top to bottom",
-        "Up": "Bottom to top"
-      },
-      "PcDirectionOverride": {
-        "Name": "Personal character direction",
-        "Hint": "Use the GM world direction or override it only on this client."
-      },
-      "NpcDirectionOverride": {
-        "Name": "Personal NPC direction",
-        "Hint": "Use the GM world direction or override it only on this client."
       }
     },
     "Groups": {
@@ -162,12 +225,13 @@
     "Manager": {
       "Title": "RN Portrait Stage — Scene Cast",
       "Hint": "Drag Actors from the Actors directory into either group. Drag entries to reorder or move them between groups.",
-      "Empty": "Drop Actors here",
+      "Empty": "Drag an Actor",
       "NoScene": "No active scene is available.",
       "Layer": "Edited cast",
       "SceneLayer": "Current Scene only",
       "PersistentLayer": "Persistent between Scenes",
       "PortraitSize": "All portrait sizes",
+      "ResetPortraitSize": "Reset size to 160 pixels",
       "ShowStage": "Show portraits to everyone",
       "HideStage": "Hide portraits for everyone",
       "Persistent": "Keep between Scenes",
@@ -179,9 +243,7 @@
       "AddFavorite": "Add to favorites",
       "RemoveFavorite": "Remove from favorites",
       "ResizeReserve": "Resize the reserve. Double-click to restore the default height",
-      "Composition": "Cast",
-      "TokenHighlight": "Highlight visible tokens on hover",
-      "Disabled": "Disabled"
+      "Composition": "Cast"
     },
     "Preview": {
       "Button": "Preview",
@@ -189,37 +251,20 @@
       "Draft": "Cast draft",
       "ShowSelf": "Show for myself",
       "HideSelf": "Hide for myself",
-      "PresetActive": "Preset preview",
       "Stale": "Some draft fields conflict with changes made outside the manager",
       "EntryConflict": "This portrait changed outside the manager. The GM draft value is retained.",
       "Apply": "Apply for everyone",
       "ApplyChanges": "Apply changes",
-      "SavePreset": "Save as preset",
-      "UpdatePreset": "Save changes",
+      "AutoApply": "Apply immediately",
+      "AutoApplyHint": "Cast changes are applied without confirmation.",
       "Reset": "Reset changes",
       "ResetChanges": "Reset changes",
       "Applied": "The draft was applied for all users."
     },
     "Presets": {
-      "Title": "Presets",
-      "Untitled": "Untitled",
-      "NamePlaceholder": "Cast preset name",
-      "SaveCurrent": "Save current cast",
-      "Delete": "Delete preset",
-      "CastMode": "Cast application",
-      "ReserveMode": "Reserve application",
-      "Merge": "Merge with current cast",
-      "ReplaceScene": "Replace scene cast",
-      "ReplacePersistent": "Replace persistent cast",
-      "ReplaceAll": "Replace all cast",
-      "KeepReserve": "Keep reserve unchanged",
-      "MergeReserve": "Merge reserve",
-      "ReplaceReserve": "Replace reserve",
-      "Preview": "Preview",
-      "Apply": "Apply",
-      "Applied": "The cast preset was applied.",
-      "Updated": "Preset “{name}” was updated.",
-      "Empty": "There are no saved presets yet."
+      "ComingSoon": "Coming later",
+      "SectionBackground": "Background",
+      "Title": "Presets"
     },
     "Editor": {
       "Title": "Configure Portrait",
@@ -311,12 +356,19 @@
       "CustomImage": "Custom image",
       "None": "Do not show"
     },
+    "FocusImage": {
+      "Title": "In focus",
+      "Image": "Image",
+      "Portrait": "Portrait image",
+      "Hover": "Hover image"
+    },
     "Integrations": {
       "Litm": {
         "ToggleTags": "Tag visibility",
-        "TagsForCast": "Cast tag visibility",
-        "ShowAllTags": "Show for all",
-        "HideAllTags": "Hide for all"
+        "TagsForCast": "LitM - tag visibility",
+        "TagsHint": "Toggle tag visibility for all current portraits at once",
+        "ShowAllTags": "Show for all actors",
+        "HideAllTags": "Hide for all actors"
       }
     },
     "VariantAudience": {

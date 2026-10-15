@@ -1,67 +1,77 @@
 <div class="rnps-manager-content">
   {{#if hasScene}}
-    <div class="rnps-manager-toolbar">
-      <button type="button" class="rnps-stage-visibility{{#if stageEnabled}} active{{/if}}" data-action="toggleStage">
-        <i class="fa-solid {{#if stageEnabled}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
-        {{#if stageEnabled}}{{localize "RNPS.Manager.HideStage"}}{{else}}{{localize "RNPS.Manager.ShowStage"}}{{/if}}
-      </button>
-      <button type="button" class="rnps-preview-toggle{{#if gmStageVisible}} active{{/if}}" data-action="togglePreview">
-        <i class="fa-solid {{#if gmStageVisible}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
-        {{#if gmStageVisible}}{{localize "RNPS.Preview.HideSelf"}}{{else}}{{localize "RNPS.Preview.ShowSelf"}}{{/if}}
-      </button>
+    <div class="rnps-manager-main">
+    <div class="rnps-manager-toolbar rnps-layer-visibility">
+      {{#each visibilityZones as |zone|}}
+        <div class="rnps-layer-visibility-zone" data-visibility-layer="{{zone.id}}">
+          <span>{{zone.label}}</span>
+          <button type="button" class="rnps-layer-eye{{#if zone.shared}} active{{/if}}" data-action="toggleSharedLayer" data-tooltip="{{zone.sharedTooltip}}" aria-label="{{zone.sharedTooltip}}">
+            <i class="fa-solid {{#if zone.shared}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i><i class="fa-solid fa-users rnps-layer-audience" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="rnps-layer-eye{{#if zone.self}} active{{/if}}" data-action="toggleClientLayer" data-tooltip="{{zone.selfTooltip}}" aria-label="{{zone.selfTooltip}}">
+            <i class="fa-solid {{#if zone.self}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i><i class="fa-solid fa-user rnps-layer-audience" aria-hidden="true"></i>
+          </button>
+        </div>
+      {{/each}}
     </div>
-    {{#if litmIntegrationEnabled}}
-      <div class="rnps-manager-extension-toolbar">
-        <span><i class="fa-solid fa-tags"></i> {{localize "RNPS.Integrations.Litm.TagsForCast"}}</span>
-        <button type="button" data-action="showAllLitmTags"><i class="fa-solid fa-eye"></i> {{localize "RNPS.Integrations.Litm.ShowAllTags"}}</button>
-        <button type="button" data-action="hideAllLitmTags"><i class="fa-solid fa-eye-slash"></i> {{localize "RNPS.Integrations.Litm.HideAllTags"}}</button>
-      </div>
-    {{/if}}
     <nav class="rnps-manager-tabs">
       <button type="button" class="{{#if compositionTab}}active{{/if}}" data-action="showComposition">{{localize "RNPS.Manager.Composition"}}</button>
       <button type="button" class="{{#if presetsTab}}active{{/if}}" data-action="showPresets">{{localize "RNPS.Presets.Title"}}</button>
+      <button type="button" class="{{#if backgroundTab}}active{{/if}}" data-action="showBackground">{{localize "RNPS.Presets.SectionBackground"}}</button>
+      <button type="button" class="rnps-background-expand{{#if sidebarOpen}} active{{/if}}" data-action="toggleBackgroundSidebar" data-tooltip="{{#if sidebarOpen}}{{localize 'RNPS.Background.Collapse'}}{{else}}{{localize 'RNPS.Background.Expand'}}{{/if}}" aria-label="{{#if sidebarOpen}}{{localize 'RNPS.Background.Collapse'}}{{else}}{{localize 'RNPS.Background.Expand'}}{{/if}}" {{#unless compositionTab}}disabled{{/unless}}><i class="fa-solid {{#if sidebarOpen}}fa-angles-left{{else}}fa-angles-right{{/if}}" aria-hidden="true"></i></button>
     </nav>
-    {{#if compositionTab}}
+    {{#if editorTab}}
       <div class="rnps-preview-bar">
-        <span><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.PresetActive"}}: <strong>{{previewPresetName}}</strong>{{else}}{{localize "RNPS.Preview.Draft"}}{{/if}}</span>
+        <span><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> {{localize "RNPS.Preview.Draft"}}</span>
         {{#if previewStale}}<span class="warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "RNPS.Preview.Stale"}}</span>{{/if}}
-        {{#if previewPresetId}}
-          <select name="previewCastMode" data-tooltip="{{localize 'RNPS.Presets.CastMode'}}">
-            <option value="merge">{{localize "RNPS.Presets.Merge"}}</option>
-            <option value="replaceScene">{{localize "RNPS.Presets.ReplaceScene"}}</option>
-            <option value="replacePersistent">{{localize "RNPS.Presets.ReplacePersistent"}}</option>
-            <option value="replaceAll">{{localize "RNPS.Presets.ReplaceAll"}}</option>
-          </select>
-          <select name="previewReserveMode" data-tooltip="{{localize 'RNPS.Presets.ReserveMode'}}">
-            <option value="keep">{{localize "RNPS.Presets.KeepReserve"}}</option>
-            <option value="merge">{{localize "RNPS.Presets.MergeReserve"}}</option>
-            <option value="replace">{{localize "RNPS.Presets.ReplaceReserve"}}</option>
-          </select>
-        {{/if}}
-        <button type="button" class="{{#if previewDirty}}dirty{{else}}no-changes{{/if}}" data-action="applyPreview"><i class="fa-solid fa-check"></i> {{localize "RNPS.Preview.ApplyChanges"}}</button>
-        <button type="button" class="{{#unless previewDirty}}no-changes{{/unless}}" data-action="resetPreview"><i class="fa-solid fa-rotate-left"></i> {{localize "RNPS.Preview.ResetChanges"}}</button>
-        <button type="button" data-action="savePreset"><i class="fa-solid fa-floppy-disk"></i> {{#if previewPresetId}}{{localize "RNPS.Preview.UpdatePreset"}}{{else}}{{localize "RNPS.Preview.SavePreset"}}{{/if}}</button>
+        <button type="button" class="{{#if previewDirty}}dirty{{else}}no-changes{{/if}}" data-action="applyPreview" {{#if autoApplyLocksActions}}disabled{{/if}}><i class="fa-solid fa-check"></i> {{localize "RNPS.Preview.ApplyChanges"}}</button>
+        <button type="button" class="{{#unless previewDirty}}no-changes{{/unless}}" data-action="resetPreview" {{#if autoApplyLocksActions}}disabled{{/if}}><i class="fa-solid fa-rotate-left"></i> {{localize "RNPS.Preview.ResetChanges"}}</button>
+        <label class="rnps-preview-auto-apply" data-tooltip="{{localize 'RNPS.Preview.AutoApplyHint'}}"><input type="checkbox" data-action="togglePreviewAutoApply" {{#if previewAutoApply}}checked{{/if}}> {{localize "RNPS.Preview.AutoApply"}}</label>
       </div>
-    <div class="rnps-manager-scene-options">
-      <label>{{localize "RNPS.Manager.TokenHighlight"}}</label>
-      <select name="tokenHighlightMode">
-        <option value="inherit" {{#if tokenHighlightDefault}}selected{{/if}}>{{localize "RNPS.HoverArt.Inherit"}}</option>
-        <option value="enabled" {{#if tokenHighlightEnabled}}selected{{/if}}>{{localize "RNPS.VariantSettings.Enabled"}}</option>
-        <option value="disabled" {{#if tokenHighlightDisabled}}selected{{/if}}>{{localize "RNPS.Manager.Disabled"}}</option>
-      </select>
-    </div>
-    <p class="hint">{{hint}}</p>
+    {{/if}}
+    {{#if compositionTab}}
+    <section class="rnps-presentation-settings">
+      <h2>{{localize "RNPS.Focus.Title"}}</h2>
+      <div class="rnps-focus-settings-zones">
+        {{#each focusZones as |zone|}}
+          <section class="rnps-focus-manager-zone" data-focus-drop="{{zone.id}}">
+            <h3>{{zone.label}}</h3>
+            {{#if zone.assigned}}
+              <div class="rnps-manager-entry rnps-focus-manager-card{{#unless zone.visible}} rnps-manager-entry--hidden{{/unless}}" draggable="true" data-focus-actor="{{zone.actorUuid}}" data-focus-entry="{{zone.entryId}}">
+                {{#if zone.isVideo}}<video class="{{#if zone.mirrored}}mirrored{{/if}}" src="{{zone.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if zone.mirrored}}mirrored{{/if}}" src="{{zone.image}}" alt="">{{/if}}
+                <span class="rnps-entry-name">{{zone.name}}</span>
+                <div class="rnps-entry-actions rnps-entry-actions--top">
+                  <button type="button" data-action="editFocus" data-tooltip="{{localize 'RNPS.Controls.Edit'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+                  <button type="button" data-action="clearFocus" data-tooltip="{{localize 'RNPS.Focus.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                </div>
+                <div class="rnps-entry-actions rnps-entry-actions--bottom">
+                  <button type="button" class="{{#if zone.entryMirrored}}active{{/if}}" data-action="toggleFocusMirror" data-tooltip="{{localize 'RNPS.Controls.Mirror'}}"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i></button>
+                  <button type="button" class="rnps-persistent-button{{#if zone.persistent}} active{{/if}}" data-action="toggleFocusPersistent" data-tooltip="{{localize 'RNPS.Controls.Persistent'}}"><i class="fa-solid {{#if zone.persistent}}fa-link{{else}}fa-link-slash{{/if}}" aria-hidden="true"></i></button>
+                  <button type="button" class="{{#unless zone.visible}}active{{/unless}}" data-action="toggleFocusVisible" data-tooltip="{{#if zone.visible}}{{localize 'RNPS.Controls.Hide'}}{{else}}{{localize 'RNPS.Controls.Show'}}{{/if}}"><i class="fa-solid {{#if zone.visible}}fa-eye-slash{{else}}fa-eye{{/if}}" aria-hidden="true"></i></button>
+                </div>
+              </div>
+            {{else}}
+              <div class="rnps-focus-manager-empty"><i class="fa-solid fa-arrow-down"></i> {{localize "RNPS.Manager.Empty"}}</div>
+            {{/if}}
+          </section>
+        {{/each}}
+      </div>
+    </section>
     <div class="rnps-composition-body">
     <div class="rnps-manager-groups">
       {{#each groups as |group|}}
         <section class="rnps-manager-group" data-group-id="{{group.id}}">
           <header>
-            <div><h2>{{group.label}}</h2><span class="rnps-count">{{group.entries.length}}</span></div>
-            <label class="rnps-manager-size">
+            <div class="rnps-manager-group-heading">
+              <h2>{{localize "RNPS.Visibility.Side"}}</h2>
+              <div><h3>{{group.label}}</h3><span class="rnps-count">{{group.entries.length}}</span></div>
+            </div>
+            <div class="rnps-manager-size">
               <span>{{localize "RNPS.Manager.PortraitSize"}}</span>
-              <input name="{{group.id}}PortraitSize" type="range" min="48" max="480" step="1" value="{{group.portraitSize}}">
-              <input type="number" min="48" max="480" step="1" value="{{group.portraitSize}}" data-size-output="{{group.id}}" readonly>
-            </label>
+              <button type="button" data-size-reset="{{group.id}}" data-tooltip="{{localize 'RNPS.Manager.ResetPortraitSize'}}" aria-label="{{localize 'RNPS.Manager.ResetPortraitSize'}}"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+              <input name="{{group.id}}PortraitSize" type="range" min="{{@root.portraitSizeMin}}" max="{{@root.portraitSizeMax}}" step="1" value="{{group.portraitSize}}" aria-label="{{localize 'RNPS.Manager.PortraitSize'}}">
+              <input type="number" min="{{@root.portraitSizeMin}}" max="{{@root.portraitSizeMax}}" step="1" value="{{group.portraitSize}}" data-size-output="{{group.id}}" aria-label="{{localize 'RNPS.Manager.PortraitSize'}}">
+            </div>
           </header>
           <div class="rnps-manager-list">
             {{#each group.entries as |portrait|}}
@@ -96,8 +106,8 @@
 
     <footer class="rnps-reserve" data-reserve-drop style="--rnps-reserve-height: {{reserveHeight}}px">
       <div class="rnps-reserve-resize" data-reserve-resize data-tooltip="{{localize 'RNPS.Manager.ResizeReserve'}}"></div>
-      <header><h2>{{localize "RNPS.Manager.Reserve"}}</h2><span class="hint">{{localize "RNPS.Manager.ReserveHint"}}</span></header>
-      <div class="rnps-reserve-list">
+      <header><h2>{{localize "RNPS.Manager.Reserve"}}</h2></header>
+      <div class="rnps-reserve-list{{#unless reserve.length}} rnps-reserve-list--empty{{/unless}}">
         {{#each reserve as |actor|}}
           <article class="rnps-manager-entry rnps-reserve-actor{{#unless actor.visible}} rnps-manager-entry--hidden{{/unless}}" draggable="true" data-reserve-actor data-entry-id="{{actor.id}}" data-actor-uuid="{{actor.actorUuid}}" data-tooltip="{{actor.name}}">
             {{#if actor.isVideo}}<video class="{{#if actor.mirrored}}mirrored{{/if}}" src="{{actor.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if actor.mirrored}}mirrored{{/if}}" src="{{actor.image}}" alt="">{{/if}}
@@ -113,44 +123,92 @@
             </div>
           </article>
         {{else}}
-          <span class="rnps-reserve-empty">{{localize "RNPS.Manager.ReserveEmpty"}}</span>
+          <div class="rnps-manager-empty rnps-reserve-empty"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i><span>{{localize "RNPS.Manager.Empty"}}</span></div>
         {{/each}}
       </div>
     </footer>
     </div>
-    {{else}}
-      <section class="rnps-presets">
-        <div class="rnps-preset-create">
-          <input type="text" name="presetName" placeholder="{{localize 'RNPS.Presets.NamePlaceholder'}}">
-          <button type="button" data-action="savePreset"><i class="fa-solid fa-plus"></i> {{localize "RNPS.Presets.SaveCurrent"}}</button>
-        </div>
-        <div class="rnps-preset-list">
-          {{#each presets as |preset|}}
-            <article class="rnps-preset-card" data-preset-id="{{preset.id}}">
-              <header><h2>{{preset.name}}</h2><button type="button" class="icon" data-action="deletePreset" data-tooltip="{{localize 'RNPS.Presets.Delete'}}"><i class="fa-solid fa-trash"></i></button></header>
-              <div class="rnps-preset-portraits rnps-preset-portraits--pcs">{{#each preset.pcs as |portrait|}}<span data-tooltip="{{portrait.name}}">{{#if portrait.isVideo}}<video class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="">{{/if}}</span>{{/each}}</div>
-              <div class="rnps-preset-portraits rnps-preset-portraits--npcs">{{#each preset.npcs as |portrait|}}<span data-tooltip="{{portrait.name}}">{{#if portrait.isVideo}}<video class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" autoplay loop muted playsinline preload="metadata"></video>{{else}}<img class="{{#if portrait.mirrored}}mirrored{{/if}}" src="{{portrait.image}}" alt="">{{/if}}</span>{{/each}}</div>
-              <label><span>{{localize "RNPS.Presets.CastMode"}}</span><select name="castMode">
-                <option value="merge">{{localize "RNPS.Presets.Merge"}}</option>
-                <option value="replaceScene">{{localize "RNPS.Presets.ReplaceScene"}}</option>
-                <option value="replacePersistent">{{localize "RNPS.Presets.ReplacePersistent"}}</option>
-                <option value="replaceAll">{{localize "RNPS.Presets.ReplaceAll"}}</option>
-              </select></label>
-              <label><span>{{localize "RNPS.Presets.ReserveMode"}}</span><select name="reserveMode">
-                <option value="keep">{{localize "RNPS.Presets.KeepReserve"}}</option>
-                <option value="merge">{{localize "RNPS.Presets.MergeReserve"}}</option>
-                <option value="replace">{{localize "RNPS.Presets.ReplaceReserve"}}</option>
-              </select></label>
-              <div class="rnps-preset-actions">
-                <button type="button" data-action="previewPreset"><i class="fa-solid fa-eye"></i> {{localize "RNPS.Presets.Preview"}}</button>
-                <button type="button" data-action="applyPreset"><i class="fa-solid fa-bolt"></i> {{localize "RNPS.Presets.Apply"}}</button>
+    {{else if backgroundTab}}
+      <section class="rnps-background-editor rnps-background-editor--full">
+        <header class="rnps-background-library-header">
+          <h2>{{localize "RNPS.Background.Title"}}</h2>
+          <span class="rnps-background-header-actions"><button type="button" data-action="toggleBackgroundFollowActive" class="rnps-background-follow{{#if backgroundFollowActive}} active{{/if}}" data-tooltip="{{#if backgroundFollowActive}}{{localize 'RNPS.Background.Unpin'}}{{else}}{{localize 'RNPS.Background.Pin'}}{{/if}}" aria-label="{{#if backgroundFollowActive}}{{localize 'RNPS.Background.Unpin'}}{{else}}{{localize 'RNPS.Background.Pin'}}{{/if}}" {{#unless hasActiveBackground}}{{#unless backgroundFollowActive}}disabled{{/unless}}{{/unless}}><i class="fa-solid fa-link" aria-hidden="true"></i></button><button type="button" data-action="addBackgroundGroup" data-tooltip="{{localize 'RNPS.Background.AddGroup'}}" aria-label="{{localize 'RNPS.Background.AddGroup'}}"><i class="fa-solid fa-plus" aria-hidden="true"></i><i class="fa-solid fa-layer-group" aria-hidden="true"></i></button><button type="button" data-action="addBackground" data-tooltip="{{localize 'RNPS.Background.Add'}}" aria-label="{{localize 'RNPS.Background.Add'}}"><i class="fa-solid fa-plus" aria-hidden="true"></i><i class="fa-solid fa-image" aria-hidden="true"></i></button></span>
+        </header>
+        <label class="rnps-background-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" data-background-search value="{{backgroundSearch}}" placeholder="{{localize 'RNPS.Background.Search'}}" aria-label="{{localize 'RNPS.Background.Search'}}"></label>
+        <div class="rnps-background-groups">
+          {{#each backgroundGroups as |group|}}
+            <section class="rnps-background-group{{#if group.collapsed}} collapsed{{/if}}" data-background-group="{{group.id}}" data-background-group-name="{{group.name}}">
+              <header class="rnps-background-group-header">
+                <button type="button" data-action="toggleBackgroundGroup" data-tooltip="{{#if group.collapsed}}{{localize 'RNPS.Background.ExpandGroup'}}{{else}}{{localize 'RNPS.Background.CollapseGroup'}}{{/if}}" aria-label="{{#if group.collapsed}}{{localize 'RNPS.Background.ExpandGroup'}}{{else}}{{localize 'RNPS.Background.CollapseGroup'}}{{/if}}" aria-expanded="{{#unless group.collapsed}}true{{else}}false{{/unless}}"><i class="fa-solid {{#if group.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i></button>
+                {{#if group.isDefault}}<h3>{{group.name}}</h3>{{else}}<span class="rnps-background-group-name" data-background-group-label draggable="true" data-tooltip="{{localize 'RNPS.Background.GroupNameHint'}}">{{group.name}}</span><input type="text" data-background-group-name value="{{group.name}}" aria-label="{{localize 'RNPS.Background.GroupName'}}" hidden><button type="button" data-action="removeBackgroundGroup" data-tooltip="{{localize 'RNPS.Background.RemoveGroup'}}" aria-label="{{localize 'RNPS.Background.RemoveGroup'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>{{/if}}
+              </header>
+              <div class="rnps-background-list">
+                {{#each group.backgrounds as |item|}}
+                  <article class="rnps-background-card{{#if item.active}} active{{/if}}" draggable="true" data-background-id="{{item.id}}" data-background-name="{{item.name}}">
+                    {{#if item.isVideo}}<video src="{{item.src}}" muted loop playsinline preload="metadata"></video>{{else}}<img src="{{item.src}}" alt="" loading="lazy">{{/if}}
+                    <span class="rnps-background-card-name" data-tooltip="{{item.name}}">{{item.name}}</span>
+                    <div class="rnps-background-card-actions">
+                      <button type="button" data-action="toggleActiveBackground" class="{{#if item.active}}active{{/if}}" data-tooltip="{{#if item.active}}{{localize 'RNPS.Background.Deactivate'}}{{else}}{{localize 'RNPS.Background.Activate'}}{{/if}}" aria-label="{{#if item.active}}{{localize 'RNPS.Background.Deactivate'}}{{else}}{{localize 'RNPS.Background.Activate'}}{{/if}}"><i class="fa-solid {{#if item.active}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i></button>
+                      <button type="button" data-action="editBackground" data-tooltip="{{localize 'RNPS.Background.Settings'}}" aria-label="{{localize 'RNPS.Background.Settings'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+                      <button type="button" data-action="removeBackground" data-tooltip="{{localize 'RNPS.Background.Remove'}}" aria-label="{{localize 'RNPS.Background.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                    </div>
+                  </article>
+                {{else}}<p class="hint rnps-background-group-empty">{{localize "RNPS.Background.DropHint"}}</p>{{/each}}
               </div>
-            </article>
-          {{else}}
-            <p class="rnps-manager-empty">{{localize "RNPS.Presets.Empty"}}</p>
+            </section>
           {{/each}}
         </div>
+        <p class="hint rnps-background-no-results" data-background-no-results hidden>{{localize "RNPS.Background.NoResults"}}</p>
       </section>
+    {{else}}
+      <section class="rnps-presets">
+        <p class="rnps-presets-placeholder">{{localize "RNPS.Presets.ComingSoon"}}</p>
+      </section>
+    {{/if}}
+    </div>
+    {{#if sidebarOpen}}
+      <div class="rnps-manager-sidebar">
+      {{#if litmIntegrationEnabled}}
+        <div class="rnps-manager-extension-toolbar">
+          <div class="rnps-layer-visibility-zone rnps-litm-visibility-zone">
+            <span><i class="fa-solid fa-tags" data-tooltip="{{localize 'RNPS.Integrations.Litm.TagsHint'}}" aria-label="{{localize 'RNPS.Integrations.Litm.TagsHint'}}"></i> {{localize "RNPS.Integrations.Litm.TagsForCast"}}</span>
+            <button type="button" data-action="showAllLitmTags" data-tooltip="{{localize 'RNPS.Integrations.Litm.ShowAllTags'}}" aria-label="{{localize 'RNPS.Integrations.Litm.ShowAllTags'}}"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+            <button type="button" data-action="hideAllLitmTags" data-tooltip="{{localize 'RNPS.Integrations.Litm.HideAllTags'}}" aria-label="{{localize 'RNPS.Integrations.Litm.HideAllTags'}}"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i></button>
+          </div>
+        </div>
+      {{/if}}
+      <aside class="rnps-background-editor rnps-background-editor--sidebar">
+        <header class="rnps-background-library-header">
+          <h2>{{localize "RNPS.Background.Title"}}</h2>
+          <span class="rnps-background-header-actions"><button type="button" data-action="toggleBackgroundFollowActive" class="rnps-background-follow{{#if backgroundFollowActive}} active{{/if}}" data-tooltip="{{#if backgroundFollowActive}}{{localize 'RNPS.Background.Unpin'}}{{else}}{{localize 'RNPS.Background.Pin'}}{{/if}}" aria-label="{{#if backgroundFollowActive}}{{localize 'RNPS.Background.Unpin'}}{{else}}{{localize 'RNPS.Background.Pin'}}{{/if}}" {{#unless hasActiveBackground}}{{#unless backgroundFollowActive}}disabled{{/unless}}{{/unless}}><i class="fa-solid fa-link" aria-hidden="true"></i></button><button type="button" data-action="addBackgroundGroup" data-tooltip="{{localize 'RNPS.Background.AddGroup'}}" aria-label="{{localize 'RNPS.Background.AddGroup'}}"><i class="fa-solid fa-plus" aria-hidden="true"></i><i class="fa-solid fa-layer-group" aria-hidden="true"></i></button><button type="button" data-action="addBackground" data-tooltip="{{localize 'RNPS.Background.Add'}}" aria-label="{{localize 'RNPS.Background.Add'}}"><i class="fa-solid fa-plus" aria-hidden="true"></i><i class="fa-solid fa-image" aria-hidden="true"></i></button></span>
+        </header>
+        <label class="rnps-background-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" data-background-search value="{{backgroundSearch}}" placeholder="{{localize 'RNPS.Background.Search'}}" aria-label="{{localize 'RNPS.Background.Search'}}"></label>
+        <div class="rnps-background-groups">
+          {{#each backgroundGroups as |group|}}
+            <section class="rnps-background-group{{#if group.collapsed}} collapsed{{/if}}" data-background-group="{{group.id}}" data-background-group-name="{{group.name}}">
+              <header class="rnps-background-group-header">
+                <button type="button" data-action="toggleBackgroundGroup" data-tooltip="{{#if group.collapsed}}{{localize 'RNPS.Background.ExpandGroup'}}{{else}}{{localize 'RNPS.Background.CollapseGroup'}}{{/if}}" aria-label="{{#if group.collapsed}}{{localize 'RNPS.Background.ExpandGroup'}}{{else}}{{localize 'RNPS.Background.CollapseGroup'}}{{/if}}" aria-expanded="{{#unless group.collapsed}}true{{else}}false{{/unless}}"><i class="fa-solid {{#if group.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i></button>
+                {{#if group.isDefault}}<h3>{{group.name}}</h3>{{else}}<span class="rnps-background-group-name" data-background-group-label draggable="true" data-tooltip="{{localize 'RNPS.Background.GroupNameHint'}}">{{group.name}}</span><input type="text" data-background-group-name value="{{group.name}}" aria-label="{{localize 'RNPS.Background.GroupName'}}" hidden><button type="button" data-action="removeBackgroundGroup" data-tooltip="{{localize 'RNPS.Background.RemoveGroup'}}" aria-label="{{localize 'RNPS.Background.RemoveGroup'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>{{/if}}
+              </header>
+              <div class="rnps-background-list">
+                {{#each group.backgrounds as |item|}}
+                  <article class="rnps-background-card{{#if item.active}} active{{/if}}" draggable="true" data-background-id="{{item.id}}" data-background-name="{{item.name}}">
+                    {{#if item.isVideo}}<video src="{{item.src}}" muted loop playsinline preload="metadata"></video>{{else}}<img src="{{item.src}}" alt="" loading="lazy">{{/if}}
+                    <span class="rnps-background-card-name" data-tooltip="{{item.name}}">{{item.name}}</span>
+                    <div class="rnps-background-card-actions">
+                      <button type="button" data-action="toggleActiveBackground" class="{{#if item.active}}active{{/if}}" data-tooltip="{{#if item.active}}{{localize 'RNPS.Background.Deactivate'}}{{else}}{{localize 'RNPS.Background.Activate'}}{{/if}}" aria-label="{{#if item.active}}{{localize 'RNPS.Background.Deactivate'}}{{else}}{{localize 'RNPS.Background.Activate'}}{{/if}}"><i class="fa-solid {{#if item.active}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i></button>
+                      <button type="button" data-action="editBackground" data-tooltip="{{localize 'RNPS.Background.Settings'}}" aria-label="{{localize 'RNPS.Background.Settings'}}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+                      <button type="button" data-action="removeBackground" data-tooltip="{{localize 'RNPS.Background.Remove'}}" aria-label="{{localize 'RNPS.Background.Remove'}}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                    </div>
+                  </article>
+                {{else}}<p class="hint rnps-background-group-empty">{{localize "RNPS.Background.DropHint"}}</p>{{/each}}
+              </div>
+            </section>
+          {{/each}}
+        </div>
+        <p class="hint rnps-background-no-results" data-background-no-results hidden>{{localize "RNPS.Background.NoResults"}}</p>
+      </aside>
+      </div>
     {{/if}}
   {{else}}
     <p class="notification warning">{{localize "RNPS.Manager.NoScene"}}</p>

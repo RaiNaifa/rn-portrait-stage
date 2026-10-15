@@ -127,6 +127,19 @@ export function registerSettings() {
     }
   });
 
+  register(SETTING_KEYS.INITIAL_ACTOR_VARIANT, {
+    name: "RNPS.Settings.InitialActorVariant.Name",
+    hint: "RNPS.Settings.InitialActorVariant.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      actor: "RNPS.Editor.ActorImage",
+      prototypeToken: "RNPS.Editor.PrototypeTokenImage"
+    },
+    default: "actor"
+  });
+
   register(SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE, {
     name: "RNPS.Settings.HoverArtDefaultSource.Name",
     hint: "RNPS.Settings.HoverArtDefaultSource.Hint",
@@ -139,6 +152,19 @@ export function registerSettings() {
       none: "RNPS.HoverArt.None"
     },
     default: "actor"
+  });
+
+  register(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, {
+    name: "RNPS.Settings.FocusImageDefaultSource.Name",
+    hint: "RNPS.Settings.FocusImageDefaultSource.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      portrait: "RNPS.FocusImage.Portrait",
+      hover: "RNPS.FocusImage.Hover"
+    },
+    default: "portrait"
   });
 
   register(SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET, {
@@ -171,12 +197,13 @@ export function registerSettings() {
     range: { min: 50, max: 150, step: 5 }
   });
 
-  register(SETTING_KEYS.TOKEN_HIGHLIGHT_DEFAULT, {
-    name: "RNPS.Settings.TokenHighlightDefault.Name",
-    hint: "RNPS.Settings.TokenHighlightDefault.Hint",
+  register(SETTING_KEYS.TOKEN_HIGHLIGHT_ENABLED, {
+    name: "RNPS.Settings.TokenHighlightEnabled.Name",
+    hint: "RNPS.Settings.TokenHighlightEnabled.Hint",
     scope: "world",
     config: true,
     type: Boolean,
+    requiresReload: false,
     default: false
   });
 
@@ -244,6 +271,22 @@ export function registerSettings() {
     default: true
   });
 
+  register(SETTING_KEYS.LAYER_VISIBILITY, {
+    name: "RNPS.Settings.LayerVisibility.Name",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
+  register(SETTING_KEYS.CLIENT_LAYER_VISIBILITY, {
+    name: "RNPS.Settings.ClientLayerVisibility.Name",
+    scope: "client",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
   register(SETTING_KEYS.PERSISTENT_STATE, {
     name: "RNPS.Settings.PersistentState.Name",
     hint: "RNPS.Settings.PersistentState.Hint",
@@ -271,6 +314,14 @@ export function registerSettings() {
     default: {}
   });
 
+  register(SETTING_KEYS.PREVIEW_AUTO_APPLY, {
+    name: "RNPS.Preview.AutoApply",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
   register(SETTING_KEYS.RESERVE_HEIGHT, {
     name: "RNPS.Settings.ReserveHeight.Name",
     hint: "RNPS.Settings.ReserveHeight.Hint",
@@ -289,6 +340,14 @@ export function registerSettings() {
     default: []
   });
 
+  register(SETTING_KEYS.BACKGROUND_LIBRARY, {
+    name: "RNPS.Background.Title",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { groups: [{ id: "default", name: "Default" }], backgrounds: [] }
+  });
+
   register(SETTING_KEYS.PORTRAIT_GAP, {
     name: "RNPS.Settings.PortraitGap.Name",
     hint: "RNPS.Settings.PortraitGap.Hint",
@@ -301,6 +360,16 @@ export function registerSettings() {
       max: 64,
       step: 1
     }
+  });
+
+  register(SETTING_KEYS.FOCUS_GAP, {
+    name: "RNPS.Settings.FocusGap.Name",
+    hint: "RNPS.Settings.FocusGap.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 8,
+    range: { min: 0, max: 64, step: 1 }
   });
 
   for (const [key, labelKey, defaultValue] of [
@@ -321,43 +390,6 @@ export function registerSettings() {
         max: 500,
         step: 1
       }
-    });
-  }
-
-  for (const [key, labelKey] of [
-    [SETTING_KEYS.PC_DIRECTION, "PcDirection"],
-    [SETTING_KEYS.NPC_DIRECTION, "NpcDirection"]
-  ]) {
-    register(key, {
-      name: `RNPS.Settings.${labelKey}.Name`,
-      hint: `RNPS.Settings.${labelKey}.Hint`,
-      scope: "world",
-      config: true,
-      type: String,
-      choices: {
-        down: "RNPS.Settings.Direction.Down",
-        up: "RNPS.Settings.Direction.Up"
-      },
-      default: "down"
-    });
-  }
-
-  for (const [key, labelKey] of [
-    [SETTING_KEYS.PC_DIRECTION_OVERRIDE, "PcDirectionOverride"],
-    [SETTING_KEYS.NPC_DIRECTION_OVERRIDE, "NpcDirectionOverride"]
-  ]) {
-    register(key, {
-      name: `RNPS.Settings.${labelKey}.Name`,
-      hint: `RNPS.Settings.${labelKey}.Hint`,
-      scope: "client",
-      config: true,
-      type: String,
-      choices: {
-        inherit: "RNPS.Settings.Direction.Inherit",
-        down: "RNPS.Settings.Direction.Down",
-        up: "RNPS.Settings.Direction.Up"
-      },
-      default: "inherit"
     });
   }
 

@@ -1,4 +1,4 @@
-import { FLAGS, MODULE_ID } from "../constants.js";
+import { FLAGS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { getActorLibrary, getActorVariant } from "../data/actor-library.js";
 import { isVideoPath } from "../media.js";
 
@@ -99,6 +99,30 @@ export function resolvePortraitImage(entry, actor, variant = getActorVariant(act
     default:
       return actor.img || actor.prototypeToken?.texture?.src || CONST.DEFAULT_TOKEN;
   }
+}
+
+export function resolveFocusView(view) {
+  if (!view) return null;
+  const focus = view.variant.settings?.focus ?? {};
+  const source = focus.source === "inherit" || !focus.source
+    ? game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE)
+    : focus.source;
+  let image = view.image;
+  if (source === "hover") {
+    const hover = view.variant.settings?.hover ?? {};
+    const hoverSource = hover.source === "inherit" || !hover.source
+      ? game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE)
+      : hover.source;
+    if (hoverSource === "actor") image = view.actor.img || image;
+    else if (hoverSource === "prototypeToken") image = view.actor.prototypeToken?.texture?.src || view.actor.img || image;
+    else if (hoverSource === "custom") image = hover.customSrc || image;
+  } else if (source === "custom") image = focus.customSrc || image;
+  return {
+    ...view,
+    image,
+    isVideo: isVideoPath(image),
+    mirrored: Boolean(view.entry.mirrored) !== Boolean(focus.mirrored)
+  };
 }
 
 export function resolvePortraitLabel(entry, actor, library = getActorLibrary(actor), variant = null) {

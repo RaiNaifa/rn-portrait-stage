@@ -1,11 +1,10 @@
-import { CAST_LAYERS, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
+import { CAST_LAYERS, CAST_PORTRAIT_SIZE, GROUP_IDS, MODULE_ID, SETTING_KEYS } from "../constants.js";
 import {
   addActorToCast,
   getCombinedCastState,
   moveCastEntry,
   removeCastEntry,
   setCastPortraitSize,
-  setCastTokenHighlight,
   updateCastEntry
 } from "../data/cast-service.js";
 import {
@@ -16,11 +15,15 @@ import {
   removeActorFromReserve,
   updateReserveEntry
 } from "../data/reserve-service.js";
-import { preparePortraitView } from "../portraits/portrait-data.js";
+import { preparePortraitView, resolveFocusView } from "../portraits/portrait-data.js";
 import { PortraitEditor } from "./portrait-editor.js";
+import { BackgroundSettings } from "./background-settings.js";
 import { logger } from "../logger.js";
-import { applyPreview, ensurePreviewDraft, getPreviewConflicts, getPreviewSession, resetPreview, togglePreview, withoutPreview } from "../data/preview-service.js";
-import { applyCastPreset, deleteCastPreset, getCastPresets, previewCastPreset, saveCastPreset, updateCastPreset } from "../data/preset-service.js";
+import { applyPreview, ensurePreviewDraft, getPreviewConflicts, getPreviewSession, resetPreview, setPreviewAutoApply, withoutPreview } from "../data/preview-service.js";
+import { activateSceneBackground, assignFocus, clearFocus, deactivateSceneBackground, getPresentation, moveFocusZone, setBackgroundFollowActive, setFocusPersistent, setFocusVisible, updateFocusEntry } from "../data/scene-presentation.js";
+import { addBackgroundGroup, addBackgroundVariant, getBackgroundLibrary, moveBackgroundGroup, moveBackgroundVariant, removeBackgroundGroup, removeBackgroundVariant, renameBackgroundGroup } from "../data/background-library.js";
+import { getClientVisibility, getSharedVisibility, toggleClientVisibility, toggleSharedVisibility, VISIBILITY_LAYERS } from "../data/visibility-service.js";
+import { portraitStage } from "../portraits/portrait-stage.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -48,18 +51,30 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleReservePersistent: CastManager.#toggleReservePersistent,
       toggleReserveVisible: CastManager.#toggleReserveVisible,
       removeReserve: CastManager.#removeReserve,
-      toggleStage: CastManager.#toggleStage,
-      togglePreview: CastManager.#togglePreview,
+      toggleSharedLayer: CastManager.#toggleSharedLayer,
+      toggleClientLayer: CastManager.#toggleClientLayer,
       applyPreview: CastManager.#applyPreview,
       resetPreview: CastManager.#resetPreview,
+      togglePreviewAutoApply: CastManager.#togglePreviewAutoApply,
       showComposition: CastManager.#showComposition,
       showPresets: CastManager.#showPresets,
-      savePreset: CastManager.#savePreset,
-      previewPreset: CastManager.#previewPreset,
-      applyPreset: CastManager.#applyPreset,
-      deletePreset: CastManager.#deletePreset,
+      showBackground: CastManager.#showBackground,
+      toggleBackgroundSidebar: CastManager.#toggleBackgroundSidebar,
       showAllLitmTags: CastManager.#showAllLitmTags,
-      hideAllLitmTags: CastManager.#hideAllLitmTags
+      hideAllLitmTags: CastManager.#hideAllLitmTags,
+      clearFocus: CastManager.#clearFocus,
+      toggleFocusVisible: CastManager.#toggleFocusVisible,
+      editFocus: CastManager.#editFocus,
+      toggleFocusMirror: CastManager.#toggleFocusMirror,
+      toggleFocusPersistent: CastManager.#toggleFocusPersistent,
+      addBackground: CastManager.#addBackground,
+      addBackgroundGroup: CastManager.#addBackgroundGroup,
+      toggleBackgroundGroup: CastManager.#toggleBackgroundGroup,
+      removeBackgroundGroup: CastManager.#removeBackgroundGroup,
+      editBackground: CastManager.#editBackground,
+      toggleActiveBackground: CastManager.#toggleActiveBackground,
+      toggleBackgroundFollowActive: CastManager.#toggleBackgroundFollowActive,
+      removeBackground: CastManager.#removeBackground
     }
   };
 
@@ -69,6 +84,10 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #instance;
   #tab = "composition";
+  #sidebarOpen = false;
+  #sidebarWidthApplied = 0;
+  #backgroundSearch = "";
+  #collapsedBackgroundGroups = new Set();
   #scrollPositions = new Map();
 
   static open() {
@@ -88,32 +107,79 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     await ensurePreviewDraft(scene);
     const state = getCombinedCastState(scene);
     const groups = await Promise.all([
-      this.#prepareGroup(GROUP_IDS.PCS, "RNPS.Groups.Pcs", state),
-      this.#prepareGroup(GROUP_IDS.NPCS, "RNPS.Groups.Npcs", state)
+      this.#prepareGroup(GROUP_IDS.PCS, "RNPS.Focus.Left", state),
+      this.#prepareGroup(GROUP_IDS.NPCS, "RNPS.Focus.Right", state)
     ]);
     const preview = getPreviewSession();
     const conflicts = getPreviewConflicts(scene);
+    const presentation = getPresentation(scene);
+    const backgroundLibrary = getBackgroundLibrary();
+    const backgroundViews = backgroundLibrary.backgrounds.map(item => ({
+      ...item,
+      active: item.id === presentation.activeBackgroundId,
+      isVideo: /\.(?:webm|mp4|m4v|ogv|ogg)(?:[?#]|$)/i.test(item.src)
+    }));
+    const sharedVisibility = getSharedVisibility();
+    const clientVisibility = getClientVisibility();
+    const focusZones = await Promise.all(["left", "center", "right"].map(async zone => {
+      const item = presentation.focus[zone];
+      const view = item ? resolveFocusView(await preparePortraitView(item.entry)) : null;
+      return {
+        id: zone,
+        label: game.i18n.localize(`RNPS.Focus.${zone[0].toUpperCase()}${zone.slice(1)}`),
+        assigned: Boolean(item),
+        visible: item?.visible !== false,
+        persistent: item?.persistent === true,
+        entryId: item?.entry?.id,
+        entryMirrored: item?.entry?.mirrored === true,
+        actorUuid: item?.entry?.actorUuid,
+        name: view?.name ?? game.i18n.localize("RNPS.Notifications.ActorUnavailable"),
+        image: view?.image ?? CONST.DEFAULT_TOKEN,
+        isVideo: view?.isVideo ?? false,
+        mirrored: view?.mirrored ?? false
+      };
+    }));
     return {
       ...context,
       hasScene: true,
       isGM: game.user.isGM,
-      stageEnabled: game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED),
-      gmStageVisible: game.settings.get(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE),
+      visibilityZones: ["all", ...VISIBILITY_LAYERS].map(layer => {
+        const shared = layer === "all" ? VISIBILITY_LAYERS.every(key => sharedVisibility[key]) : sharedVisibility[layer];
+        const self = layer === "all" ? VISIBILITY_LAYERS.every(key => clientVisibility[key]) : clientVisibility[layer];
+        return {
+          id: layer,
+          label: game.i18n.localize(`RNPS.Visibility.${layer[0].toUpperCase()}${layer.slice(1)}`),
+          shared,
+          self,
+          sharedTooltip: game.i18n.localize(shared ? "RNPS.Visibility.HideForAll" : "RNPS.Visibility.ShowForAll"),
+          selfTooltip: game.i18n.localize(self ? "RNPS.Visibility.HideForSelf" : "RNPS.Visibility.ShowForSelf")
+        };
+      }),
       previewActive: preview.active,
       previewDirty: preview.dirty,
+      previewAutoApply: game.settings.get(MODULE_ID, SETTING_KEYS.PREVIEW_AUTO_APPLY),
+      autoApplyLocksActions: game.settings.get(MODULE_ID, SETTING_KEYS.PREVIEW_AUTO_APPLY),
       previewStale: conflicts.length > 0,
-      previewPresetId: preview.presetId,
-      previewPresetName: preview.presetName,
       reserveHeight: game.settings.get(MODULE_ID, SETTING_KEYS.RESERVE_HEIGHT),
+      portraitSizeMin: CAST_PORTRAIT_SIZE.MIN,
+      portraitSizeMax: CAST_PORTRAIT_SIZE.MAX,
       litmIntegrationEnabled: game.system.id === "litm-rn"
         && game.settings.get(MODULE_ID, SETTING_KEYS.LITM_INTEGRATION_ENABLED),
       compositionTab: this.#tab === "composition",
       presetsTab: this.#tab === "presets",
-      presets: await this.#preparePresets(),
-      tokenHighlightDefault: state.layout.tokenHighlight === null,
-      tokenHighlightEnabled: state.layout.tokenHighlight === true,
-      tokenHighlightDisabled: state.layout.tokenHighlight === false,
-      hint: game.i18n.localize("RNPS.Manager.Hint"),
+      backgroundTab: this.#tab === "background",
+      editorTab: this.#tab === "composition",
+      sidebarOpen: this.#tab === "composition" && this.#sidebarOpen,
+      focusZones,
+      backgroundGroups: backgroundLibrary.groups.map(group => ({
+        ...group,
+        isDefault: group.id === "default",
+        collapsed: this.#collapsedBackgroundGroups.has(group.id),
+        backgrounds: backgroundViews.filter(item => item.groupId === group.id)
+      })),
+      backgroundFollowActive: presentation.backgroundFollowActive,
+      hasActiveBackground: Boolean(presentation.activeBackgroundId),
+      backgroundSearch: this.#backgroundSearch,
       groups: groups.map(group => ({
         ...group,
         entries: group.entries.map(portrait => ({
@@ -148,35 +214,9 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: entries.filter(Boolean),
       isPcs: id === GROUP_IDS.PCS,
       portraitSize: id === GROUP_IDS.PCS
-        ? state.layout.pcPortraitSize ?? 160
-        : state.layout.npcPortraitSize ?? 160
+        ? state.layout.pcPortraitSize ?? CAST_PORTRAIT_SIZE.DEFAULT
+        : state.layout.npcPortraitSize ?? CAST_PORTRAIT_SIZE.DEFAULT
     };
-  }
-
-  async #preparePresets() {
-    return Promise.all(getCastPresets().map(async preset => {
-      const sceneActors = new Set(Object.values(GROUP_IDS).flatMap(groupId => (
-        preset.scene.groups[groupId].entries.map(entry => entry.actorUuid)
-      )));
-      const groups = {};
-      for (const groupId of Object.values(GROUP_IDS)) {
-        const entries = [
-          ...preset.persistent.groups[groupId].entries
-            .filter(entry => !sceneActors.has(entry.actorUuid))
-            .map(entry => ({ ...entry, layer: CAST_LAYERS.PERSISTENT })),
-          ...preset.scene.groups[groupId].entries
-            .map(entry => ({ ...entry, layer: CAST_LAYERS.SCENE }))
-        ].sort((a, b) => a.sort - b.sort);
-        const views = await Promise.all(entries.map(entry => preparePortraitView(entry)));
-        groups[groupId] = views.filter(Boolean).map(view => ({
-          image: view.image,
-          isVideo: view.isVideo,
-          name: view.name,
-          mirrored: Boolean(view.entry.mirrored) !== Boolean(view.variant.settings?.media?.mirrored)
-        }));
-      }
-      return { ...preset, pcs: groups[GROUP_IDS.PCS], npcs: groups[GROUP_IDS.NPCS] };
-    }));
   }
 
   _onRender(context, options) {
@@ -193,6 +233,26 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const reserve of this.element.querySelectorAll("[data-reserve-actor]")) {
       reserve.addEventListener("dragstart", event => this.#onReserveDragStart(event));
     }
+    for (const zone of this.element.querySelectorAll("[data-focus-drop]")) {
+      zone.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+        zone.classList.add("rnps-focus-drop-hover");
+      });
+      zone.addEventListener("dragleave", event => {
+        if (!zone.contains(event.relatedTarget)) zone.classList.remove("rnps-focus-drop-hover");
+      });
+      zone.addEventListener("drop", event => this.#onFocusDrop(event));
+      zone.querySelector("[data-focus-actor]")?.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", JSON.stringify({
+          type: "RNPortraitStageFocus",
+          actorUuid: event.currentTarget.dataset.focusActor,
+          entryId: event.currentTarget.dataset.focusEntry,
+          zone: zone.dataset.focusDrop
+        }));
+        event.dataTransfer.effectAllowed = "copyMove";
+      });
+    }
     const reserveHandle = this.element.querySelector("[data-reserve-resize]");
     reserveHandle?.addEventListener("pointerdown", event => this.#startReserveResize(event));
     reserveHandle?.addEventListener("dblclick", async () => {
@@ -200,18 +260,41 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render();
     });
     for (const groupId of Object.values(GROUP_IDS)) {
-      const input = this.element.querySelector(`[name='${groupId}PortraitSize']`);
-      const output = this.element.querySelector(`[data-size-output='${groupId}']`);
-      input?.addEventListener("input", event => {
-        if (output) output.value = event.currentTarget.value;
-      });
-      input?.addEventListener("change", async event => {
-        await setCastPortraitSize(Number(event.currentTarget.value), {
+      const slider = this.element.querySelector(`[name='${groupId}PortraitSize']`);
+      const number = this.element.querySelector(`[data-size-output='${groupId}']`);
+      const reset = this.element.querySelector(`[data-size-reset='${groupId}']`);
+      let wheelTimer;
+      const commit = async value => {
+        clearTimeout(wheelTimer);
+        const size = Number.isFinite(Number(value)) && value !== ""
+          ? Math.max(CAST_PORTRAIT_SIZE.MIN, Math.min(CAST_PORTRAIT_SIZE.MAX, Math.round(Number(value))))
+          : Number(slider.value);
+        slider.value = String(size);
+        number.value = String(size);
+        await setCastPortraitSize(size, {
           layer: CAST_LAYERS.SCENE,
           groupId
         });
         this.render();
+      };
+      slider?.addEventListener("input", () => { number.value = slider.value; });
+      slider?.addEventListener("change", () => void commit(slider.value));
+      number?.addEventListener("input", () => {
+        const value = Number(number.value);
+        if (number.value !== "" && Number.isFinite(value)
+          && value >= CAST_PORTRAIT_SIZE.MIN && value <= CAST_PORTRAIT_SIZE.MAX) slider.value = number.value;
       });
+      number?.addEventListener("change", () => void commit(number.value));
+      number?.addEventListener("wheel", event => {
+        event.preventDefault();
+        const size = Math.max(CAST_PORTRAIT_SIZE.MIN, Math.min(CAST_PORTRAIT_SIZE.MAX,
+          Number(number.value || slider.value) + (event.deltaY < 0 ? 1 : -1)));
+        number.value = String(size);
+        slider.value = String(size);
+        clearTimeout(wheelTimer);
+        wheelTimer = setTimeout(() => void commit(number.value), 150);
+      }, { passive: false });
+      reset?.addEventListener("click", () => void commit(CAST_PORTRAIT_SIZE.DEFAULT));
     }
     for (const image of this.element.querySelectorAll("img")) {
       image.draggable = false;
@@ -219,11 +302,116 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         if (image.src !== CONST.DEFAULT_TOKEN) image.src = CONST.DEFAULT_TOKEN;
       }, { once: true });
     }
-    this.element.querySelector("[name='tokenHighlightMode']")?.addEventListener("change", async event => {
-      const value = event.currentTarget.value;
-      await setCastTokenHighlight(value === "inherit" ? null : value === "enabled");
-      this.render();
+    this.element.querySelector("[data-background-search]")?.addEventListener("input", event => {
+      this.#backgroundSearch = event.currentTarget.value;
+      this.#filterBackgrounds();
     });
+    this.#filterBackgrounds();
+    this.#bindBackgroundDrag();
+    for (const label of this.element.querySelectorAll("[data-background-group-label]")) {
+      label.addEventListener("dblclick", () => this.#beginBackgroundGroupRename(label.closest("[data-background-group]")));
+      label.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", JSON.stringify({ type: "RNPortraitStageBackgroundGroup", id: label.closest("[data-background-group]")?.dataset.backgroundGroup }));
+        event.dataTransfer.effectAllowed = "move";
+      });
+      label.addEventListener("dragend", () => this.element.querySelectorAll("[data-background-group]").forEach(group => group.classList.remove("drag-target")));
+    }
+    for (const input of this.element.querySelectorAll("[data-background-group-name]")) {
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") { event.preventDefault(); input.blur(); }
+        if (event.key === "Escape") { event.preventDefault(); input.dataset.cancelRename = "true"; input.blur(); }
+      });
+      input.addEventListener("blur", async () => {
+        const group = input.closest("[data-background-group]");
+        const label = group?.querySelector("[data-background-group-label]");
+        const name = input.value.trim();
+        const cancelled = input.dataset.cancelRename === "true" || !name;
+        delete input.dataset.cancelRename;
+        input.hidden = true;
+        if (label) label.hidden = false;
+        if (!cancelled && name !== group.dataset.backgroundGroupName) {
+          await renameBackgroundGroup(group.dataset.backgroundGroup, name);
+          this.render();
+        } else input.value = group.dataset.backgroundGroupName;
+      });
+    }
+  }
+
+  #beginBackgroundGroupRename(group) {
+    const input = group?.querySelector("[data-background-group-name]");
+    const label = group?.querySelector("[data-background-group-label]");
+    if (!input || !label) return;
+    label.hidden = true;
+    input.hidden = false;
+    input.focus();
+    input.select();
+  }
+
+  #filterBackgrounds() {
+    const query = this.#backgroundSearch.trim().toLocaleLowerCase();
+    let matches = 0;
+    for (const group of this.element.querySelectorAll("[data-background-group]")) {
+      const groupMatches = Boolean(query) && group.dataset.backgroundGroupName?.toLocaleLowerCase().includes(query);
+      let groupHasMatch = false;
+      for (const card of group.querySelectorAll("[data-background-id]")) {
+        card.hidden = Boolean(query) && !groupMatches && !card.dataset.backgroundName?.toLocaleLowerCase().includes(query);
+        if (!card.hidden) groupHasMatch = true;
+      }
+      group.hidden = Boolean(query) && !groupMatches && !groupHasMatch;
+      group.classList.toggle("collapsed", !query && this.#collapsedBackgroundGroups.has(group.dataset.backgroundGroup));
+      if (!group.hidden && query) matches += 1;
+    }
+    const noResults = this.element.querySelector("[data-background-no-results]");
+    if (noResults) noResults.hidden = !query || matches > 0;
+  }
+
+  #bindBackgroundDrag() {
+    for (const card of this.element.querySelectorAll("[data-background-id]")) {
+      card.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", JSON.stringify({ type: "RNPortraitStageBackground", id: card.dataset.backgroundId }));
+        event.dataTransfer.effectAllowed = "move";
+      });
+    }
+    for (const group of this.element.querySelectorAll("[data-background-group]")) {
+      group.addEventListener("dragover", event => { event.preventDefault(); event.dataTransfer.dropEffect = "copyMove"; group.classList.add("drag-target"); });
+      group.addEventListener("dragleave", event => { if (!group.contains(event.relatedTarget)) group.classList.remove("drag-target"); });
+      group.addEventListener("drop", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        group.classList.remove("drag-target");
+        let data;
+        try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+        if (data?.type === "RNPortraitStageBackgroundGroup") {
+          const rect = group.getBoundingClientRect();
+          const after = event.clientY > rect.top + rect.height / 2;
+          const beforeId = after ? group.nextElementSibling?.dataset.backgroundGroup : group.dataset.backgroundGroup;
+          if (data.id !== group.dataset.backgroundGroup) await moveBackgroundGroup(data.id, beforeId);
+        } else if (data?.type === "RNPortraitStageBackground") {
+          const targetCard = event.target.closest("[data-background-id]");
+          const rect = targetCard?.getBoundingClientRect();
+          const columns = targetCard ? getComputedStyle(targetCard.parentElement).gridTemplateColumns.split(" ").length : 1;
+          const after = rect && (columns > 1
+            ? event.clientX > rect.left + rect.width / 2
+            : event.clientY > rect.top + rect.height / 2);
+          const beforeId = after ? targetCard.nextElementSibling?.dataset.backgroundId : targetCard?.dataset.backgroundId;
+          if (data.id !== beforeId) await moveBackgroundVariant(data.id, group.dataset.backgroundGroup, beforeId);
+        } else if (data?.type === "Scene") {
+          let scene;
+          try {
+            scene = data.uuid ? await fromUuid(data.uuid) : game.scenes.get(data.id);
+          } catch {
+            scene = null;
+          }
+          const src = scene?.background?.src ?? scene?.img;
+          if (scene?.documentName !== "Scene" || !src) {
+            ui.notifications.warn(game.i18n.localize("RNPS.Background.SceneWithoutImage"));
+            return;
+          }
+          await addBackgroundVariant({ src, name: scene.name, groupId: group.dataset.backgroundGroup });
+        } else return;
+        this.render();
+      });
+    }
   }
 
   #bindScrollState() {
@@ -233,7 +421,8 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         key: `group:${element.closest("[data-group-id]")?.dataset.groupId ?? "unknown"}`
       })),
       { element: this.element.querySelector(".rnps-reserve-list"), key: "reserve" },
-      { element: this.element.querySelector(".rnps-presets"), key: "presets" }
+      { element: this.element.querySelector(".rnps-presentation-settings"), key: "presentation" },
+      { element: this.element.querySelector(".rnps-background-groups"), key: "background" },
     ].filter(item => item.element);
     for (const { element, key } of targets) {
       const saved = this.#scrollPositions.get(key);
@@ -260,12 +449,39 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     event.dataTransfer.dropEffect = "move";
   }
 
+  async #onFocusDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const zone = event.currentTarget;
+    zone.classList.remove("rnps-focus-drop-hover");
+    const data = parseDropData(event);
+    const actorUuid = data.type === "RNPortraitStageEntry" || data.type === "RNPortraitStageFocus"
+      ? data.actorUuid : data.uuid;
+    if (!actorUuid || !["Actor", "RNPortraitStageEntry", "RNPortraitStageReserve", "RNPortraitStageFocus"].includes(data.type)) return;
+    try {
+      const assigned = data.type === "RNPortraitStageFocus" && data.zone
+        ? await moveFocusZone(data.zone, zone.dataset.focusDrop)
+        : await assignFocus(zone.dataset.focusDrop, actorUuid);
+      if (assigned) this.render();
+    } catch (error) {
+      logger.error("Unable to assign focus", error);
+      ui.notifications.error(error.message);
+    }
+  }
+
   async #onDrop(event) {
     event.preventDefault();
     event.stopPropagation();
     const target = event.currentTarget;
     try {
       const data = parseDropData(event);
+      const focusItem = data.type === "RNPortraitStageFocus"
+        ? getPresentation(canvas.scene).focus[data.zone]
+        : null;
+      if (data.type === "RNPortraitStageFocus"
+        && (!focusItem || focusItem.entry.id !== data.entryId || focusItem.entry.actorUuid !== data.actorUuid)) {
+        throw new Error(game.i18n.localize("RNPS.Notifications.ActorUnavailable"));
+      }
       if (target.hasAttribute("data-reserve-drop")) {
         if (data.type === "RNPortraitStageReserve" && data.entryId) {
           const targetEntry = event.target.closest("[data-reserve-actor]");
@@ -275,11 +491,11 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
           this.render();
           return;
         }
-        const actorUuid = data.type === "RNPortraitStageEntry" ? data.actorUuid : data.uuid;
+        const actorUuid = data.type === "RNPortraitStageEntry" || focusItem ? data.actorUuid : data.uuid;
         if (!actorUuid) throw new Error(game.i18n.localize("RNPS.Notifications.ActorDropOnly"));
-        const castEntry = data.type === "RNPortraitStageEntry"
-          ? findCombinedEntry(data.entryId, data.layer)
-          : null;
+        const castEntry = focusItem
+          ? { ...focusItem.entry, visible: focusItem.visible, layer: focusItem.persistent ? CAST_LAYERS.PERSISTENT : CAST_LAYERS.SCENE }
+          : data.type === "RNPortraitStageEntry" ? findCombinedEntry(data.entryId, data.layer) : null;
         await addActorToReserve(actorUuid, { entry: castEntry });
         if (data.type === "RNPortraitStageEntry") {
           await removeCastEntry(data.entryId, { layer: data.layer });
@@ -294,6 +510,16 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         : null;
       if (data.type === "RNPortraitStageEntry") {
         await moveCastEntry(data.entryId, { layer: data.layer, groupId, index });
+      } else if (focusItem) {
+        const placed = await addActorToCast(focusItem.entry.actorUuid, { groupId, index });
+        const initialLayer = groupId === GROUP_IDS.PCS ? CAST_LAYERS.PERSISTENT : CAST_LAYERS.SCENE;
+        await updateCastEntry(placed.id, {
+          targetLayer: focusItem.persistent ? CAST_LAYERS.PERSISTENT : CAST_LAYERS.SCENE,
+          activeVariantId: focusItem.entry.activeVariantId,
+          labelOverride: focusItem.entry.labelOverride,
+          mirrored: focusItem.entry.mirrored,
+          visible: focusItem.visible
+        }, { layer: initialLayer });
       } else if (data.type === "RNPortraitStageReserve" && data.entryId) {
         const reserveEntry = getReserveEntry(data.entryId);
         if (!reserveEntry) throw new Error(game.i18n.localize("RNPS.Notifications.ActorUnavailable"));
@@ -329,7 +555,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       layer: entry.dataset.layer,
       actorUuid: entry.dataset.actorUuid
     }));
-    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.effectAllowed = "copyMove";
   }
 
   #onReserveDragStart(event) {
@@ -455,24 +681,20 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     await updateReserveEntry(entry.id, { [key]: !entry[key] });
   }
 
-  static async #toggleStage() {
-    const current = game.settings.get(MODULE_ID, SETTING_KEYS.STAGE_ENABLED);
-    const visible = !current;
-    await game.settings.set(MODULE_ID, SETTING_KEYS.STAGE_ENABLED, visible);
-    await game.settings.set(MODULE_ID, SETTING_KEYS.GM_STAGE_VISIBLE, visible);
+  static async #toggleSharedLayer(event, target) {
+    await toggleSharedVisibility(target.closest("[data-visibility-layer]")?.dataset.visibilityLayer);
+    await portraitStage.render();
     this.render();
   }
 
-  static async #togglePreview() {
-    await togglePreview(canvas.scene);
+  static async #toggleClientLayer(event, target) {
+    await toggleClientVisibility(target.closest("[data-visibility-layer]")?.dataset.visibilityLayer);
+    await portraitStage.render();
     this.render();
   }
 
   static async #applyPreview() {
-    await applyPreview(canvas.scene, {
-      castMode: this.element.querySelector("[name='previewCastMode']")?.value ?? "replaceAll",
-      reserveMode: this.element.querySelector("[name='previewReserveMode']")?.value ?? "replace"
-    });
+    await applyPreview(canvas.scene);
     this.render();
   }
 
@@ -481,58 +703,144 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  static async #togglePreviewAutoApply(event, target) {
+    await setPreviewAutoApply(target.checked);
+    this.render();
+  }
+
   static #showComposition() {
     this.#tab = "composition";
+    this.#resizeForSidebar();
     this.render();
   }
 
   static #showPresets() {
     this.#tab = "presets";
+    this.#resizeForSidebar();
     this.render();
   }
 
-  static async #savePreset() {
-    const preview = getPreviewSession();
-    if (preview.active && preview.presetId) {
-      await updateCastPreset(preview.presetId, canvas.scene);
-      ui.notifications.info(game.i18n.format("RNPS.Presets.Updated", { name: preview.presetName }));
-      this.render();
-      return;
+  static #showBackground() {
+    this.#tab = "background";
+    this.#resizeForSidebar();
+    this.render();
+  }
+
+  static #toggleBackgroundSidebar() {
+    if (this.#tab !== "composition") return;
+    this.#sidebarOpen = !this.#sidebarOpen;
+    this.#resizeForSidebar();
+    this.render();
+  }
+
+  #resizeForSidebar() {
+    const shouldExpand = this.#sidebarOpen && this.#tab === "composition";
+    if (shouldExpand && !this.#sidebarWidthApplied) {
+      const current = this.element?.getBoundingClientRect().width || this.position.width;
+      this.setPosition({ width: current + 340 });
+      this.#sidebarWidthApplied = 340;
+    } else if (!shouldExpand && this.#sidebarWidthApplied) {
+      const current = this.element?.getBoundingClientRect().width || this.position.width;
+      this.setPosition({ width: Math.max(500, current - this.#sidebarWidthApplied) });
+      this.#sidebarWidthApplied = 0;
     }
-    const input = this.element.querySelector("[name='presetName']");
-    if (!input) {
-      this.#tab = "presets";
+  }
+
+  static async #clearFocus(event, target) {
+    const zone = target.closest("[data-focus-drop]")?.dataset.focusDrop;
+    if (!zone) return;
+    await clearFocus(zone);
+    this.render();
+  }
+
+  static async #toggleFocusVisible(event, target) {
+    const zone = target.closest("[data-focus-drop]")?.dataset.focusDrop;
+    if (!zone) return;
+    const current = getPresentation(canvas.scene).focus[zone];
+    if (!current) return;
+    await setFocusVisible(zone, current.visible === false);
+    this.render();
+  }
+
+  static #editFocus(event, target) {
+    const entryId = target.closest("[data-focus-entry]")?.dataset.focusEntry;
+    if (entryId) PortraitEditor.open(entryId, CAST_LAYERS.FOCUS, { draft: true });
+  }
+
+  static async #toggleFocusMirror(event, target) {
+    const entryId = target.closest("[data-focus-entry]")?.dataset.focusEntry;
+    const item = Object.values(getPresentation(canvas.scene).focus).find(value => value?.entry?.id === entryId);
+    if (!item) return;
+    await updateFocusEntry(entryId, { mirrored: !item.entry.mirrored });
+    this.render();
+  }
+
+  static async #toggleFocusPersistent(event, target) {
+    const zone = target.closest("[data-focus-drop]")?.dataset.focusDrop;
+    const item = getPresentation(canvas.scene).focus[zone];
+    if (!item) return;
+    await setFocusPersistent(zone, !item.persistent);
+    this.render();
+  }
+
+  static #addBackground() {
+    const Picker = foundry.applications.apps.FilePicker?.implementation ?? foundry.applications.apps.FilePicker ?? globalThis.FilePicker;
+    new Picker({ type: "imagevideo", callback: async path => {
+      await addBackgroundVariant({ src: path });
       this.render();
-      return;
-    }
-    const name = input?.value.trim();
-    if (!name) return input?.focus();
-    await saveCastPreset(name, canvas.scene);
-    this.#tab = "presets";
+    } }).browse();
+  }
+
+  static async #addBackgroundGroup() {
+    const group = await addBackgroundGroup();
+    this.render();
+    requestAnimationFrame(() => this.#beginBackgroundGroupRename(this.element.querySelector(`[data-background-group='${CSS.escape(group.id)}']`)));
+  }
+
+  static async #removeBackgroundGroup(event, target) {
+    const id = target.closest("[data-background-group]")?.dataset.backgroundGroup;
+    await removeBackgroundGroup(id);
+    this.#collapsedBackgroundGroups.delete(id);
     this.render();
   }
 
-  static async #previewPreset(event, target) {
-    await previewCastPreset(target.closest("[data-preset-id]")?.dataset.presetId, canvas.scene);
-    this.#tab = "composition";
-    this.render();
-  }
-
-  static async #applyPreset(event, target) {
-    const card = target.closest("[data-preset-id]");
-    if (!card) return;
-    await applyCastPreset(card.dataset.presetId, {
-      castMode: card.querySelector("[name='castMode']")?.value,
-      reserveMode: card.querySelector("[name='reserveMode']")?.value
-    });
-    ui.notifications.info(game.i18n.localize("RNPS.Presets.Applied"));
-    this.render();
-  }
-
-  static async #deletePreset(event, target) {
-    const id = target.closest("[data-preset-id]")?.dataset.presetId;
+  static #toggleBackgroundGroup(event, target) {
+    const id = target.closest("[data-background-group]")?.dataset.backgroundGroup;
     if (!id) return;
-    await deleteCastPreset(id);
+    if (this.#collapsedBackgroundGroups.has(id)) this.#collapsedBackgroundGroups.delete(id);
+    else this.#collapsedBackgroundGroups.add(id);
+    this.render();
+  }
+
+  static #editBackground(event, target) {
+    const id = target.closest("[data-background-id]")?.dataset.backgroundId;
+    if (id) BackgroundSettings.open(id, () => this.rendered && this.render());
+  }
+
+  static async #toggleActiveBackground(event, target) {
+    const id = target.closest("[data-background-id]")?.dataset.backgroundId;
+    if (!id) return;
+    if (getPresentation(canvas.scene).activeBackgroundId === id) await deactivateSceneBackground();
+    else await activateSceneBackground(id);
+    this.render();
+  }
+
+  static async #toggleBackgroundFollowActive() {
+    const presentation = getPresentation(canvas.scene, { published: true });
+    await setBackgroundFollowActive(!presentation.backgroundFollowActive);
+    this.render();
+  }
+
+  static async #removeBackground(event, target) {
+    const id = target.closest("[data-background-id]")?.dataset.backgroundId;
+    if (!id) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("RNPS.Background.RemoveConfirmTitle") },
+      content: `<p>${game.i18n.localize("RNPS.Background.RemoveConfirmText")}</p>`,
+      modal: true
+    });
+    if (!confirmed) return;
+    await removeBackgroundVariant(id);
     this.render();
   }
 

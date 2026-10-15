@@ -103,3 +103,38 @@ registerSceneMigration(4, source => ({
       : null
   }
 }));
+
+registerSceneMigration(5, source => ({
+  ...source,
+  schemaVersion: 6,
+  focus: source.focus ?? { left: null, center: null, right: null, showSideCast: true },
+  background: source.background ?? { src: "", fit: "cover", positionX: 50, positionY: 50, dim: 0, blur: 0, overUi: false }
+}));
+
+registerSceneMigration(6, source => {
+  const focus = { ...source.focus };
+  delete focus.showSideCast;
+  return { ...source, schemaVersion: 7, focus };
+});
+
+registerSceneMigration(7, source => {
+  const layout = { ...source.layout };
+  delete layout.tokenHighlight;
+  return { ...source, schemaVersion: 8, layout };
+});
+
+registerSceneMigration(8, source => {
+  const background = source.background ?? {};
+  const hasBackground = typeof background.src === "string" && background.src.trim();
+  const id = hasBackground ? "legacy-background" : null;
+  return {
+    ...source,
+    schemaVersion: 9,
+    backgrounds: id ? [{ id, name: background.src.split(/[\\/]/).pop(), ...background }] : [],
+    activeBackgroundId: id
+  };
+});
+
+registerSceneMigration(9, source => ({ ...source, schemaVersion: 10 }));
+
+registerSceneMigration(10, source => ({ ...source, schemaVersion: 11, backgroundSuppressed: false }));

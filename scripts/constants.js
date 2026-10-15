@@ -1,8 +1,8 @@
 export const MODULE_ID = "rn-portrait-stage";
 export const MODULE_TITLE = "RN Portrait Stage";
 export const API_VERSION = 1;
-export const SCENE_SCHEMA_VERSION = 5;
-export const ACTOR_LIBRARY_SCHEMA_VERSION = 6;
+export const SCENE_SCHEMA_VERSION = 11;
+export const ACTOR_LIBRARY_SCHEMA_VERSION = 7;
 export const EFFECT_SCHEMA_VERSION = 1;
 
 export const FLAGS = Object.freeze({
@@ -15,10 +15,13 @@ export const GROUP_IDS = Object.freeze({
   NPCS: "npcs"
 });
 
+export const CAST_PORTRAIT_SIZE = Object.freeze({ MIN: 100, MAX: 450, DEFAULT: 160 });
+
 export const CAST_LAYERS = Object.freeze({
   SCENE: "scene",
   PERSISTENT: "persistent",
-  RESERVE: "reserve"
+  RESERVE: "reserve",
+  FOCUS: "focus"
 });
 
 export const SETTING_KEYS = Object.freeze({
@@ -31,31 +34,34 @@ export const SETTING_KEYS = Object.freeze({
   VOICE_ATTACK: "voiceAttack",
   VOICE_RELEASE: "voiceRelease",
   PORTRAIT_SCALE: "portraitScale",
+  INITIAL_ACTOR_VARIANT: "initialActorVariant",
   LABEL_FONT_FAMILY: "labelFontFamily",
   LABEL_FONT_SIZE: "labelFontSize",
   PERSISTENT_STATE: "persistentState",
   STAGE_ENABLED: "stageEnabled",
   GM_STAGE_VISIBLE: "gmStageVisible",
+  LAYER_VISIBILITY: "layerVisibility",
+  CLIENT_LAYER_VISIBILITY: "clientLayerVisibility",
   RESERVE_ACTORS: "reserveActors",
   PORTRAIT_GAP: "portraitGap",
+  FOCUS_GAP: "focusGap",
   PC_OFFSET_X: "pcOffsetX",
   PC_OFFSET_Y: "pcOffsetY",
   NPC_OFFSET_X: "npcOffsetX",
   NPC_OFFSET_Y: "npcOffsetY",
-  PC_DIRECTION: "pcDirection",
-  NPC_DIRECTION: "npcDirection",
-  PC_DIRECTION_OVERRIDE: "pcDirectionOverride",
-  NPC_DIRECTION_OVERRIDE: "npcDirectionOverride",
   HOVER_ART_DEFAULT_SOURCE: "hoverArtDefaultSource",
+  FOCUS_IMAGE_DEFAULT_SOURCE: "focusImageDefaultSource",
   HOVER_ART_BOTTOM_OFFSET: "hoverArtBottomOffset",
   HOVER_ART_WORLD_SCALE: "hoverArtWorldScale",
   HOVER_ART_SCALE: "hoverArtScale",
-  TOKEN_HIGHLIGHT_DEFAULT: "tokenHighlightDefault",
+  TOKEN_HIGHLIGHT_ENABLED: "tokenHighlightDefault",
   IMAGE_HOVER_PRIORITY: "imageHoverPriority",
   LITM_INTEGRATION_ENABLED: "litmIntegrationEnabled",
   PREVIEW_SESSION: "previewSession",
+  PREVIEW_AUTO_APPLY: "previewAutoApply",
   RESERVE_HEIGHT: "reserveHeight",
-  CAST_PRESETS: "castPresets"
+  CAST_PRESETS: "castPresets",
+  BACKGROUND_LIBRARY: "backgroundLibrary"
 });
 
 export const HOOKS = Object.freeze({
