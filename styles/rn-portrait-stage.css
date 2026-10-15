@@ -616,6 +616,9 @@
   font-family: var(--font-primary, sans-serif);
 }
 
+.rn-portrait-stage-cast-manager:not(.minimized) { min-width: 670px; }
+.rn-portrait-stage-cast-manager:not(.minimized):has(.rnps-manager-sidebar) { min-width: 1010px; }
+
 .rn-portrait-stage-app :is(.window-title, input, select, textarea, label, .rnps-preview-auto-apply),
 .rn-portrait-stage-app button:not(.icon):not(.header-control):not(.fa-solid):not(.fa-regular):not(.fa-brands),
 .rn-portrait-stage-app a.button:not(.icon),

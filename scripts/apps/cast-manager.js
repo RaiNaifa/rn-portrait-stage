@@ -712,40 +712,43 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  static #showComposition() {
+  static async #showComposition() {
+    const width = this.position.width;
     this.#tab = "composition";
-    this.#resizeForSidebar();
-    this.render();
+    await this.render();
+    this.#resizeForSidebar(width);
   }
 
-  static #showPresets() {
+  static async #showPresets() {
+    const width = this.position.width;
     this.#tab = "presets";
-    this.#resizeForSidebar();
-    this.render();
+    await this.render();
+    this.#resizeForSidebar(width);
   }
 
-  static #showBackground() {
+  static async #showBackground() {
+    const width = this.position.width;
     this.#tab = "background";
-    this.#resizeForSidebar();
-    this.render();
+    await this.render();
+    this.#resizeForSidebar(width);
   }
 
-  static #toggleBackgroundSidebar() {
+  static async #toggleBackgroundSidebar() {
     if (this.#tab !== "composition") return;
+    const width = this.position.width;
     this.#sidebarOpen = !this.#sidebarOpen;
-    this.#resizeForSidebar();
-    this.render();
+    await this.render();
+    this.#resizeForSidebar(width);
   }
 
-  #resizeForSidebar() {
+  #resizeForSidebar(previousWidth) {
     const shouldExpand = this.#sidebarOpen && this.#tab === "composition";
+    const current = Number.isFinite(previousWidth) ? previousWidth : this.position.width;
     if (shouldExpand && !this.#sidebarWidthApplied) {
-      const current = this.element?.getBoundingClientRect().width || this.position.width;
       this.setPosition({ width: current + 340 });
       this.#sidebarWidthApplied = 340;
     } else if (!shouldExpand && this.#sidebarWidthApplied) {
-      const current = this.element?.getBoundingClientRect().width || this.position.width;
-      this.setPosition({ width: Math.max(500, current - this.#sidebarWidthApplied) });
+      this.setPosition({ width: Math.max(670, current - this.#sidebarWidthApplied) });
       this.#sidebarWidthApplied = 0;
     }
   }
