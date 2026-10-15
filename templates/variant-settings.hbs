@@ -61,6 +61,10 @@
         <option value="custom" {{#if focusCustom}}selected{{/if}}>{{localize "RNPS.HoverArt.CustomImage"}}</option>
       </select></div></div>
       <div class="form-group" data-focus-custom-image><label>{{localize "RNPS.HoverArt.CustomImage"}}</label><div class="form-fields"><file-picker name="focusCustomSrc" type="imagevideo" value="{{settings.focus.customSrc}}"></file-picker></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.Scale"}}</label><div class="form-fields"><input type="number" name="focusScale" min="0.2" max="5" step="0.01" value="{{settings.focus.scale}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.OffsetX"}}</label><div class="form-fields"><input type="number" name="focusOffsetX" min="-5000" max="5000" step="1" value="{{settings.focus.offsetX}}"></div></div>
+      <div class="form-group"><label>{{localize "RNPS.VariantSettings.OffsetY"}}</label><div class="form-fields"><input type="number" name="focusOffsetY" min="-5000" max="5000" step="1" value="{{settings.focus.offsetY}}"></div></div>
+      <button type="button" data-focus-transform-reset><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> {{localize "RNPS.FocusEdit.Reset"}}</button>
       <label class="checkbox"><input type="checkbox" name="focusMirrored" {{#if settings.focus.mirrored}}checked{{/if}}> {{localize "RNPS.Controls.Mirror"}}</label>
     </fieldset>
 

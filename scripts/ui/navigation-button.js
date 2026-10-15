@@ -6,6 +6,7 @@ export class NavigationButton {
   #button;
   #resizeHandler = () => this.position();
   #playerHidden = false;
+  #focusControls = null;
 
   initialize() {
     if (!this.#button) {
@@ -19,6 +20,7 @@ export class NavigationButton {
       this.#button.append(icon);
       this.#button.addEventListener("click", () => this.#onClick());
       document.body.append(this.#button);
+      this.#createFocusControls();
       window.addEventListener("resize", this.#resizeHandler);
     }
     this.#syncAppearance();
@@ -38,6 +40,47 @@ export class NavigationButton {
 
   refresh() {
     this.#syncAppearance();
+  }
+
+  setFocusEditControls({ active, dirty, onToggle, onApply, onReset }) {
+    if (!this.#focusControls) this.#createFocusControls();
+    const controls = this.#focusControls;
+    controls.hidden = !game.user?.isGM || !active;
+    controls.querySelector("[data-rnps-focus-toggle]").onclick = onToggle;
+    const apply = controls.querySelector("[data-rnps-focus-apply]");
+    apply.onclick = onApply;
+    apply.disabled = !dirty;
+    const reset = controls.querySelector("[data-rnps-focus-reset]");
+    reset.onclick = onReset;
+    reset.disabled = !dirty;
+    this.position();
+  }
+
+  #createFocusControls() {
+    if (this.#focusControls) return;
+    const controls = document.createElement("div");
+    controls.id = "rnps-navigation-focus-controls";
+    for (const [name, label, icon] of [
+      ["toggle", "RNPS.FocusEdit.Disable", "fa-solid fa-sliders"],
+      ["apply", "RNPS.FocusEdit.Apply", "fa-solid fa-check"],
+      ["reset", "RNPS.FocusEdit.Discard", "fa-solid fa-rotate-left"]
+    ]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ui-control rnps-navigation-focus-action";
+      button.dataset[`rnpsFocus${name[0].toUpperCase()}${name.slice(1)}`] = "";
+      button.title = game.i18n.localize(label);
+      button.setAttribute("aria-label", button.title);
+      if (name === "toggle") {
+        button.classList.add("rnps-navigation-focus-toggle");
+        button.setAttribute("aria-pressed", "true");
+        button.innerHTML = `<i class="${icon}" aria-hidden="true"></i><span>${game.i18n.localize("RNPS.FocusEdit.Mode")}</span><span class="rnps-focus-edit-switch" aria-hidden="true"><span></span></span>`;
+      } else button.innerHTML = `<i class="${icon}" aria-hidden="true"></i>`;
+      controls.append(button);
+    }
+    controls.hidden = true;
+    document.body.append(controls);
+    this.#focusControls = controls;
   }
 
   #onClick() {
@@ -74,19 +117,27 @@ export class NavigationButton {
     const navigation = document.querySelector("#scene-navigation");
     if (!navigation) {
       this.#button.hidden = true;
+      if (this.#focusControls) this.#focusControls.style.display = "none";
       return;
     }
 
     const rect = navigation.getBoundingClientRect();
     this.#button.hidden = false;
+    if (this.#focusControls) this.#focusControls.style.display = "";
     this.#button.style.left = `${rect.right + 8}px`;
     this.#button.style.top = `${rect.top}px`;
+    if (this.#focusControls) {
+      this.#focusControls.style.left = `${rect.right + 48}px`;
+      this.#focusControls.style.top = `${rect.top}px`;
+    }
   }
 
   destroy() {
     window.removeEventListener("resize", this.#resizeHandler);
     this.#button?.remove();
     this.#button = null;
+    this.#focusControls?.remove();
+    this.#focusControls = null;
   }
 }
 

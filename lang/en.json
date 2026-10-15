@@ -363,6 +363,18 @@
       "Hover": "Hover image",
       "AsHover": "As on hover"
     },
+    "FocusEdit": {
+      "Mode": "Edit mode",
+      "On": "On",
+      "Off": "Off",
+      "Enable": "Adjust focus portrait position and size",
+      "Disable": "Finish adjusting focus portraits",
+      "Empty": "Add an actor to scene focus",
+      "Reset": "Reset position and size",
+      "Apply": "Apply focus changes",
+      "Discard": "Discard focus draft",
+      "DragHint": "Drag to move the portrait.\nScroll to resize.\nShift + scroll for fine scale adjustment.\nMiddle-click to reset position and scale.\nShift + click to bring the zone to front.\nCtrl + click to send the zone to back."
+    },
     "Integrations": {
       "Litm": {
         "ToggleTags": "Tag visibility",

@@ -67,7 +67,7 @@ export function createDefaultVariantSettings() {
       scale: 1,
       mirrored: false
     },
-    focus: { source: "inherit", customSrc: null, mirrored: false },
+    focus: { source: "inherit", customSrc: null, mirrored: false, scale: 1, offsetX: 0, offsetY: 0 },
     speaking: {
       image: { source: "inherit", customSrc: null },
       scale: 1,
@@ -256,7 +256,10 @@ export function normalizeVariantSettings(source) {
     focus: {
       source: ["inherit", "portrait", "hover", "custom"].includes(focus.source) ? focus.source : "inherit",
       customSrc: typeof focus.customSrc === "string" && focus.customSrc.trim() ? focus.customSrc.trim() : null,
-      mirrored: focus.mirrored === true
+      mirrored: focus.mirrored === true,
+      scale: Number.isFinite(focus.scale) ? Math.max(0.2, Math.min(5, focus.scale)) : 1,
+      offsetX: Number.isFinite(focus.offsetX) ? Math.max(-5000, Math.min(5000, focus.offsetX)) : 0,
+      offsetY: Number.isFinite(focus.offsetY) ? Math.max(-5000, Math.min(5000, focus.offsetY)) : 0
     },
     speaking: {
       image: {

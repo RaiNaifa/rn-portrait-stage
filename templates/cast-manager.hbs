@@ -31,7 +31,16 @@
     {{/if}}
     {{#if compositionTab}}
     <section class="rnps-presentation-settings">
-      <h2>{{localize "RNPS.Focus.Title"}}</h2>
+      <div class="rnps-focus-settings-header">
+        <h2>{{localize "RNPS.Focus.Title"}}</h2>
+        <span data-tooltip="{{#if focusEditMode}}{{localize 'RNPS.FocusEdit.Disable'}}{{else}}{{#if focusEditAvailable}}{{localize 'RNPS.FocusEdit.Enable'}}{{else}}{{localize 'RNPS.FocusEdit.Empty'}}{{/if}}{{/if}}">
+          <button type="button" class="rnps-focus-edit-toggle{{#if focusEditMode}} active{{/if}}" data-action="toggleFocusEditMode" aria-pressed="{{#if focusEditMode}}true{{else}}false{{/if}}" aria-label="{{#if focusEditMode}}{{localize 'RNPS.FocusEdit.Disable'}}{{else}}{{localize 'RNPS.FocusEdit.Enable'}}{{/if}}" {{#unless focusEditMode}}{{#unless focusEditAvailable}}disabled{{/unless}}{{/unless}}>
+            <span>{{localize "RNPS.FocusEdit.Mode"}}</span>
+            <span class="rnps-focus-edit-switch" aria-hidden="true"><span></span></span>
+            <span class="rnps-focus-edit-status">{{#if focusEditMode}}{{localize "RNPS.FocusEdit.On"}}{{else}}{{localize "RNPS.FocusEdit.Off"}}{{/if}}</span>
+          </button>
+        </span>
+      </div>
       <div class="rnps-focus-settings-zones">
         {{#each focusZones as |zone|}}
           <section class="rnps-focus-manager-zone" data-focus-drop="{{zone.id}}">

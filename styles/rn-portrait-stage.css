@@ -45,7 +45,7 @@
   left: min(300px, 30vw);
   right: min(300px, 30vw);
   z-index: 2;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
 }
 .rnps-stage-group[hidden],
@@ -78,11 +78,21 @@
   width: auto;
   height: auto;
   object-fit: contain;
+  transform-origin: center bottom;
   filter: drop-shadow(0 8px 14px rgb(0 0 0 / 0.6));
   animation: rnps-focus-reveal 250ms ease-out;
+  transition: transform 300ms ease;
 }
+.rnps-focus-slot > .rnps-focus-local-draft { transition: none; }
 @keyframes rnps-focus-reveal { from { opacity: 0; } to { opacity: 1; } }
-.rnps-focus-slot > .mirrored { transform: scaleX(-1); }
+.rnps-focus-editing .rnps-focus-slot.active > img,
+.rnps-focus-editing .rnps-focus-slot.active > video {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.rnps-focus-editing .rnps-focus-slot.active > .rnps-focus-dragging { cursor: grabbing; }
+#tooltip.rnps-focus-edit-tooltip { white-space: pre-line; }
 .rnps-ui-action.rnps-ui-focus { top: 8px; right: 38px; }
 .rnps-focus-menu {
   position: absolute;
@@ -102,7 +112,7 @@
 .rnps-stage-group--npcs .rnps-focus-menu { right: auto; left: 4px; }
 @media (prefers-reduced-motion: reduce) {
   .rnps-focus-slot, .rnps-scene-background { transition: none; }
-  .rnps-focus-slot > img, .rnps-focus-slot > video { animation: none; }
+  .rnps-focus-slot > img, .rnps-focus-slot > video { animation: none; transition: none; }
 }
 
 #rn-portrait-stage-navigation-button {
@@ -131,6 +141,48 @@
 #rn-portrait-stage-navigation-button.active {
   color: rgb(255 179 0);
 }
+
+#rnps-navigation-focus-controls {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  gap: 4px;
+  height: 32px;
+}
+#rnps-navigation-focus-controls[hidden] { display: none !important; }
+#rnps-navigation-focus-controls .rnps-navigation-focus-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  min-height: 32px;
+  width: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border-light-primary, #b5b3a4);
+  border-radius: 4px;
+  background: rgb(20 20 20 / 0.85);
+  color: var(--color-text-light-highlight, #f0f0e0);
+  font: inherit;
+}
+#rnps-navigation-focus-controls .rnps-navigation-focus-toggle {
+  width: auto;
+  gap: 5px;
+  padding: 0 7px;
+  color: #ffb300;
+  border-color: #ffb300;
+  white-space: nowrap;
+}
+#rnps-navigation-focus-controls .rnps-focus-edit-switch {
+  border-color: #ffb300;
+  background: rgb(255 179 0 / 35%);
+}
+#rnps-navigation-focus-controls .rnps-focus-edit-switch > span {
+  transform: translateX(12px);
+  background: #ffb300;
+}
+#rnps-navigation-focus-controls .rnps-navigation-focus-action:disabled { opacity: 0.45; }
+#rnps-navigation-focus-controls .rnps-navigation-focus-action:not(:disabled):hover { border-color: #ffb300; color: #ffb300; }
 
 .rnps-stage-group {
   display: flex;
@@ -741,6 +793,15 @@
   border-radius: 5px;
 }
 .rnps-presentation-settings h2 { margin: 0 0 6px; font-size: 14px; }
+.rnps-focus-settings-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.rnps-focus-settings-header h2 { margin: 0; }
+.rn-portrait-stage-cast-manager .rnps-focus-edit-toggle { display: inline-flex; width: auto; height: 18px; min-height: 18px; align-items: center; gap: 5px; margin: 0; padding: 0 5px; font-size: 11px; line-height: 16px; white-space: nowrap; }
+.rnps-focus-edit-switch { display: block; position: relative; width: 24px; height: 12px; flex: 0 0 24px; border: 1px solid #8b7d80; border-radius: 8px; background: #332c35; }
+.rnps-focus-edit-switch > span { position: absolute; top: 1px; left: 1px; width: 8px; height: 8px; border-radius: 50%; background: #c9bdba; transition: transform 120ms ease, background 120ms ease; }
+.rnps-focus-edit-toggle.active { background: rgb(255 179 0 / 20%); color: #ffb300; border-color: #ffb300; box-shadow: 0 0 0 1px #ffb300 inset; }
+.rnps-focus-edit-toggle.active .rnps-focus-edit-switch { border-color: #ffb300; background: rgb(255 179 0 / 35%); }
+.rnps-focus-edit-toggle.active .rnps-focus-edit-switch > span { transform: translateX(12px); background: #ffb300; }
+.rnps-focus-edit-status { min-width: 20px; text-align: center; }
 .rnps-presentation-settings h2:not(:first-child) { margin-top: 10px; }
 .rnps-focus-settings-zones,
 .rnps-background-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }

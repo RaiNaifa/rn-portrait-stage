@@ -137,6 +137,13 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#schedule(0);
     });
     this.element.addEventListener("input", () => this.#schedule(250));
+    this.element.querySelector("[data-focus-transform-reset]")?.addEventListener("click", () => {
+      for (const [name, value] of [["focusScale", "1"], ["focusOffsetX", "0"], ["focusOffsetY", "0"]]) {
+        const input = this.element.querySelector(`[name='${name}']`);
+        if (input) input.value = value;
+      }
+      this.#schedule(0);
+    });
     for (const picker of this.element.querySelectorAll("file-picker[name='hoverCustomSrc'], file-picker[name='focusCustomSrc']")) {
       const rememberValue = event => {
         const value = filePickerValue(picker, event);
@@ -236,7 +243,10 @@ export class VariantSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       focus: {
         source: String(values.get("focusSource") || "inherit"),
         customSrc: filePickerValue(form.querySelector("file-picker[name='focusCustomSrc']")) || null,
-        mirrored: values.get("focusMirrored") === "on"
+        mirrored: values.get("focusMirrored") === "on",
+        scale: number("focusScale", 1),
+        offsetX: number("focusOffsetX", 0),
+        offsetY: number("focusOffsetY", 0)
       },
       speaking: variant.settings?.speaking,
       effects: variant.settings?.effects ?? []

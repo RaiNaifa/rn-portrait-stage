@@ -1,6 +1,6 @@
 import { GROUP_IDS, CAST_LAYERS } from "../constants.js";
 import { getCombinedCastState, updateCastEntry } from "./cast-service.js";
-import { getSceneState, normalizeSceneState, setSceneState } from "./scene-state.js";
+import { getSceneState, normalizeFocusOrder, normalizeSceneState, setSceneState } from "./scene-state.js";
 import { getPreviewLayer, isPreviewActive, setPreviewLayer, syncImmediateBackgroundSelection, syncImmediateFocus, syncImmediatePresentation, withoutPreview } from "./preview-service.js";
 import { getPreviewReserve } from "./preview-service.js";
 import { getReserveEntries } from "./reserve-service.js";
@@ -14,7 +14,7 @@ const ZONES = ["left", "center", "right"];
 export function getPresentation(scene = canvas.scene, { published = false } = {}) {
   if (!scene) {
     const empty = normalizeSceneState();
-    return { focus: empty.focus, background: empty.background, backgrounds: getBackgroundLibrary().backgrounds, activeBackgroundId: null, persistentBackgroundId: null };
+    return { focus: empty.focus, focusOrder: empty.focusOrder, background: empty.background, backgrounds: getBackgroundLibrary().backgrounds, activeBackgroundId: null, persistentBackgroundId: null };
   }
   const preview = !published && scene.id === canvas.scene?.id && isPreviewActive();
   const state = (preview ? getPreviewLayer("scene", scene) : null) ?? getSceneState(scene);
@@ -37,13 +37,21 @@ export function getPresentation(scene = canvas.scene, { published = false } = {}
     : state.backgroundSuppressed ? null : sceneItem ?? snapshotItem ?? persistentItem;
   const background = active ?? normalizeSceneState().background;
   return {
-    focus, background, backgrounds,
+    focus, focusOrder: state.focusOrder, background, backgrounds,
     activeBackgroundId: active?.id ?? null,
     sceneBackgroundId: state.activeBackgroundId,
     backgroundSuppressed: state.backgroundSuppressed,
     persistentBackgroundId: persistent.backgroundId,
     backgroundFollowActive: persistent.backgroundFollowActive
   };
+}
+
+export async function setFocusOrder(order, { scene = canvas.scene } = {}) {
+  if (!Array.isArray(order) || !scene) return false;
+  const normalized = normalizeFocusOrder(order);
+  return changeScene(state => { state.focusOrder = normalized; }, {
+    scene, immediate: true, section: "focusOrder"
+  });
 }
 
 export function getFocusEntry(entryId, scene = canvas.scene) {

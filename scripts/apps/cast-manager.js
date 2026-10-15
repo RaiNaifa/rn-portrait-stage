@@ -63,6 +63,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       showAllLitmTags: CastManager.#showAllLitmTags,
       hideAllLitmTags: CastManager.#hideAllLitmTags,
       clearFocus: CastManager.#clearFocus,
+      toggleFocusEditMode: CastManager.#toggleFocusEditMode,
       toggleFocusVisible: CastManager.#toggleFocusVisible,
       editFocus: CastManager.#editFocus,
       toggleFocusMirror: CastManager.#toggleFocusMirror,
@@ -128,6 +129,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
         id: zone,
         label: game.i18n.localize(`RNPS.Focus.${zone[0].toUpperCase()}${zone.slice(1)}`),
         assigned: Boolean(item),
+        editable: Boolean(view && item?.visible !== false),
         visible: item?.visible !== false,
         persistent: item?.persistent === true,
         entryId: item?.entry?.id,
@@ -171,6 +173,8 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       editorTab: this.#tab === "composition",
       sidebarOpen: this.#tab === "composition" && this.#sidebarOpen,
       focusZones,
+      focusEditMode: portraitStage.isFocusEditMode(),
+      focusEditAvailable: focusZones.some(zone => zone.editable),
       backgroundGroups: backgroundLibrary.groups.map(group => ({
         ...group,
         isDefault: group.id === "default",
@@ -751,6 +755,15 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!zone) return;
     await clearFocus(zone);
     this.render();
+  }
+
+  static async #toggleFocusEditMode() {
+    const enabled = !portraitStage.isFocusEditMode();
+    if (enabled && !Object.values(getPresentation(canvas.scene).focus)
+      .some(item => item?.visible && item.entry)) return;
+    portraitStage.setFocusEditMode(enabled);
+    await this.render();
+    if (enabled) await this.minimize();
   }
 
   static async #toggleFocusVisible(event, target) {

@@ -11,6 +11,7 @@ export function createDefaultSceneState() {
       npcPortraitSize: null
     },
     focus: { left: null, center: null, right: null },
+    focusOrder: ["left", "center", "right"],
     background: { src: "", fit: "cover", positionX: 50, positionY: 50, dim: 0, blur: 0, overUi: false },
     backgrounds: [],
     activeBackgroundId: null,
@@ -42,6 +43,7 @@ export function normalizeSceneState(source) {
     seen.add(entry.actorUuid);
     normalized.focus[zone] = { entry, visible: item.visible !== false };
   }
+  normalized.focusOrder = normalizeFocusOrder(state.focusOrder);
   const bg = state.background ?? {};
   normalized.background = {
     src: typeof bg.src === "string" ? bg.src.trim() : "",
@@ -82,6 +84,12 @@ export function normalizeSceneState(source) {
   }
 
   return normalized;
+}
+
+export function normalizeFocusOrder(value) {
+  const zones = ["left", "center", "right"];
+  const order = Array.isArray(value) ? value.filter(zone => zones.includes(zone)) : [];
+  return [...new Set([...order, ...zones])];
 }
 
 export function withActiveBackground(source, background) {

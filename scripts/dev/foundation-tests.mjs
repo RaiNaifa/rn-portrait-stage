@@ -82,6 +82,9 @@ const normalizedScene = normalizeSceneState({
 });
 assert.equal(normalizedScene.focus.left.visible, false);
 assert.equal(normalizedScene.focus.right, null);
+assert.deepEqual(normalizedScene.focusOrder, ["left", "center", "right"]);
+assert.deepEqual(normalizeSceneState({ focusOrder: ["right", "left", "right", "invalid"] }).focusOrder,
+  ["right", "left", "center"]);
 assert.equal(Object.hasOwn(normalizedScene.focus, "showSideCast"), false);
 assert.equal(Object.hasOwn(normalizedScene.layout, "tokenHighlight"), false);
 assert.equal(normalizedScene.background.positionX, 100);
@@ -165,7 +168,15 @@ assert.equal(normalizedLibrary.variants[2].image.customSrc, "angry.webp");
 assert.equal(normalizedLibrary.variants[2].access.mode, "owners");
 assert.equal(normalizedLibrary.variants[2].settings.label.inherit, true);
 assert.equal(normalizedLibrary.variants[2].settings.hover.source, "inherit");
-assert.deepEqual(normalizedLibrary.variants[2].settings.focus, { source: "inherit", customSrc: null, mirrored: false });
+assert.deepEqual(normalizedLibrary.variants[2].settings.focus, {
+  source: "inherit", customSrc: null, mirrored: false, scale: 1, offsetX: 0, offsetY: 0
+});
+const positionedFocus = normalizeActorLibrary({
+  variants: [{ id: "positioned", settings: { focus: { scale: 1.75, offsetX: -24, offsetY: 36 } } }]
+}).variants[2].settings.focus;
+assert.equal(positionedFocus.scale, 1.75);
+assert.equal(positionedFocus.offsetX, -24);
+assert.equal(positionedFocus.offsetY, 36);
 assert.equal(normalizedLibrary.variants[2].settings.speaking.image.source, "inherit");
 assert.deepEqual(normalizedLibrary.variants[2].settings.speaking.effects, []);
 const hoverLibrary = normalizeActorLibrary({
