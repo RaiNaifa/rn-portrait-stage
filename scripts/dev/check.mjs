@@ -9,6 +9,15 @@ for (const relativePath of ["module.json", "lang/en.json", "lang/ru.json", "pack
   JSON.parse(readFileSync(join(moduleRoot, relativePath), "utf8"));
 }
 
+const manifest = JSON.parse(readFileSync(join(moduleRoot, "module.json"), "utf8"));
+const packageMetadata = JSON.parse(readFileSync(join(moduleRoot, "package.json"), "utf8"));
+if (manifest.version !== packageMetadata.version) {
+  throw new Error("module.json and package.json versions do not match.");
+}
+if (!manifest.download.endsWith(`/v${manifest.version}/${manifest.id}.zip`)) {
+  throw new Error("Module download URL does not match its version.");
+}
+
 function findJavaScriptFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = join(directory, entry.name);

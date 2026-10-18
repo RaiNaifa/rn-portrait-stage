@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — Unreleased
+
+- Renamed and reordered the visible module settings by feature, with global permissions first and integrations last.
+- Clarified Russian setting descriptions while keeping personal scales and voice controls client-scoped.
+- Removed the hover-art bottom-offset setting; enlarged hover portraits now anchor directly to the bottom edge.
+- Hid the limited debug-logging toggle from Foundry's visible module settings.
+- Updated release metadata and installation instructions for the 0.8.0 package.
+
 ## 0.7.0 — Unreleased
 
 - Added scene focus with three independently assigned, hideable Actor slots and responsive, animated presentation.
