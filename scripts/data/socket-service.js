@@ -2,11 +2,13 @@ import { MODULE_ID, SETTING_KEYS } from "../constants.js";
 import { getCastEntry, updateCastEntry } from "./cast-service.js";
 import { canUserAccessVariant, getActorLibrary } from "./actor-library.js";
 import { withoutPreview } from "./preview-service.js";
+import { handleBackgroundPreloadMessage } from "./background-preload.js";
 
 const CHANNEL = `module.${MODULE_ID}`;
 
 export function initializeSocketService() {
   game.socket.on(CHANNEL, async message => {
+    if (await handleBackgroundPreloadMessage(message)) return;
     if (message?.type === "voice-state") {
       Hooks.callAll("rnPortraitStageVoiceSocket", message);
       return;

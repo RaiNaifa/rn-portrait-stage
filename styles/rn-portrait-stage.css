@@ -26,8 +26,16 @@
   opacity: 1;
   pointer-events: auto;
 }
-.rnps-scene-background > img,
-.rnps-scene-background > video {
+.rnps-background-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--rnps-background-fade-duration) ease;
+}
+.rnps-background-frame.active { opacity: 1; }
+.rnps-background-frame > img,
+.rnps-background-frame > video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -36,14 +44,14 @@
   object-position: var(--rnps-bg-position, 50% 50%);
   filter: blur(var(--rnps-bg-blur, 0px));
 }
-.rnps-scene-background > .rnps-background-fill {
+.rnps-background-frame > .rnps-background-fill {
   object-fit: cover;
   filter: blur(12px) brightness(0.7);
   transform: scale(1.06);
 }
-.rnps-scene-background > .rnps-background-fill + img,
-.rnps-scene-background > .rnps-background-fill + video { object-fit: contain; }
-.rnps-scene-background::after {
+.rnps-background-frame > .rnps-background-fill + img,
+.rnps-background-frame > .rnps-background-fill + video { object-fit: contain; }
+.rnps-background-frame::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -179,7 +187,7 @@
 .rnps-stage-group--npcs .rnps-ui-action.rnps-ui-focus { left: 38px; }
 .rnps-stage-group--npcs .rnps-focus-menu { right: auto; left: 4px; }
 @media (prefers-reduced-motion: reduce) {
-  .rnps-focus-slot, .rnps-focus-stage, .rnps-scene-background { transition: none; }
+  .rnps-focus-slot, .rnps-focus-stage, .rnps-scene-background, .rnps-background-frame { transition: none; }
   .rnps-focus-slot > img, .rnps-focus-slot > video { animation: none; transition: none; }
 }
 
@@ -1150,7 +1158,7 @@
 }
 .rnps-background-card-name {
   position: absolute;
-  right: 10px;
+  right: 72px;
   bottom: 8px;
   left: 10px;
   z-index: 1;
@@ -1162,6 +1170,29 @@
   text-shadow: 0 1px 3px #000;
   white-space: nowrap;
 }
+.rnps-background-preload {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  z-index: 2;
+  display: inline-flex;
+  width: auto;
+  min-width: 28px;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 5px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 5px;
+  background: rgb(16 16 23 / 84%);
+  color: #fff;
+  font-size: 11px;
+}
+.rnps-background-preload.loading { color: #ffca71; }
+.rnps-background-preload.ready { color: #82e8aa; }
+.rnps-background-preload.failed { color: #ff8b8b; }
 .rnps-background-card-actions {
   position: absolute;
   top: 7px;

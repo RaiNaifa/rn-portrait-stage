@@ -24,6 +24,7 @@ import { activateSceneBackground, assignFocus, clearFocus, deactivateSceneBackgr
 import { addBackgroundGroup, addBackgroundVariant, getBackgroundLibrary, moveBackgroundGroup, moveBackgroundVariant, removeBackgroundGroup, removeBackgroundVariant, renameBackgroundGroup } from "../data/background-library.js";
 import { getClientVisibility, getSharedVisibility, toggleClientVisibility, toggleSharedVisibility, VISIBILITY_LAYERS } from "../data/visibility-service.js";
 import { portraitStage } from "../portraits/portrait-stage.js";
+import { getBackgroundPreloadStatus, requestBackgroundPreload } from "../data/background-preload.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -74,6 +75,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       removeBackgroundGroup: CastManager.#removeBackgroundGroup,
       editBackground: CastManager.#editBackground,
       toggleActiveBackground: CastManager.#toggleActiveBackground,
+      preloadBackground: CastManager.#preloadBackground,
       toggleBackgroundFollowActive: CastManager.#toggleBackgroundFollowActive,
       removeBackground: CastManager.#removeBackground
     }
@@ -115,11 +117,22 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const conflicts = getPreviewConflicts(scene);
     const presentation = getPresentation(scene);
     const backgroundLibrary = getBackgroundLibrary();
-    const backgroundViews = backgroundLibrary.backgrounds.map(item => ({
-      ...item,
-      active: item.id === presentation.activeBackgroundId,
-      isVideo: /\.(?:webm|mp4|m4v|ogv|ogg)(?:[?#]|$)/i.test(item.src)
-    }));
+    const backgroundViews = backgroundLibrary.backgrounds.map(item => {
+      const preload = getBackgroundPreloadStatus(item.id, item.src);
+      return {
+        ...item,
+        active: item.id === presentation.activeBackgroundId,
+        preload,
+        preloadIdle: preload.state === "idle",
+        preloadLoading: preload.state === "loading",
+        preloadReady: preload.state === "ready",
+        preloadFailed: preload.state === "failed",
+        preloadTooltip: game.i18n.format(`RNPS.Background.Preload${preload.state[0].toUpperCase()}${preload.state.slice(1)}`, {
+          ready: preload.ready, total: preload.total
+        }),
+        isVideo: /\.(?:webm|mp4|m4v|ogv|ogg)(?:[?#]|$)/i.test(item.src)
+      };
+    });
     const sharedVisibility = getSharedVisibility();
     const clientVisibility = getClientVisibility();
     const focusZones = await Promise.all(["left", "center", "right"].map(async zone => {
@@ -839,6 +852,12 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     if (getPresentation(canvas.scene).activeBackgroundId === id) await deactivateSceneBackground();
     else await activateSceneBackground(id);
     this.render();
+  }
+
+  static async #preloadBackground(event, target) {
+    const id = target.closest("[data-background-id]")?.dataset.backgroundId;
+    const item = getBackgroundLibrary().backgrounds.find(background => background.id === id);
+    if (item) await requestBackgroundPreload(item.id, item.src);
   }
 
   static async #toggleBackgroundFollowActive() {

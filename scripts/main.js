@@ -121,6 +121,7 @@ Hooks.on(HOOKS.SETTINGS_CHANGED, ({ key }) => {
   if (key === SETTING_KEYS.LAYER_VISIBILITY) void reconcileSharedVisibility();
   navigationButton.refresh();
 });
+Hooks.on("rnPortraitStageBackgroundPreloadChanged", () => CastManager.refresh());
 Hooks.on(HOOKS.STATE_CHANGED, () => scheduleUiRefresh());
 Hooks.on(HOOKS.SPEAKING_CHANGED, ({ actorUuid, speaking }) => {
   portraitStage.setSpeaking(actorUuid, speaking);

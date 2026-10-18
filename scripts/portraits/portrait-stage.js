@@ -6,6 +6,7 @@ import { preparePortraitView, resolveFocusView } from "./portrait-data.js";
 import { PortraitEditor } from "../apps/portrait-editor.js";
 import { VariantPicker } from "../apps/variant-picker.js";
 import { createPortraitMedia } from "../media.js";
+import { waitForBackgroundMedia } from "../data/background-preload.js";
 import { canUserAccessVariant, getActorLibrary, updateActorVariant } from "../data/actor-library.js";
 import { isPreviewActive } from "../data/preview-service.js";
 import { getCompatibilityAdapter } from "../compatibility/index.js";
@@ -58,6 +59,9 @@ export class PortraitStage {
   };
   #backgroundLayer = null;
   #backgroundClearTimer = null;
+  #backgroundFrame = null;
+  #backgroundPendingFrame = null;
+  #backgroundRequestVersion = 0;
   #portraitExitLayer = null;
   #focusMenu = null;
   #closeFocusMenu = event => {
@@ -438,6 +442,9 @@ export class PortraitStage {
     this.#portraitExitLayer = null;
     clearTimeout(this.#backgroundClearTimer);
     this.#backgroundClearTimer = null;
+    this.#backgroundFrame = null;
+    this.#backgroundPendingFrame = null;
+    this.#backgroundRequestVersion += 1;
     this.#focusLayer = null;
     this.#backgroundLayer = null;
     this.#focusDrafts.clear();
@@ -485,7 +492,7 @@ export class PortraitStage {
     for (const group of this.#groups.values()) group.hidden = !sideVisible;
     if (this.#focusLayer) this.#focusLayer.hidden = !focusVisible;
     if (this.#backgroundLayer) this.#backgroundLayer.hidden = !backgroundVisible;
-    if (!backgroundVisible) this.#backgroundLayer?.querySelector("video")?.pause();
+    if (!backgroundVisible) this.#backgroundLayer?.querySelectorAll("video").forEach(video => video.pause());
     if (!focusVisible) this.#focusLayer?.querySelectorAll("video").forEach(video => video.pause());
     if (!sideVisible) this.#setPcLayoutActive(false);
     if (!sideVisible) this.#clearPinnedTags();
@@ -881,6 +888,86 @@ export class PortraitStage {
     this.#focusLayer.style.width = `${Math.max(0, Math.min(base * scale, viewport - 32))}px`;
   }
 
+  #createBackgroundFrame(background) {
+    const frame = document.createElement("div");
+    frame.className = "rnps-background-frame";
+    frame.dataset.src = background.src;
+    frame.dataset.fit = background.fit;
+    frame.style.setProperty("--rnps-bg-fit", background.fit === "contain-blur" ? "contain" : background.fit);
+    frame.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
+    frame.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
+    frame.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
+    const media = createPortraitMedia(background.src);
+    if (background.fit === "contain-blur") {
+      const fill = createPortraitMedia(background.src);
+      fill.classList.add("rnps-background-fill");
+      frame.append(fill);
+    }
+    frame.append(media);
+    return frame;
+  }
+
+  #updateBackground(background) {
+    const layer = this.#backgroundLayer;
+    const key = JSON.stringify([background.src, background.fit]);
+    if (layer.dataset.key === key) {
+      const current = this.#backgroundPendingFrame ?? this.#backgroundFrame;
+      if (current) {
+        current.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
+        current.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
+        current.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
+      }
+      return;
+    }
+    layer.dataset.key = key;
+    const request = ++this.#backgroundRequestVersion;
+    clearTimeout(this.#backgroundClearTimer);
+    this.#backgroundPendingFrame?.remove();
+    this.#backgroundPendingFrame = null;
+    for (const stale of layer.querySelectorAll(".rnps-background-frame")) {
+      if (stale !== this.#backgroundFrame) {
+        stale.querySelectorAll("video").forEach(video => video.pause());
+        stale.remove();
+      }
+    }
+    if (!background.src) {
+      layer.classList.remove("rnps-background-active");
+      this.#backgroundClearTimer = setTimeout(() => {
+        if (request !== this.#backgroundRequestVersion) return;
+        layer.querySelectorAll("video").forEach(video => video.pause());
+        layer.replaceChildren();
+        this.#backgroundFrame = null;
+      }, 300);
+      return;
+    }
+    const frame = this.#createBackgroundFrame(background);
+    this.#backgroundPendingFrame = frame;
+    layer.append(frame);
+    const media = [...frame.querySelectorAll("img, video")];
+    void Promise.all(media.map(waitForBackgroundMedia)).then(() => {
+      if (request !== this.#backgroundRequestVersion || !frame.isConnected) return;
+      const previous = this.#backgroundFrame;
+      this.#backgroundPendingFrame = null;
+      this.#backgroundFrame = frame;
+      // Establish the initial opacity before starting both halves of the crossfade.
+      void frame.offsetWidth;
+      layer.classList.add("rnps-background-active");
+      frame.classList.add("active");
+      previous?.classList.remove("active");
+      this.#backgroundClearTimer = setTimeout(() => {
+        previous?.querySelectorAll("video").forEach(video => video.pause());
+        previous?.remove();
+        if (this.#backgroundClearTimer) this.#backgroundClearTimer = null;
+      }, 300);
+    }).catch(error => {
+      if (request !== this.#backgroundRequestVersion) return;
+      frame.remove();
+      this.#backgroundPendingFrame = null;
+      layer.dataset.key = "";
+      console.error(`${MODULE_ID} | Background failed to load`, error);
+    });
+  }
+
   async #renderPresentation(version) {
     this.#createPresentationLayers();
     const focusGap = Number(game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_GAP));
@@ -888,43 +975,13 @@ export class PortraitStage {
     this.#updateFocusWidth();
     const { focus, focusOrder, background } = getPresentation(canvas.scene);
     this.#applyFocusOrder(this.#focusOrderDrafts.get(canvas.scene?.id) ?? focusOrder);
-    const bg = this.#backgroundLayer;
-    if (bg.dataset.src !== background.src || bg.dataset.fit !== background.fit) {
-      clearTimeout(this.#backgroundClearTimer);
-      this.#backgroundClearTimer = null;
-      bg.dataset.src = background.src;
-      bg.dataset.fit = background.fit;
-      if (background.src) {
-        const media = createPortraitMedia(background.src);
-        if (background.fit === "contain-blur") {
-          const fill = createPortraitMedia(background.src);
-          fill.classList.add("rnps-background-fill");
-          bg.replaceChildren(fill, media);
-        } else bg.replaceChildren(media);
-      }
-      else if (bg.childElementCount) {
-        bg.querySelectorAll("video").forEach(video => video.pause());
-        const duration = Math.max(0, ...getComputedStyle(bg).transitionDuration.split(",").map(value => {
-          const time = Number.parseFloat(value);
-          return Number.isFinite(time) ? time * (value.trim().endsWith("ms") ? 1 : 1000) : 0;
-        }));
-        this.#backgroundClearTimer = setTimeout(() => {
-          if (!bg.dataset.src && !bg.classList.contains("rnps-background-active")) bg.replaceChildren();
-          this.#backgroundClearTimer = null;
-        }, duration + 50);
-      }
-    }
-    const backgroundVideos = bg.querySelectorAll("video");
+    this.#updateBackground(background);
+    const backgroundVideos = this.#backgroundLayer.querySelectorAll("video");
     const backgroundVisible = !navigationButton.isPlayerHidden() && isLayerVisible("background");
     for (const video of backgroundVideos) {
-      if (background.src && backgroundVisible && video.paused) video.play().catch(() => {});
-      if (!background.src || !backgroundVisible) video.pause();
+      if (backgroundVisible && video.paused) video.play().catch(() => {});
+      if (!backgroundVisible) video.pause();
     }
-    bg.classList.toggle("rnps-background-active", Boolean(background.src));
-    bg.style.setProperty("--rnps-bg-fit", background.fit === "contain-blur" ? "contain" : background.fit);
-    bg.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
-    bg.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
-    bg.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
     const visibleCount = ["left", "center", "right"].filter(zone => focus[zone]?.visible).length;
     this.#focusLayer.classList.toggle("rnps-focus-pair", visibleCount === 2 && !focus.center?.visible);
     for (const zone of ["left", "center", "right"]) {
