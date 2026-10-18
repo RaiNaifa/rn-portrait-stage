@@ -11,6 +11,7 @@
 }
 
 .rnps-scene-background {
+  --rnps-background-fade-duration: 250ms;
   position: fixed;
   inset: 0;
   z-index: 1;
@@ -18,7 +19,8 @@
   background: #000;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity var(--rnps-background-fade-duration) ease,
+    display var(--rnps-background-fade-duration) allow-discrete;
 }
 .rnps-scene-background.rnps-background-active {
   opacity: 1;
@@ -47,10 +49,17 @@
   z-index: 2;
   overflow: visible;
   pointer-events: none;
+  opacity: 1;
+  transition: opacity 250ms ease, display 250ms allow-discrete;
 }
 .rnps-stage-group[hidden],
-.rnps-focus-stage[hidden],
-.rnps-scene-background[hidden] { display: none !important; }
+.rnps-focus-stage[hidden] { display: none; opacity: 0; }
+.rnps-scene-background[hidden] { display: none; opacity: 0; pointer-events: none; }
+@starting-style {
+  .rnps-stage-group:not([hidden]),
+  .rnps-focus-stage:not([hidden]),
+  .rnps-scene-background.rnps-background-active:not([hidden]) { opacity: 0; }
+}
 .rnps-focus-slot {
   position: absolute;
   bottom: 0;
@@ -160,7 +169,7 @@
 .rnps-stage-group--npcs .rnps-ui-action.rnps-ui-focus { left: 38px; }
 .rnps-stage-group--npcs .rnps-focus-menu { right: auto; left: 4px; }
 @media (prefers-reduced-motion: reduce) {
-  .rnps-focus-slot, .rnps-scene-background { transition: none; }
+  .rnps-focus-slot, .rnps-focus-stage, .rnps-scene-background { transition: none; }
   .rnps-focus-slot > img, .rnps-focus-slot > video { animation: none; transition: none; }
 }
 
@@ -243,6 +252,8 @@
   max-height: calc(100vh - 96px);
   pointer-events: none;
   transform: translate(var(--rnps-offset-x, 0), var(--rnps-offset-y, 0));
+  opacity: 1;
+  transition: opacity 250ms ease, display 250ms allow-discrete;
 }
 
 .rnps-stage-group--npcs {
@@ -259,7 +270,7 @@
   grid-auto-columns: var(--rnps-size, 160px);
   grid-auto-flow: column;
   grid-template-rows: repeat(var(--rnps-rows, 1), var(--rnps-size, 160px));
-  transition: opacity 160ms ease;
+  transition: opacity 250ms ease, display 250ms allow-discrete;
 }
 
 #ui-right-column-1.rnps-npc-layout {
@@ -280,6 +291,13 @@
   align-items: flex-start;
   grid-template-columns: var(--rnps-size, 160px) 200px;
   gap: var(--rnps-gap, 8px);
+}
+
+#ui-left #ui-left-column-2 { position: relative; }
+#ui-left #ui-left-column-2:not(.rnps-pc-layout) > .rnps-stage-group--pcs {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 #ui-left-column-2.rnps-pc-layout > .rnps-stage-group--pcs {

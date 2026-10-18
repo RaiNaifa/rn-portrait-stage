@@ -56,6 +56,7 @@ export class PortraitStage {
     }
   };
   #backgroundLayer = null;
+  #backgroundClearTimer = null;
   #focusMenu = null;
   #closeFocusMenu = event => {
     if (this.#focusMenu && !this.#focusMenu.contains(event.target) && !event.target.closest(".rnps-ui-focus")) {
@@ -431,6 +432,8 @@ export class PortraitStage {
     this.#selectedSceneId = null;
     this.#focusLayer?.remove();
     this.#backgroundLayer?.remove();
+    clearTimeout(this.#backgroundClearTimer);
+    this.#backgroundClearTimer = null;
     this.#focusLayer = null;
     this.#backgroundLayer = null;
     this.#focusDrafts.clear();
@@ -773,14 +776,26 @@ export class PortraitStage {
     this.#applyFocusOrder(this.#focusOrderDrafts.get(canvas.scene?.id) ?? focusOrder);
     const bg = this.#backgroundLayer;
     if (bg.dataset.src !== background.src) {
-      bg.replaceChildren();
+      clearTimeout(this.#backgroundClearTimer);
+      this.#backgroundClearTimer = null;
       bg.dataset.src = background.src;
-      if (background.src) bg.append(createPortraitMedia(background.src));
+      if (background.src) bg.replaceChildren(createPortraitMedia(background.src));
+      else if (bg.childElementCount) {
+        bg.querySelector("video")?.pause();
+        const duration = Math.max(0, ...getComputedStyle(bg).transitionDuration.split(",").map(value => {
+          const time = Number.parseFloat(value);
+          return Number.isFinite(time) ? time * (value.trim().endsWith("ms") ? 1 : 1000) : 0;
+        }));
+        this.#backgroundClearTimer = setTimeout(() => {
+          if (!bg.dataset.src && !bg.classList.contains("rnps-background-active")) bg.replaceChildren();
+          this.#backgroundClearTimer = null;
+        }, duration + 50);
+      }
     }
     const backgroundVideo = bg.querySelector("video");
     const backgroundVisible = !navigationButton.isPlayerHidden() && isLayerVisible("background");
-    if (backgroundVisible && backgroundVideo?.paused) backgroundVideo.play().catch(() => {});
-    if (!backgroundVisible) backgroundVideo?.pause();
+    if (background.src && backgroundVisible && backgroundVideo?.paused) backgroundVideo.play().catch(() => {});
+    if (!background.src || !backgroundVisible) backgroundVideo?.pause();
     bg.classList.toggle("rnps-background-active", Boolean(background.src));
     bg.style.setProperty("--rnps-bg-fit", background.fit);
     bg.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
