@@ -29,6 +29,7 @@ function makeScene(id, initial = null) {
   let flag = initial;
   const scene = {
     id,
+    name: id,
     getFlag: () => flag,
     setFlag: async (_module, _key, value) => { flag = structuredClone(value); }
   };
@@ -37,11 +38,12 @@ function makeScene(id, initial = null) {
 }
 const first = makeScene("first");
 const second = makeScene("second");
+const third = makeScene("third");
 globalThis.canvas = { scene: first };
 
-const { addBackgroundVariant, addBackgroundGroup, getBackgroundLibrary, moveBackgroundGroup, moveBackgroundVariant, updateBackgroundVariant, removeBackgroundVariant, importLegacySceneBackgrounds } = await import("../data/background-library.js");
+const { addBackgroundVariant, addBackgroundGroup, getBackgroundLibrary, getBackgroundSceneAssignments, moveBackgroundGroup, moveBackgroundVariant, updateBackgroundVariant, removeBackgroundVariant, importLegacySceneBackgrounds } = await import("../data/background-library.js");
 const { activateSceneBackground, deactivateSceneBackground, getPresentation, setBackgroundFollowActive } = await import("../data/scene-presentation.js");
-const { ensurePreviewDraft, getPreviewLayer, getPreviewSession, setPreviewAutoApply, setPreviewLayer } = await import("../data/preview-service.js");
+const { ensurePreviewDraft, getPreviewLayer, getPreviewSession, setPreviewAutoApply, setPreviewLayer, syncImmediateBackgroundSelection } = await import("../data/preview-service.js");
 const { getSceneState } = await import("../data/scene-state.js");
 const { getPersistentState } = await import("../data/persistent-state.js");
 
@@ -71,31 +73,115 @@ await activateSceneBackground(forest.id);
 assert.equal(getSceneState(first).activeBackgroundId, forest.id);
 assert.equal(getPreviewLayer("scene", first).activeBackgroundId, forest.id);
 assert.equal(getPreviewLayer("scene", first).layout.pcPortraitSize, 220);
+
 assert.equal(getPreviewSession().dirty, true);
 
 await activateSceneBackground(castle.id, { scene: second });
 assert.equal(getPresentation(second).activeBackgroundId, castle.id);
+globalThis.canvas.scene = third;
+await ensurePreviewDraft(third);
+assert.equal(getPresentation(third).activeBackgroundId, null);
+globalThis.canvas.scene = first;
+await ensurePreviewDraft(first);
 await setBackgroundFollowActive(true);
-assert.equal(getSceneState(first).activeBackgroundId, null);
-assert.equal(getPresentation(second).activeBackgroundId, forest.id);
+assert.equal(getSceneState(first).activeBackgroundId, forest.id);
+assert.equal(getPresentation(second).activeBackgroundId, castle.id);
+assert.equal(getPresentation(third).activeBackgroundId, forest.id);
+globalThis.canvas.scene = third;
+await ensurePreviewDraft(third);
+assert.equal(getPresentation(third).activeBackgroundId, forest.id);
+const stalePersistent = getPreviewLayer("persistent", third);
+stalePersistent.backgroundId = null;
+stalePersistent.backgroundFollowActive = false;
+await setPreviewLayer("persistent", stalePersistent, third);
+assert.equal(getPresentation(third).activeBackgroundId, forest.id);
+await syncImmediateBackgroundSelection(third);
+globalThis.canvas.scene = first;
+await ensurePreviewDraft(first);
+assert.equal(getSceneState(third).activeBackgroundId, null);
+assert.deepEqual(getBackgroundSceneAssignments().get(forest.id), ["first"]);
+assert.deepEqual(getBackgroundSceneAssignments().get(castle.id), ["second"]);
 assert.equal(getPresentation(second).backgroundFollowActive, true);
 await updateBackgroundVariant(forest.id, { dim: 35 });
-assert.equal(getPresentation(second).background.dim, 35);
+assert.equal(getPresentation(third).background.dim, 35);
 assert.equal(getPreviewLayer("scene", first).layout.pcPortraitSize, 220);
 
-await activateSceneBackground(castle.id, { scene: second });
+// Applying an old portrait draft on an empty scene must preserve the
+// published background selection, including the pinned fallback.
+const empty = makeScene("empty");
+globalThis.canvas.scene = empty;
+await ensurePreviewDraft(empty);
+const oldSession = getPreviewSession();
+oldSession.draft.persistent.backgroundId = null;
+oldSession.draft.persistent.backgroundFollowActive = false;
+oldSession.draft.scene.backgroundSuppressed = true;
+settings.set(SETTING_KEYS.PREVIEW_SESSION, oldSession);
+assert.equal(getPresentation(empty).activeBackgroundId, forest.id);
+await setPreviewAutoApply(true, empty);
+assert.equal(getPresentation(empty).activeBackgroundId, forest.id);
+assert.equal(getSceneState(empty).activeBackgroundId, null);
+assert.equal(Object.hasOwn(getSceneState(empty), "backgroundSuppressed"), false);
+assert.equal(getPersistentState().backgroundId, forest.id);
+await setPreviewAutoApply(false, empty);
+game.user.isGM = false;
+assert.equal(getPresentation(empty).activeBackgroundId, forest.id);
+game.user.isGM = true;
+globalThis.canvas.scene = first;
+await ensurePreviewDraft(first);
+
+// A scene with no assignment always uses the pinned fallback.
+const hidden = makeScene("hidden");
+assert.equal(await deactivateSceneBackground({ scene: hidden }), false);
+assert.equal(getPresentation(hidden).activeBackgroundId, forest.id);
+assert.equal(getPresentation(third).activeBackgroundId, forest.id);
+assert.equal(getPresentation(empty).sceneBackgroundId, null);
+await activateSceneBackground(forest.id, { scene: empty });
+assert.equal(getPresentation(empty).sceneBackgroundId, forest.id);
+await deactivateSceneBackground({ scene: empty });
+assert.equal(getPresentation(empty).sceneBackgroundId, null);
+assert.equal(getPresentation(empty).activeBackgroundId, forest.id);
+
+// The eye button removes the scene assignment, then the pinned fallback shows.
+const disabledLocal = makeScene("disabled-local");
+await activateSceneBackground(castle.id, { scene: disabledLocal });
+await deactivateSceneBackground({ scene: disabledLocal });
+assert.equal(getSceneState(disabledLocal).activeBackgroundId, null);
+assert.equal(Object.hasOwn(getSceneState(disabledLocal), "backgroundSuppressed"), false);
+assert.equal(getPresentation(disabledLocal).activeBackgroundId, forest.id);
+game.user.isGM = false;
+assert.equal(getPresentation(disabledLocal).activeBackgroundId, forest.id);
+game.user.isGM = true;
+
+globalThis.canvas.scene = second;
+await ensurePreviewDraft(second);
 assert.equal(getPresentation(second).activeBackgroundId, castle.id);
-assert.equal(getPresentation(first).activeBackgroundId, castle.id);
-assert.equal(getPersistentState().backgroundId, castle.id);
-await deactivateSceneBackground({ scene: second });
-assert.equal(getPresentation(second).activeBackgroundId, null);
-assert.equal(getPresentation(first).activeBackgroundId, null);
-await activateSceneBackground(castle.id, { scene: second });
+game.user.isGM = false;
 assert.equal(getPresentation(second).activeBackgroundId, castle.id);
-await setBackgroundFollowActive(false, { scene: second });
+game.user.isGM = true;
+globalThis.canvas.scene = first;
+await ensurePreviewDraft(first);
+
+globalThis.canvas.scene = third;
+await ensurePreviewDraft(third);
+await activateSceneBackground(castle.id);
+assert.equal(getSceneState(third).activeBackgroundId, castle.id);
+assert.equal(getPresentation(third).activeBackgroundId, castle.id);
+assert.deepEqual(getBackgroundSceneAssignments().get(castle.id), ["second", "third"]);
+assert.equal(getPersistentState().backgroundId, forest.id);
+await deactivateSceneBackground();
+assert.equal(getPresentation(third).activeBackgroundId, forest.id);
+assert.equal(getSceneState(third).activeBackgroundId, null);
+assert.deepEqual(getBackgroundSceneAssignments().get(castle.id), ["second"]);
+assert.equal(getPresentation(first).activeBackgroundId, forest.id);
+await setBackgroundFollowActive(false, { scene: third });
 assert.equal(getPresentation(second).activeBackgroundId, castle.id);
-assert.equal(getPresentation(first).activeBackgroundId, null);
+assert.equal(getPresentation(first).activeBackgroundId, forest.id);
+assert.equal(getPresentation(third).activeBackgroundId, null);
+assert.equal(getPresentation(disabledLocal).activeBackgroundId, null);
+assert.equal(getSceneState(third).activeBackgroundId, null);
 assert.equal(getPersistentState().backgroundId, null);
+globalThis.canvas.scene = first;
+await ensurePreviewDraft(first);
 
 const legacy = makeScene("legacy", {
   schemaVersion: 9,
@@ -111,6 +197,7 @@ assert.equal(getBackgroundLibrary().backgrounds.length, 3);
 await removeBackgroundVariant(forest.id);
 assert.equal(getPresentation(first).activeBackgroundId, null);
 assert.equal(getPersistentState().backgroundId, null);
+assert.equal(getPersistentState().backgroundFollowActive, false);
 assert.equal(getPreviewLayer("scene", first).layout.pcPortraitSize, 220);
 
 await setPreviewAutoApply(true, first);

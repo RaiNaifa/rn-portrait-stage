@@ -15,7 +15,6 @@ export function createDefaultSceneState() {
     background: { src: "", fit: "cover", positionX: 50, positionY: 50, dim: 0, blur: 0, overUi: false },
     backgrounds: [],
     activeBackgroundId: null,
-    backgroundSuppressed: false,
     backgroundId: null,
     backgroundFollowActive: false,
     groups: {
@@ -71,7 +70,6 @@ export function normalizeSceneState(source) {
   normalized.backgroundId = typeof state.backgroundId === "string" ? state.backgroundId : null;
   normalized.backgroundFollowActive = state.backgroundFollowActive === true
     || (state.backgroundFollowActive == null && Boolean(normalized.backgroundId));
-  normalized.backgroundSuppressed = state.backgroundSuppressed === true;
 
   for (const groupId of Object.values(GROUP_IDS)) {
     const entries = state.groups?.[groupId]?.entries;

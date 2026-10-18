@@ -21,7 +21,7 @@ import { BackgroundSettings } from "./background-settings.js";
 import { logger } from "../logger.js";
 import { applyPreview, ensurePreviewDraft, getPreviewConflicts, getPreviewSession, resetPreview, setPreviewAutoApply, withoutPreview } from "../data/preview-service.js";
 import { activateSceneBackground, assignFocus, clearFocus, deactivateSceneBackground, getPresentation, moveFocusZone, setBackgroundFollowActive, setFocusPersistent, setFocusVisible, updateFocusEntry } from "../data/scene-presentation.js";
-import { addBackgroundGroup, addBackgroundVariant, getBackgroundLibrary, moveBackgroundGroup, moveBackgroundVariant, removeBackgroundGroup, removeBackgroundVariant, renameBackgroundGroup } from "../data/background-library.js";
+import { addBackgroundGroup, addBackgroundVariant, getBackgroundLibrary, getBackgroundSceneAssignments, moveBackgroundGroup, moveBackgroundVariant, removeBackgroundGroup, removeBackgroundVariant, renameBackgroundGroup } from "../data/background-library.js";
 import { getClientVisibility, getSharedVisibility, toggleClientVisibility, toggleSharedVisibility, VISIBILITY_LAYERS } from "../data/visibility-service.js";
 import { portraitStage } from "../portraits/portrait-stage.js";
 import { getBackgroundPreloadStatus, requestBackgroundPreload } from "../data/background-preload.js";
@@ -118,11 +118,16 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const conflicts = getPreviewConflicts(scene);
     const presentation = getPresentation(scene);
     const backgroundLibrary = getBackgroundLibrary();
+    const backgroundScenes = getBackgroundSceneAssignments();
     const backgroundViews = backgroundLibrary.backgrounds.map(item => {
       const preload = getBackgroundPreloadStatus(item.id, item.src);
+      const sceneNames = backgroundScenes.get(item.id) ?? [];
       return {
         ...item,
         active: item.id === presentation.activeBackgroundId,
+        assignedToScene: item.id === presentation.sceneBackgroundId,
+        sceneCount: sceneNames.length,
+        sceneTooltip: sceneNames.length ? game.i18n.format("RNPS.Background.AssignedScenes", { scenes: sceneNames.join(" • ") }) : "",
         preload,
         preloadIdle: preload.state === "idle",
         preloadLoading: preload.state === "loading",
@@ -872,7 +877,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #toggleActiveBackground(event, target) {
     const id = target.closest("[data-background-id]")?.dataset.backgroundId;
     if (!id) return;
-    if (getPresentation(canvas.scene).activeBackgroundId === id) await deactivateSceneBackground();
+    if (getPresentation(canvas.scene).sceneBackgroundId === id) await deactivateSceneBackground();
     else await activateSceneBackground(id);
     this.render();
   }

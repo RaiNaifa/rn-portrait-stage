@@ -3,7 +3,6 @@ import { getActorLibrary, setActorLibrary } from "./actor-library.js";
 import { normalizePortraitEntry } from "./portrait-entry.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 import { createDefaultSceneState, getSceneState, normalizeSceneState, setSceneState } from "./scene-state.js";
-import { ensureGlobalBackground, findBackground } from "./background-library.js";
 
 let previewSuspended = 0;
 const clone = value => foundry.utils.deepClone(value);
@@ -243,7 +242,6 @@ export async function syncImmediateBackgroundSelection(scene) {
     snapshot.scene = normalizeSceneState(snapshot.scene);
     snapshot.persistent = normalizeSceneState(snapshot.persistent);
     snapshot.scene.activeBackgroundId = publishedScene.activeBackgroundId;
-    snapshot.scene.backgroundSuppressed = publishedScene.backgroundSuppressed;
     snapshot.scene.background = clone(publishedScene.background);
     snapshot.persistent.backgroundId = publishedPersistent.backgroundId;
     snapshot.persistent.backgroundFollowActive = publishedPersistent.backgroundFollowActive;
@@ -251,7 +249,7 @@ export async function syncImmediateBackgroundSelection(scene) {
   await store({
     ...session, base, draft,
     conflicts: (session.conflicts ?? []).filter(path => ![
-      "scene.activeBackgroundId", "scene.background", "scene.backgroundSuppressed", "persistent.backgroundId", "persistent.backgroundFollowActive"
+      "scene.activeBackgroundId", "scene.background", "persistent.backgroundId", "persistent.backgroundFollowActive"
     ].some(prefix => path === prefix || path.startsWith(`${prefix}.`)))
   });
 }
@@ -301,13 +299,21 @@ export async function applyPreview(scene = canvas.scene) {
   if (!effective) return false;
   let sceneState = effective.scene;
   let persistentState = effective.persistent;
-  sceneState = normalizeSceneState({ ...sceneState, focus: effective.scene.focus, background: effective.scene.background, activeBackgroundId: effective.scene.activeBackgroundId, backgroundSuppressed: effective.scene.backgroundSuppressed });
-  if (!findBackground(sceneState.activeBackgroundId) && sceneState.background.src) {
-    const item = await ensureGlobalBackground(sceneState.background);
-    sceneState.activeBackgroundId = item?.id ?? null;
-  }
+  // Background selection is immediate. A saved portrait draft must never restore
+  // an older background when it is applied after a scene change.
+  const publishedScene = getSceneState(scene);
+  const publishedPersistent = getPersistentState();
+  sceneState = normalizeSceneState({
+    ...sceneState,
+    background: publishedScene.background,
+    activeBackgroundId: publishedScene.activeBackgroundId
+  });
   sceneState.backgrounds = [];
-  persistentState = normalizeSceneState({ ...persistentState, focus: effective.persistent.focus, backgroundId: effective.persistent.backgroundId, backgroundFollowActive: effective.persistent.backgroundFollowActive });
+  persistentState = normalizeSceneState({
+    ...persistentState,
+    backgroundId: publishedPersistent.backgroundId,
+    backgroundFollowActive: publishedPersistent.backgroundFollowActive
+  });
   const reserve = effective.reserve;
   await setSceneState(scene, sceneState);
   await setPersistentState(persistentState);

@@ -38,6 +38,18 @@ export function findBackground(id) {
   return getBackgroundLibrary().backgrounds.find(item => item.id === id) ?? null;
 }
 
+export function getBackgroundSceneAssignments(scenes = game.scenes?.contents ?? []) {
+  const assignments = new Map();
+  for (const scene of scenes) {
+    const state = getSceneState(scene);
+    const id = state.activeBackgroundId;
+    if (!id) continue;
+    if (!assignments.has(id)) assignments.set(id, []);
+    assignments.get(id).push(scene.name);
+  }
+  return assignments;
+}
+
 export async function addBackgroundVariant({ src, name, ...settings }) {
   if (!game.user?.isGM || typeof src !== "string" || !src.trim()) return null;
   const library = getBackgroundLibrary();
@@ -81,6 +93,7 @@ export async function removeBackgroundVariant(id) {
   const persistent = getPersistentState();
   if (persistent.backgroundId === id) {
     persistent.backgroundId = null;
+    persistent.backgroundFollowActive = false;
     await setPersistentState(persistent);
   }
   return true;

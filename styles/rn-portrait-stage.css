@@ -1161,6 +1161,23 @@
   content: "";
   pointer-events: none;
 }
+.rnps-background-scenes {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 2;
+  display: inline-flex;
+  min-width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 5px;
+  background: rgb(16 16 23 / 84%);
+  font-size: 11px;
+}
 .rnps-background-card-name {
   position: absolute;
   right: 72px;

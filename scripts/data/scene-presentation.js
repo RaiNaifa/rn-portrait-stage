@@ -17,8 +17,10 @@ export function getPresentation(scene = canvas.scene, { published = false } = {}
     return { focus: empty.focus, focusOrder: empty.focusOrder, background: empty.background, backgrounds: getBackgroundLibrary().backgrounds, activeBackgroundId: null, persistentBackgroundId: null };
   }
   const preview = !published && scene.id === canvas.scene?.id && isPreviewActive();
-  const state = (preview ? getPreviewLayer("scene", scene) : null) ?? getSceneState(scene);
-  const persistent = (preview ? getPreviewLayer(CAST_LAYERS.PERSISTENT, scene) : null) ?? getPersistentState();
+  const publishedScene = getSceneState(scene);
+  const publishedPersistent = getPersistentState();
+  const state = (preview ? getPreviewLayer("scene", scene) : null) ?? publishedScene;
+  const persistent = (preview ? getPreviewLayer(CAST_LAYERS.PERSISTENT, scene) : null) ?? publishedPersistent;
   const sceneActors = new Set(ZONES.map(zone => state.focus[zone]?.entry?.actorUuid).filter(Boolean));
   const focus = Object.fromEntries(ZONES.map(zone => [zone,
     state.focus[zone] ? { ...state.focus[zone], persistent: false }
@@ -26,23 +28,18 @@ export function getPresentation(scene = canvas.scene, { published = false } = {}
         ? { ...persistent.focus[zone], persistent: true } : null
   ]));
   const backgrounds = getBackgroundLibrary().backgrounds;
-  const sceneItem = backgrounds.find(item => item.id === state.activeBackgroundId)
-    ?? state.backgrounds.find(item => item.id === state.activeBackgroundId);
-  const persistentItem = backgrounds.find(item => item.id === persistent.backgroundId);
-  const snapshotItem = !state.activeBackgroundId && state.background.src ? state.background : null;
-  const active = preview && state.background.src && !state.backgroundSuppressed
-    ? sceneItem ?? snapshotItem
-    : persistent.backgroundFollowActive
-    ? persistentItem
-    : state.backgroundSuppressed ? null : sceneItem ?? snapshotItem ?? persistentItem;
+  const sceneItem = backgrounds.find(item => item.id === publishedScene.activeBackgroundId)
+    ?? publishedScene.backgrounds.find(item => item.id === publishedScene.activeBackgroundId);
+  const persistentItem = backgrounds.find(item => item.id === publishedPersistent.backgroundId);
+  const snapshotItem = !publishedScene.activeBackgroundId && publishedScene.background.src ? publishedScene.background : null;
+  const active = sceneItem ?? snapshotItem ?? persistentItem;
   const background = active ?? normalizeSceneState().background;
   return {
     focus, focusOrder: state.focusOrder, background, backgrounds,
     activeBackgroundId: active?.id ?? null,
-    sceneBackgroundId: state.activeBackgroundId,
-    backgroundSuppressed: state.backgroundSuppressed,
-    persistentBackgroundId: persistent.backgroundId,
-    backgroundFollowActive: persistent.backgroundFollowActive
+    sceneBackgroundId: publishedScene.activeBackgroundId,
+    persistentBackgroundId: publishedPersistent.backgroundId,
+    backgroundFollowActive: publishedPersistent.backgroundFollowActive
   };
 }
 
@@ -236,26 +233,8 @@ export async function addSceneBackground(src, options = {}) {
 export async function activateSceneBackground(id, options = {}) {
   const item = findBackground(id);
   if (!item) return false;
-  const scene = options.scene ?? canvas.scene;
-  const persistent = getPersistentState();
-  if (persistent.backgroundFollowActive) {
-    const state = getSceneState(scene);
-    state.activeBackgroundId = null;
-    state.backgroundSuppressed = false;
-    state.background = normalizeSceneState().background;
-    persistent.backgroundId = id;
-    await withoutPreview(async () => {
-      await setSceneState(scene, state);
-      await setPersistentState(persistent);
-    });
-    await syncImmediateBackgroundSelection(scene);
-    return true;
-  }
   return changeScene(state => {
-    if (state.activeBackgroundId !== id && !(state.backgroundSuppressed && !state.activeBackgroundId && getPersistentState().backgroundId === id)) {
-      state.activeBackgroundId = id;
-    }
-    state.backgroundSuppressed = false;
+    state.activeBackgroundId = id;
     state.background = { ...item };
   }, { ...options, immediate: true, section: "background" });
 }
@@ -263,15 +242,8 @@ export async function activateSceneBackground(id, options = {}) {
 export async function deactivateSceneBackground(options = {}) {
   const scene = options.scene ?? canvas.scene;
   const state = getSceneState(scene);
-  const persistent = getPersistentState();
-  if (persistent.backgroundFollowActive) {
-    persistent.backgroundId = null;
-    await withoutPreview(() => setPersistentState(persistent));
-    await syncImmediateBackgroundSelection(scene);
-    return true;
-  }
-  if (state.activeBackgroundId || getPersistentState().backgroundId) return changeScene(value => {
-    value.backgroundSuppressed = true;
+  if (state.activeBackgroundId || state.background.src) return changeScene(value => {
+    value.activeBackgroundId = null;
     value.background = normalizeSceneState().background;
   }, { ...options, immediate: true, section: "background" });
   return false;
@@ -289,24 +261,10 @@ export async function setBackgroundFollowActive(enabled, { scene = canvas.scene 
   if (!game.user?.isGM || !scene) return false;
   const activeId = getPresentation(scene, { published: true }).activeBackgroundId;
   if (enabled && !findBackground(activeId)) return false;
-  const sceneState = getSceneState(scene);
   const persistent = getPersistentState();
   persistent.backgroundFollowActive = enabled;
-  if (enabled) {
-    persistent.backgroundId = activeId;
-    sceneState.activeBackgroundId = null;
-    sceneState.background = normalizeSceneState().background;
-    sceneState.backgroundSuppressed = false;
-  } else {
-    persistent.backgroundId = null;
-    if (activeId) {
-      sceneState.activeBackgroundId = activeId;
-      sceneState.background = { ...findBackground(activeId) };
-      sceneState.backgroundSuppressed = false;
-    }
-  }
+  persistent.backgroundId = enabled ? activeId : null;
   await withoutPreview(async () => {
-    await setSceneState(scene, sceneState);
     await setPersistentState(persistent);
   });
   await syncImmediateBackgroundSelection(scene);
