@@ -61,6 +61,170 @@ export function registerSettings() {
     hint: "RNPS.Settings.AttentionRequests.Hint",
     scope: "world", config: true, type: Boolean, default: true
   });
+
+  register(SETTING_KEYS.EXPERIMENTAL_VOICE_ALLOWED, {
+    name: "RNPS.Settings.ExperimentalVoiceAllowed.Name",
+    hint: "RNPS.Settings.ExperimentalVoiceAllowed.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  register(SETTING_KEYS.INITIAL_ACTOR_VARIANT, {
+    name: "RNPS.Settings.InitialActorVariant.Name",
+    hint: "RNPS.Settings.InitialActorVariant.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      actor: "RNPS.Editor.ActorImage",
+      prototypeToken: "RNPS.Editor.PrototypeTokenImage"
+    },
+    default: "actor"
+  });
+
+  register(SETTING_KEYS.PORTRAIT_GAP, {
+    name: "RNPS.Settings.PortraitGap.Name",
+    hint: "RNPS.Settings.PortraitGap.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 8,
+    range: {
+      min: 0,
+      max: 64,
+      step: 1
+    }
+  });
+
+  for (const [key, labelKey, defaultValue] of [
+    [SETTING_KEYS.PC_OFFSET_X, "PcOffsetX", 0],
+    [SETTING_KEYS.PC_OFFSET_Y, "PcOffsetY", 0],
+    [SETTING_KEYS.NPC_OFFSET_X, "NpcOffsetX", 0],
+    [SETTING_KEYS.NPC_OFFSET_Y, "NpcOffsetY", 0]
+  ]) {
+    register(key, {
+      name: `RNPS.Settings.${labelKey}.Name`,
+      hint: `RNPS.Settings.${labelKey}.Hint`,
+      scope: "world",
+      config: true,
+      type: Number,
+      default: defaultValue,
+      range: {
+        min: -500,
+        max: 500,
+        step: 1
+      }
+    });
+  }
+
+  const fontChoices = getAvailableFontChoices();
+
+  register(SETTING_KEYS.LABEL_FONT_FAMILY, {
+    name: "RNPS.Settings.LabelFontFamily.Name",
+    hint: "RNPS.Settings.LabelFontFamily.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: fontChoices,
+    default: fontChoices[CONFIG.defaultFontFamily]
+      ? CONFIG.defaultFontFamily
+      : Object.keys(fontChoices)[0] ?? "Signika"
+  });
+
+  register(SETTING_KEYS.LABEL_FONT_SIZE, {
+    name: "RNPS.Settings.LabelFontSize.Name",
+    hint: "RNPS.Settings.LabelFontSize.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 12,
+    range: { min: 8, max: 48, step: 1 }
+  });
+
+  register(SETTING_KEYS.PORTRAIT_SCALE, {
+    name: "RNPS.Settings.PortraitScale.Name",
+    hint: "RNPS.Settings.PortraitScale.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 100,
+    range: {
+      min: 50,
+      max: 150,
+      step: 5
+    }
+  });
+
+  register(SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE, {
+    name: "RNPS.Settings.HoverArtDefaultSource.Name",
+    hint: "RNPS.Settings.HoverArtDefaultSource.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      actor: "RNPS.HoverArt.ActorImage",
+      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage",
+      none: "RNPS.HoverArt.None"
+    },
+    default: "actor"
+  });
+
+  register(SETTING_KEYS.HOVER_ART_WORLD_SCALE, {
+    name: "RNPS.Settings.HoverArtWorldScale.Name",
+    hint: "RNPS.Settings.HoverArtWorldScale.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 25, max: 200, step: 5 }
+  });
+
+  register(SETTING_KEYS.HOVER_ART_SCALE, {
+    name: "RNPS.Settings.HoverArtScale.Name",
+    hint: "RNPS.Settings.HoverArtScale.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 50, max: 150, step: 5 }
+  });
+
+  register(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, {
+    name: "RNPS.Settings.FocusImageDefaultSource.Name",
+    hint: "RNPS.Settings.FocusImageDefaultSource.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      hover: "RNPS.FocusImage.AsHover",
+      actor: "RNPS.HoverArt.ActorImage",
+      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage"
+    },
+    default: "actor"
+  });
+
+  register(SETTING_KEYS.FOCUS_GAP, {
+    name: "RNPS.Settings.FocusGap.Name",
+    hint: "RNPS.Settings.FocusGap.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 8,
+    range: { min: -128, max: 64, step: 1 }
+  });
+
+  register(SETTING_KEYS.FOCUS_SCALE, {
+    name: "RNPS.Settings.FocusScale.Name",
+    hint: "RNPS.Settings.FocusScale.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 50, max: 150, step: 5 }
+  });
+
   register(SETTING_KEYS.ATTENTION_DEFAULT_ZONE, {
     name: "RNPS.Settings.AttentionDefaultZone.Name",
     hint: "RNPS.Settings.AttentionDefaultZone.Hint",
@@ -72,28 +236,25 @@ export function registerSettings() {
       right: "RNPS.Focus.Right"
     }
   });
+
   register(SETTING_KEYS.ATTENTION_REPLACE_OCCUPIED, {
     name: "RNPS.Settings.AttentionReplaceOccupied.Name",
     hint: "RNPS.Settings.AttentionReplaceOccupied.Hint",
     scope: "world", config: true, type: Boolean, default: false
   });
 
-  register(SETTING_KEYS.DEBUG_LOGGING, {
-    name: "RNPS.Settings.DebugLogging.Name",
-    hint: "RNPS.Settings.DebugLogging.Hint",
-    scope: "client",
-    config: true,
-    type: Boolean,
-    default: false
-  });
-
-  register(SETTING_KEYS.EXPERIMENTAL_VOICE_ALLOWED, {
-    name: "RNPS.Settings.ExperimentalVoiceAllowed.Name",
-    hint: "RNPS.Settings.ExperimentalVoiceAllowed.Hint",
+  register(SETTING_KEYS.BACKGROUND_DEFAULT_FIT, {
+    name: "RNPS.Settings.BackgroundDefaultFit.Name",
+    hint: "RNPS.Settings.BackgroundDefaultFit.Hint",
     scope: "world",
     config: true,
-    type: Boolean,
-    default: false
+    type: String,
+    choices: {
+      "contain-blur": "RNPS.Background.ContainBlur",
+      cover: "RNPS.Background.Cover",
+      contain: "RNPS.Background.Contain"
+    },
+    default: "contain-blur"
   });
 
   register(SETTING_KEYS.EXPERIMENTAL_VOICE_ENABLED, {
@@ -135,101 +296,6 @@ export function registerSettings() {
     range: { min: 50, max: 1000, step: 25 }
   });
 
-  register(SETTING_KEYS.PORTRAIT_SCALE, {
-    name: "RNPS.Settings.PortraitScale.Name",
-    hint: "RNPS.Settings.PortraitScale.Hint",
-    scope: "client",
-    config: true,
-    type: Number,
-    default: 100,
-    range: {
-      min: 50,
-      max: 150,
-      step: 5
-    }
-  });
-
-  register(SETTING_KEYS.FOCUS_SCALE, {
-    name: "RNPS.Settings.FocusScale.Name",
-    hint: "RNPS.Settings.FocusScale.Hint",
-    scope: "client",
-    config: true,
-    type: Number,
-    default: 100,
-    range: { min: 50, max: 150, step: 5 }
-  });
-
-  register(SETTING_KEYS.INITIAL_ACTOR_VARIANT, {
-    name: "RNPS.Settings.InitialActorVariant.Name",
-    hint: "RNPS.Settings.InitialActorVariant.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      actor: "RNPS.Editor.ActorImage",
-      prototypeToken: "RNPS.Editor.PrototypeTokenImage"
-    },
-    default: "actor"
-  });
-
-  register(SETTING_KEYS.HOVER_ART_DEFAULT_SOURCE, {
-    name: "RNPS.Settings.HoverArtDefaultSource.Name",
-    hint: "RNPS.Settings.HoverArtDefaultSource.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      actor: "RNPS.HoverArt.ActorImage",
-      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage",
-      none: "RNPS.HoverArt.None"
-    },
-    default: "actor"
-  });
-
-  register(SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, {
-    name: "RNPS.Settings.FocusImageDefaultSource.Name",
-    hint: "RNPS.Settings.FocusImageDefaultSource.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      hover: "RNPS.FocusImage.AsHover",
-      actor: "RNPS.HoverArt.ActorImage",
-      prototypeToken: "RNPS.HoverArt.PrototypeTokenImage"
-    },
-    default: "actor"
-  });
-
-  register(SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET, {
-    name: "RNPS.Settings.HoverArtBottomOffset.Name",
-    hint: "RNPS.Settings.HoverArtBottomOffset.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 0,
-    range: { min: 0, max: 500, step: 1 }
-  });
-
-  register(SETTING_KEYS.HOVER_ART_WORLD_SCALE, {
-    name: "RNPS.Settings.HoverArtWorldScale.Name",
-    hint: "RNPS.Settings.HoverArtWorldScale.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 100,
-    range: { min: 25, max: 200, step: 5 }
-  });
-
-  register(SETTING_KEYS.HOVER_ART_SCALE, {
-    name: "RNPS.Settings.HoverArtScale.Name",
-    hint: "RNPS.Settings.HoverArtScale.Hint",
-    scope: "client",
-    config: true,
-    type: Number,
-    default: 100,
-    range: { min: 50, max: 150, step: 5 }
-  });
-
   register(SETTING_KEYS.TOKEN_HIGHLIGHT_ENABLED, {
     name: "RNPS.Settings.TokenHighlightEnabled.Name",
     hint: "RNPS.Settings.TokenHighlightEnabled.Hint",
@@ -263,27 +329,13 @@ export function registerSettings() {
     default: true
   });
 
-  const fontChoices = getAvailableFontChoices();
-  register(SETTING_KEYS.LABEL_FONT_FAMILY, {
-    name: "RNPS.Settings.LabelFontFamily.Name",
-    hint: "RNPS.Settings.LabelFontFamily.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: fontChoices,
-    default: fontChoices[CONFIG.defaultFontFamily]
-      ? CONFIG.defaultFontFamily
-      : Object.keys(fontChoices)[0] ?? "Signika"
-  });
-
-  register(SETTING_KEYS.LABEL_FONT_SIZE, {
-    name: "RNPS.Settings.LabelFontSize.Name",
-    hint: "RNPS.Settings.LabelFontSize.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 12,
-    range: { min: 8, max: 48, step: 1 }
+  register(SETTING_KEYS.DEBUG_LOGGING, {
+    name: "RNPS.Settings.DebugLogging.Name",
+    hint: "RNPS.Settings.DebugLogging.Hint",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
   });
 
   register(SETTING_KEYS.STAGE_ENABLED, {
@@ -380,65 +432,6 @@ export function registerSettings() {
     type: Object,
     default: { groups: [{ id: "default", name: "Default" }], backgrounds: [] }
   });
-
-  register(SETTING_KEYS.BACKGROUND_DEFAULT_FIT, {
-    name: "RNPS.Settings.BackgroundDefaultFit.Name",
-    hint: "RNPS.Settings.BackgroundDefaultFit.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      "contain-blur": "RNPS.Background.ContainBlur",
-      cover: "RNPS.Background.Cover",
-      contain: "RNPS.Background.Contain"
-    },
-    default: "contain-blur"
-  });
-
-  register(SETTING_KEYS.PORTRAIT_GAP, {
-    name: "RNPS.Settings.PortraitGap.Name",
-    hint: "RNPS.Settings.PortraitGap.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 8,
-    range: {
-      min: 0,
-      max: 64,
-      step: 1
-    }
-  });
-
-  register(SETTING_KEYS.FOCUS_GAP, {
-    name: "RNPS.Settings.FocusGap.Name",
-    hint: "RNPS.Settings.FocusGap.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 8,
-    range: { min: -128, max: 64, step: 1 }
-  });
-
-  for (const [key, labelKey, defaultValue] of [
-    [SETTING_KEYS.PC_OFFSET_X, "PcOffsetX", 0],
-    [SETTING_KEYS.PC_OFFSET_Y, "PcOffsetY", 0],
-    [SETTING_KEYS.NPC_OFFSET_X, "NpcOffsetX", 0],
-    [SETTING_KEYS.NPC_OFFSET_Y, "NpcOffsetY", 0]
-  ]) {
-    register(key, {
-      name: `RNPS.Settings.${labelKey}.Name`,
-      hint: `RNPS.Settings.${labelKey}.Hint`,
-      scope: "world",
-      config: true,
-      type: Number,
-      default: defaultValue,
-      range: {
-        min: -500,
-        max: 500,
-        step: 1
-      }
-    });
-  }
 
   logger.debug("Settings registered");
 }

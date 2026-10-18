@@ -56,7 +56,6 @@ export const SETTING_KEYS = Object.freeze({
   NPC_OFFSET_Y: "npcOffsetY",
   HOVER_ART_DEFAULT_SOURCE: "hoverArtDefaultSource",
   FOCUS_IMAGE_DEFAULT_SOURCE: "focusImageDefaultSource",
-  HOVER_ART_BOTTOM_OFFSET: "hoverArtBottomOffset",
   HOVER_ART_WORLD_SCALE: "hoverArtWorldScale",
   HOVER_ART_SCALE: "hoverArtScale",
   TOKEN_HIGHLIGHT_ENABLED: "tokenHighlightDefault",

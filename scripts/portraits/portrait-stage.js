@@ -1215,8 +1215,6 @@ export class PortraitStage {
 
   #positionHover(card, groupId) {
     const rect = card.getBoundingClientRect();
-    const bottom = game.settings.get(MODULE_ID, SETTING_KEYS.HOVER_ART_BOTTOM_OFFSET);
-    this.#hoverArt.style.bottom = `${bottom}px`;
     this.#hoverBlocks.style.top = `${Math.max(8, rect.top)}px`;
     if (groupId === GROUP_IDS.NPCS) {
       this.#hoverBlocks.dataset.side = "right";

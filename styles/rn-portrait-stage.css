@@ -540,6 +540,7 @@
 
 .rnps-hover-art {
   position: fixed;
+  bottom: 0;
   z-index: 1;
   max-width: 55vw;
   transform: scale(var(--rnps-hover-scale, 1));

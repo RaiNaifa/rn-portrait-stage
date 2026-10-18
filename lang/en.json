@@ -184,10 +184,6 @@
         "Name": "Default focus image",
         "Hint": "Image source in scene focus when the variant does not override it."
       },
-      "HoverArtBottomOffset": {
-        "Name": "Enlarged art bottom offset",
-        "Hint": "World-space distance between enlarged hover art and the bottom edge of the screen, in pixels."
-      },
       "HoverArtWorldScale": {
         "Name": "Enlarged art size",
         "Hint": "Base world scale for enlarged art. Variant and personal client scales are applied in addition."
