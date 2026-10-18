@@ -12,6 +12,7 @@ import { registerLitmIntegration } from "./integrations/litm-rn.js";
 import { voiceController } from "./voice/voice-controller.js";
 import { reconcileSharedVisibility } from "./data/visibility-service.js";
 import { importLegacySceneBackgrounds } from "./data/background-library.js";
+import { initializeAttentionRequests } from "./data/attention-requests.js";
 
 Hooks.once("init", () => {
   logger.info(`Initializing ${MODULE_TITLE}`);
@@ -58,6 +59,7 @@ Hooks.once("ready", async () => {
     void importLegacySceneBackgrounds().catch(error => logger.error("Background migration failed", error));
   }
   initializeSocketService();
+  initializeAttentionRequests();
   const adapter = getCompatibilityAdapter();
   const api = game.modules.get(MODULE_ID)?.api;
   registerLitmIntegration(api);

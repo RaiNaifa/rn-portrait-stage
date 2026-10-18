@@ -56,6 +56,28 @@ export function registerSettings() {
     default: true
   });
 
+  register(SETTING_KEYS.ALLOW_ATTENTION_REQUESTS, {
+    name: "RNPS.Settings.AttentionRequests.Name",
+    hint: "RNPS.Settings.AttentionRequests.Hint",
+    scope: "world", config: true, type: Boolean, default: true
+  });
+  register(SETTING_KEYS.ATTENTION_DEFAULT_ZONE, {
+    name: "RNPS.Settings.AttentionDefaultZone.Name",
+    hint: "RNPS.Settings.AttentionDefaultZone.Hint",
+    scope: "world", config: true, type: String, default: "ask",
+    choices: {
+      ask: "RNPS.Attention.Ask",
+      left: "RNPS.Focus.Left",
+      center: "RNPS.Focus.Center",
+      right: "RNPS.Focus.Right"
+    }
+  });
+  register(SETTING_KEYS.ATTENTION_REPLACE_OCCUPIED, {
+    name: "RNPS.Settings.AttentionReplaceOccupied.Name",
+    hint: "RNPS.Settings.AttentionReplaceOccupied.Hint",
+    scope: "world", config: true, type: Boolean, default: false
+  });
+
   register(SETTING_KEYS.DEBUG_LOGGING, {
     name: "RNPS.Settings.DebugLogging.Name",
     hint: "RNPS.Settings.DebugLogging.Hint",

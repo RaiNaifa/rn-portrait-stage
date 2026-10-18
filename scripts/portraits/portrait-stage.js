@@ -13,6 +13,7 @@ import { isImageHoverActive, withImageHoverSuppressed } from "../integrations/im
 import { voiceController } from "../voice/voice-controller.js";
 import { isLayerVisible } from "../data/visibility-service.js";
 import { navigationButton } from "../ui/navigation-button.js";
+import { sendAttentionRequest } from "../data/attention-requests.js";
 import { assignFocus, getPresentation, moveFocusZone, removeFocusActor, setFocusOrder, updateFocusEntry } from "../data/scene-presentation.js";
 
 export class PortraitStage {
@@ -621,6 +622,12 @@ export class PortraitStage {
       }
 
       this.#renderRegisteredActions(card, view, groupId);
+      if (!game.user.isGM && game.settings.get(MODULE_ID, SETTING_KEYS.ALLOW_ATTENTION_REQUESTS)
+        && game.user.character?.uuid === view.actorUuid) {
+        card.append(this.#portraitButton("rnps-ui-attention", "fa-solid fa-hand", "RNPS.Attention.Send", () => {
+          void sendAttentionRequest(view);
+        }));
+      }
       if (game.user.isGM) {
         card.append(this.#portraitButton("rnps-ui-focus", "fa-solid fa-expand", "RNPS.Focus.Button", () => {
           this.#toggleFocusMenu(card, view);

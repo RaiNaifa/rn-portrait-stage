@@ -27,6 +27,9 @@ export const CAST_LAYERS = Object.freeze({
 export const SETTING_KEYS = Object.freeze({
   ALLOW_PLAYER_PORTRAIT_CHANGES: "allowPlayerPortraitChanges",
   ALLOW_OWNER_VARIANT_CONFIGURATION: "allowOwnerVariantConfiguration",
+  ALLOW_ATTENTION_REQUESTS: "allowAttentionRequests",
+  ATTENTION_DEFAULT_ZONE: "attentionDefaultZone",
+  ATTENTION_REPLACE_OCCUPIED: "attentionReplaceOccupied",
   DEBUG_LOGGING: "debugLogging",
   EXPERIMENTAL_VOICE_ALLOWED: "experimentalVoiceAllowed",
   EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabledClient",

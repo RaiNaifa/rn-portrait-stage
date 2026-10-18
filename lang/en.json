@@ -31,6 +31,34 @@
       "Visible": "Show",
       "ShowSideCast": "Show side portraits during focus"
     },
+    "Attention": {
+      "Title": "Request for GM attention",
+      "Send": "Request GM attention",
+      "Pending": "Awaiting decision",
+      "Accepted": "Accepted",
+      "Declined": "Declined",
+      "Accept": "Accept",
+      "Decline": "Decline",
+      "Cancel": "Cancel",
+      "Ask": "Ask each time",
+      "Review": "Place actor in scene focus",
+      "Scene": "Scene",
+      "OtherScene": "not the current scene",
+      "Destination": "Focus zone",
+      "AlreadyInFocus": "Already in zone",
+      "Free": "Empty",
+      "UnknownActor": "Unknown actor",
+      "ShowFocus": "Show scene focus to everyone",
+      "HiddenWarning": "Scene focus is hidden. Explicitly enable it before placing the actor.",
+      "MustShowFocus": "Enable scene focus visibility first.",
+      "ReplaceTitle": "Occupied zone",
+      "ReplaceConfirm": "{actor} is already in {zone}. Replace this actor? If the requester is in another zone, the actors will swap.",
+      "Unavailable": "This request is no longer available or the actor's portrait was removed from the scene.",
+      "AlreadyResolved": "This request has already been handled.",
+      "SceneChanged": "The focus arrangement changed. Open the request again to choose a zone.",
+      "SendFailed": "Could not send the request.",
+      "ActionFailed": "Could not handle the request."
+    },
     "Background": {
       "Title": "Scene background",
       "Source": "Image or video path",
@@ -84,6 +112,18 @@
       "AllowOwnerVariantConfiguration": {
         "Name": "Allow owners to configure portrait variants",
         "Hint": "Actor owners may create, edit, and delete variants available to them. Hidden GM variants and privileged settings are not shown."
+      },
+      "AttentionRequests": {
+        "Name": "Allow players to request GM attention",
+        "Hint": "Shows a hand button on the assigned character's portrait. The request appears in chat for GMs and that player."
+      },
+      "AttentionDefaultZone": {
+        "Name": "Default focus zone for requests",
+        "Hint": "On acceptance, a request goes directly to this zone when available. Otherwise the GM chooses placement."
+      },
+      "AttentionReplaceOccupied": {
+        "Name": "Skip confirmation when replacing an occupied zone",
+        "Hint": "After a GM accepts a request, an occupied zone may be replaced without another confirmation. The request still needs GM approval."
       },
       "DebugLogging": {
         "Name": "Debug logging",
