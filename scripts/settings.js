@@ -338,6 +338,14 @@ export function registerSettings() {
     default: false
   });
 
+  register(SETTING_KEYS.LAST_SEEN_VERSION, {
+    name: "RNPS.Settings.LastSeenVersion.Name",
+    scope: "client",
+    config: false,
+    type: String,
+    default: ""
+  });
+
   register(SETTING_KEYS.STAGE_ENABLED, {
     name: "RNPS.Settings.StageEnabled.Name",
     hint: "RNPS.Settings.StageEnabled.Hint",

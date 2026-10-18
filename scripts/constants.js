@@ -31,6 +31,7 @@ export const SETTING_KEYS = Object.freeze({
   ATTENTION_DEFAULT_ZONE: "attentionDefaultZone",
   ATTENTION_REPLACE_OCCUPIED: "attentionReplaceOccupied",
   DEBUG_LOGGING: "debugLogging",
+  LAST_SEEN_VERSION: "lastSeenVersion",
   EXPERIMENTAL_VOICE_ALLOWED: "experimentalVoiceAllowed",
   EXPERIMENTAL_VOICE_ENABLED: "experimentalVoiceEnabledClient",
   VOICE_THRESHOLD: "voiceThreshold",

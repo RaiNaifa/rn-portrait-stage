@@ -114,6 +114,7 @@
       "DragToSort": "Drag to reorder"
     },
     "Settings": {
+      "LastSeenVersion": { "Name": "Last seen module version" },
       "LayerVisibility": { "Name": "Shared layer visibility" },
       "ClientLayerVisibility": { "Name": "Personal layer visibility" },
       "AllowPlayerPortraitChanges": {

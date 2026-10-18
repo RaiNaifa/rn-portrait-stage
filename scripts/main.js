@@ -51,6 +51,10 @@ Hooks.once("ready", async () => {
   }
 
   refreshFontChoices();
+  if (!game.settings.get(MODULE_ID, SETTING_KEYS.LAST_SEEN_VERSION)) {
+    const version = game.modules.get(MODULE_ID)?.version;
+    if (version) await game.settings.set(MODULE_ID, SETTING_KEYS.LAST_SEEN_VERSION, version);
+  }
   if (game.user?.isGM && (!game.users?.activeGM || game.users.activeGM.id === game.user.id)
     && game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE) === "portrait") {
     await game.settings.set(MODULE_ID, SETTING_KEYS.FOCUS_IMAGE_DEFAULT_SOURCE, "actor");

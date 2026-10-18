@@ -114,6 +114,7 @@
       "DragToSort": "Перетащите для сортировки"
     },
     "Settings": {
+      "LastSeenVersion": { "Name": "Последняя просмотренная версия модуля" },
       "LayerVisibility": { "Name": "Видимость слоёв для всех" },
       "ClientLayerVisibility": { "Name": "Личная видимость слоёв" },
       "AllowPlayerPortraitChanges": {
