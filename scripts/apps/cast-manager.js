@@ -70,6 +70,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleFocusMirror: CastManager.#toggleFocusMirror,
       toggleFocusPersistent: CastManager.#toggleFocusPersistent,
       addBackground: CastManager.#addBackground,
+      findActiveBackground: CastManager.#findActiveBackground,
       addBackgroundGroup: CastManager.#addBackgroundGroup,
       toggleBackgroundGroup: CastManager.#toggleBackgroundGroup,
       removeBackgroundGroup: CastManager.#removeBackgroundGroup,
@@ -191,6 +192,7 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
       backgroundGroups: backgroundLibrary.groups.map(group => ({
         ...group,
         isDefault: group.id === "default",
+        active: backgroundViews.some(item => item.groupId === group.id && item.active),
         collapsed: this.#collapsedBackgroundGroups.has(group.id),
         backgrounds: backgroundViews.filter(item => item.groupId === group.id)
       })),
@@ -812,12 +814,33 @@ export class CastManager extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  static #addBackground() {
+  static #addBackground(event, target) {
+    const groupId = target?.closest("[data-background-group]")?.dataset.backgroundGroup;
     const Picker = foundry.applications.apps.FilePicker?.implementation ?? foundry.applications.apps.FilePicker ?? globalThis.FilePicker;
     new Picker({ type: "imagevideo", callback: async path => {
-      await addBackgroundVariant({ src: path });
+      await addBackgroundVariant({ src: path, groupId });
       this.render();
     } }).browse();
+  }
+
+  static #findActiveBackground() {
+    const activeId = getPresentation(canvas.scene).activeBackgroundId;
+    if (!activeId) return;
+    const card = [...this.element.querySelectorAll(".rnps-background-card")]
+      .find(element => element.dataset.backgroundId === activeId);
+    if (!card) return;
+    this.#backgroundSearch = "";
+    const search = this.element.querySelector("[data-background-search]");
+    if (search) search.value = "";
+    const group = card.closest("[data-background-group]");
+    this.#collapsedBackgroundGroups.delete(group.dataset.backgroundGroup);
+    this.#filterBackgrounds();
+    requestAnimationFrame(() => {
+      const scroller = card.closest(".rnps-background-groups");
+      if (!scroller) return;
+      const top = scroller.scrollTop + card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      scroller.scrollTo({ top, behavior: "smooth" });
+    });
   }
 
   static async #addBackgroundGroup() {

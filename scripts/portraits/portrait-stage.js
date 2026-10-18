@@ -894,7 +894,6 @@ export class PortraitStage {
     frame.dataset.src = background.src;
     frame.dataset.fit = background.fit;
     frame.style.setProperty("--rnps-bg-fit", background.fit === "contain-blur" ? "contain" : background.fit);
-    frame.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
     frame.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
     frame.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
     const media = createPortraitMedia(background.src);
@@ -913,7 +912,6 @@ export class PortraitStage {
     if (layer.dataset.key === key) {
       const current = this.#backgroundPendingFrame ?? this.#backgroundFrame;
       if (current) {
-        current.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
         current.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
         current.style.setProperty("--rnps-bg-blur", `${background.blur}px`);
       }

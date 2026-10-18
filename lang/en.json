@@ -73,6 +73,8 @@
       "Empty": "No backgrounds added yet",
       "Name": "Name",
       "Search": "Search by name",
+      "FindActive": "Find active background",
+      "AddToGroup": "Add background to this group",
       "NoResults": "No matching backgrounds",
       "DefaultGroup": "Ungrouped",
       "NewGroup": "New group",
