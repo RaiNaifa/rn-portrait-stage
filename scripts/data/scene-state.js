@@ -47,7 +47,7 @@ export function normalizeSceneState(source) {
   const bg = state.background ?? {};
   normalized.background = {
     src: typeof bg.src === "string" ? bg.src.trim() : "",
-    fit: bg.fit === "contain" ? "contain" : "cover",
+    fit: ["contain", "contain-blur"].includes(bg.fit) ? bg.fit : "cover",
     positionX: clamp(bg.positionX, 0, 100, 50),
     positionY: clamp(bg.positionY, 0, 100, 50),
     dim: clamp(bg.dim, 0, 100, 0),
@@ -60,7 +60,7 @@ export function normalizeSceneState(source) {
       id: item.id,
       name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : item.src.split(/[\\/]/).pop(),
       src: item.src.trim(),
-      fit: item.fit === "contain" ? "contain" : "cover",
+      fit: ["contain", "contain-blur"].includes(item.fit) ? item.fit : "cover",
       positionX: clamp(item.positionX, 0, 100, 50),
       positionY: clamp(item.positionY, 0, 100, 50),
       dim: clamp(item.dim, 0, 100, 0),

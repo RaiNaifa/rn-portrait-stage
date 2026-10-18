@@ -37,6 +37,8 @@ export const SETTING_KEYS = Object.freeze({
   VOICE_ATTACK: "voiceAttack",
   VOICE_RELEASE: "voiceRelease",
   PORTRAIT_SCALE: "portraitScale",
+  FOCUS_SCALE: "focusScale",
+  BACKGROUND_DEFAULT_FIT: "backgroundDefaultFit",
   INITIAL_ACTOR_VARIANT: "initialActorVariant",
   LABEL_FONT_FAMILY: "labelFontFamily",
   LABEL_FONT_SIZE: "labelFontSize",

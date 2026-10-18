@@ -95,6 +95,9 @@
       "RemoveConfirmTitle": "Delete background variant?",
       "RemoveConfirmText": "The background variant will be removed from the shared library and will no longer appear in scenes.",
       "Fit": "Fit",
+      "Cover": "Cover",
+      "Contain": "Contain",
+      "ContainBlur": "Contain and blur",
       "Dim": "Dimming",
       "Blur": "Blur",
       "OverUiLater": "Over the interface (later)"
@@ -152,6 +155,14 @@
       "PortraitScale": {
         "Name": "Personal portrait scale",
         "Hint": "Scales the GM-defined portrait sizes on this client."
+      },
+      "FocusScale": {
+        "Name": "Personal focus scale",
+        "Hint": "Adjusts the width of the focus portrait group on this client."
+      },
+      "BackgroundDefaultFit": {
+        "Name": "Default background fit",
+        "Hint": "Fit mode assigned to newly added backgrounds. Existing backgrounds keep their own setting."
       },
       "InitialActorVariant": {
         "Name": "Initial actor portrait variant",
@@ -220,7 +231,7 @@
       },
       "FocusGap": {
         "Name": "Focus portrait spacing",
-        "Hint": "Gap between focus slots in pixels, shared with all players."
+        "Hint": "Gap between focus slots in pixels, shared with all players. Negative values overlap portraits."
       },
       "PcOffsetX": {
         "Name": "Character group horizontal offset",

@@ -9,7 +9,7 @@
     <label class="rnps-background-settings-field">{{localize "RNPS.Background.Source"}}<span class="rnps-background-source"><input type="text" data-background-field="src" value="{{background.src}}"><button type="button" data-background-browse data-tooltip="{{localize 'RNPS.Background.Browse'}}" aria-label="{{localize 'RNPS.Background.Browse'}}"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></button></span></label>
     <fieldset>
       <legend>{{localize "RNPS.Background.Placement"}}</legend>
-      <div class="rnps-background-settings-fit"><span>{{localize "RNPS.Background.Fit"}}</span><button type="button" data-action="cover" class="{{#if fitCover}}active{{/if}}">Cover</button><button type="button" data-action="contain" class="{{#unless fitCover}}active{{/unless}}">Contain</button></div>
+      <div class="rnps-background-settings-fit"><span>{{localize "RNPS.Background.Fit"}}</span><button type="button" data-action="cover" class="{{#if fitCover}}active{{/if}}">Cover</button><button type="button" data-action="contain" class="{{#if fitContain}}active{{/if}}">Contain</button><button type="button" data-action="containBlur" class="{{#if fitContainBlur}}active{{/if}}">Contain and blur</button></div>
       <div class="rnps-background-settings-pair"><label>X <input type="number" min="0" max="100" data-background-field="positionX" value="{{background.positionX}}"></label><label>Y <input type="number" min="0" max="100" data-background-field="positionY" value="{{background.positionY}}"></label></div>
     </fieldset>
     <fieldset>

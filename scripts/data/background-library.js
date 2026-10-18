@@ -3,6 +3,7 @@ import { getSceneState, setSceneState } from "./scene-state.js";
 import { getPersistentState, setPersistentState } from "./persistent-state.js";
 
 const DEFAULT_GROUP = "default";
+const normalizeFit = (fit, fallback = "cover") => ["cover", "contain", "contain-blur"].includes(fit) ? fit : fallback;
 
 export function getBackgroundLibrary() {
   const source = game.settings.get(MODULE_ID, SETTING_KEYS.BACKGROUND_LIBRARY);
@@ -18,7 +19,7 @@ export function getBackgroundLibrary() {
       name: String(item.name || item.src.split(/[\\/]/).pop()),
       src: item.src.trim(),
       groupId: groups.some(group => group.id === item.groupId) ? item.groupId : DEFAULT_GROUP,
-      fit: item.fit === "contain" ? "contain" : "cover",
+      fit: normalizeFit(item.fit),
       positionX: clamp(item.positionX, 0, 100, 50),
       positionY: clamp(item.positionY, 0, 100, 50),
       dim: clamp(item.dim, 0, 100, 0),
@@ -45,7 +46,7 @@ export async function addBackgroundVariant({ src, name, ...settings }) {
     name: String(name || src.split(/[\\/]/).pop()),
     src: src.trim(),
     groupId: library.groups.some(group => group.id === settings.groupId) ? settings.groupId : DEFAULT_GROUP,
-    fit: settings.fit === "contain" ? "contain" : "cover",
+    fit: normalizeFit(settings.fit, normalizeFit(game.settings.get(MODULE_ID, SETTING_KEYS.BACKGROUND_DEFAULT_FIT), "contain-blur")),
     positionX: clamp(settings.positionX, 0, 100, 50),
     positionY: clamp(settings.positionY, 0, 100, 50),
     dim: clamp(settings.dim, 0, 100, 0),

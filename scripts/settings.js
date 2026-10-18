@@ -149,6 +149,16 @@ export function registerSettings() {
     }
   });
 
+  register(SETTING_KEYS.FOCUS_SCALE, {
+    name: "RNPS.Settings.FocusScale.Name",
+    hint: "RNPS.Settings.FocusScale.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 100,
+    range: { min: 50, max: 150, step: 5 }
+  });
+
   register(SETTING_KEYS.INITIAL_ACTOR_VARIANT, {
     name: "RNPS.Settings.InitialActorVariant.Name",
     hint: "RNPS.Settings.InitialActorVariant.Hint",
@@ -371,6 +381,20 @@ export function registerSettings() {
     default: { groups: [{ id: "default", name: "Default" }], backgrounds: [] }
   });
 
+  register(SETTING_KEYS.BACKGROUND_DEFAULT_FIT, {
+    name: "RNPS.Settings.BackgroundDefaultFit.Name",
+    hint: "RNPS.Settings.BackgroundDefaultFit.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "contain-blur": "RNPS.Background.ContainBlur",
+      cover: "RNPS.Background.Cover",
+      contain: "RNPS.Background.Contain"
+    },
+    default: "contain-blur"
+  });
+
   register(SETTING_KEYS.PORTRAIT_GAP, {
     name: "RNPS.Settings.PortraitGap.Name",
     hint: "RNPS.Settings.PortraitGap.Hint",
@@ -392,7 +416,7 @@ export function registerSettings() {
     config: true,
     type: Number,
     default: 8,
-    range: { min: 0, max: 64, step: 1 }
+    range: { min: -128, max: 64, step: 1 }
   });
 
   for (const [key, labelKey, defaultValue] of [

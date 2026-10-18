@@ -16,7 +16,8 @@ export class BackgroundSettings extends HandlebarsApplicationMixin(ApplicationV2
     },
     actions: {
       cover: BackgroundSettings.#cover,
-      contain: BackgroundSettings.#contain
+      contain: BackgroundSettings.#contain,
+      containBlur: BackgroundSettings.#containBlur
     }
   };
 
@@ -54,7 +55,9 @@ export class BackgroundSettings extends HandlebarsApplicationMixin(ApplicationV2
       missing: !item,
       background: item,
       isVideo: /\.(?:webm|mp4|m4v|ogv|ogg)(?:[?#]|$)/i.test(item?.src ?? ""),
-      fitCover: item?.fit === "cover"
+      fitCover: item?.fit === "cover",
+      fitContain: item?.fit === "contain",
+      fitContainBlur: item?.fit === "contain-blur"
     };
   }
 
@@ -82,4 +85,5 @@ export class BackgroundSettings extends HandlebarsApplicationMixin(ApplicationV2
 
   static async #cover() { await this.#update({ fit: "cover" }); }
   static async #contain() { await this.#update({ fit: "contain" }); }
+  static async #containBlur() { await this.#update({ fit: "contain-blur" }); }
 }

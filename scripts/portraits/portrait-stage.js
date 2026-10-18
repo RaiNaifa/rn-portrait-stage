@@ -23,6 +23,7 @@ export class PortraitStage {
   #notificationObserver = null;
   #resizeObserver = null;
   #resizeHandler = () => {
+    this.#updateFocusWidth();
     this.#updateRightColumnLayout();
     void this.#refreshPinnedTags();
   };
@@ -871,20 +872,38 @@ export class PortraitStage {
     }
   }
 
+  #updateFocusWidth() {
+    if (!this.#focusLayer) return;
+    const viewport = window.innerWidth;
+    const base = Math.min(1320, viewport - 2 * Math.min(300, viewport * 0.3));
+    const setting = Number(game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_SCALE));
+    const scale = Number.isFinite(setting) ? Math.max(50, Math.min(150, setting)) / 100 : 1;
+    this.#focusLayer.style.width = `${Math.max(0, Math.min(base * scale, viewport - 32))}px`;
+  }
+
   async #renderPresentation(version) {
     this.#createPresentationLayers();
     const focusGap = Number(game.settings.get(MODULE_ID, SETTING_KEYS.FOCUS_GAP));
-    this.#focusLayer.style.setProperty("--rnps-focus-gap", `${Number.isFinite(focusGap) ? Math.max(0, Math.min(64, focusGap)) : 8}px`);
+    this.#focusLayer.style.setProperty("--rnps-focus-gap", `${Number.isFinite(focusGap) ? Math.max(-128, Math.min(64, focusGap)) : 8}px`);
+    this.#updateFocusWidth();
     const { focus, focusOrder, background } = getPresentation(canvas.scene);
     this.#applyFocusOrder(this.#focusOrderDrafts.get(canvas.scene?.id) ?? focusOrder);
     const bg = this.#backgroundLayer;
-    if (bg.dataset.src !== background.src) {
+    if (bg.dataset.src !== background.src || bg.dataset.fit !== background.fit) {
       clearTimeout(this.#backgroundClearTimer);
       this.#backgroundClearTimer = null;
       bg.dataset.src = background.src;
-      if (background.src) bg.replaceChildren(createPortraitMedia(background.src));
+      bg.dataset.fit = background.fit;
+      if (background.src) {
+        const media = createPortraitMedia(background.src);
+        if (background.fit === "contain-blur") {
+          const fill = createPortraitMedia(background.src);
+          fill.classList.add("rnps-background-fill");
+          bg.replaceChildren(fill, media);
+        } else bg.replaceChildren(media);
+      }
       else if (bg.childElementCount) {
-        bg.querySelector("video")?.pause();
+        bg.querySelectorAll("video").forEach(video => video.pause());
         const duration = Math.max(0, ...getComputedStyle(bg).transitionDuration.split(",").map(value => {
           const time = Number.parseFloat(value);
           return Number.isFinite(time) ? time * (value.trim().endsWith("ms") ? 1 : 1000) : 0;
@@ -895,12 +914,14 @@ export class PortraitStage {
         }, duration + 50);
       }
     }
-    const backgroundVideo = bg.querySelector("video");
+    const backgroundVideos = bg.querySelectorAll("video");
     const backgroundVisible = !navigationButton.isPlayerHidden() && isLayerVisible("background");
-    if (background.src && backgroundVisible && backgroundVideo?.paused) backgroundVideo.play().catch(() => {});
-    if (!background.src || !backgroundVisible) backgroundVideo?.pause();
+    for (const video of backgroundVideos) {
+      if (background.src && backgroundVisible && video.paused) video.play().catch(() => {});
+      if (!background.src || !backgroundVisible) video.pause();
+    }
     bg.classList.toggle("rnps-background-active", Boolean(background.src));
-    bg.style.setProperty("--rnps-bg-fit", background.fit);
+    bg.style.setProperty("--rnps-bg-fit", background.fit === "contain-blur" ? "contain" : background.fit);
     bg.style.setProperty("--rnps-bg-position", `${background.positionX}% ${background.positionY}%`);
     bg.style.setProperty("--rnps-bg-dim", String(background.dim / 100));
     bg.style.setProperty("--rnps-bg-blur", `${background.blur}px`);

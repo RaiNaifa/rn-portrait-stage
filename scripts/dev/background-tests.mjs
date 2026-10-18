@@ -10,6 +10,7 @@ globalThis.Hooks = { callAll() {} };
 
 const settings = new Map([
   [SETTING_KEYS.BACKGROUND_LIBRARY, { groups: [{ id: "default", name: "Default" }], backgrounds: [] }],
+  [SETTING_KEYS.BACKGROUND_DEFAULT_FIT, "contain-blur"],
   [SETTING_KEYS.PREVIEW_SESSION, {}],
   [SETTING_KEYS.RESERVE_ACTORS, []]
 ]);
@@ -45,7 +46,11 @@ const { getSceneState } = await import("../data/scene-state.js");
 const { getPersistentState } = await import("../data/persistent-state.js");
 
 const forest = await addBackgroundVariant({ src: "forest.webp", name: "Forest" });
+assert.equal(forest.fit, "contain-blur");
+settings.set(SETTING_KEYS.BACKGROUND_DEFAULT_FIT, "cover");
 const castle = await addBackgroundVariant({ src: "castle.webp", name: "Castle" });
+assert.equal(castle.fit, "cover");
+assert.equal(getBackgroundLibrary().backgrounds.find(item => item.id === forest.id).fit, "contain-blur");
 const group = await addBackgroundGroup("Places");
 const laterGroup = await addBackgroundGroup("Later");
 await moveBackgroundGroup(laterGroup.id, group.id);
