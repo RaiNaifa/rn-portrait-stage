@@ -57,6 +57,7 @@ export class PortraitStage {
   };
   #backgroundLayer = null;
   #backgroundClearTimer = null;
+  #portraitExitLayer = null;
   #focusMenu = null;
   #closeFocusMenu = event => {
     if (this.#focusMenu && !this.#focusMenu.contains(event.target) && !event.target.closest(".rnps-ui-focus")) {
@@ -432,6 +433,8 @@ export class PortraitStage {
     this.#selectedSceneId = null;
     this.#focusLayer?.remove();
     this.#backgroundLayer?.remove();
+    this.#portraitExitLayer?.remove();
+    this.#portraitExitLayer = null;
     clearTimeout(this.#backgroundClearTimer);
     this.#backgroundClearTimer = null;
     this.#focusLayer = null;
@@ -464,7 +467,8 @@ export class PortraitStage {
     this.#hideHover();
     this.#attachGroups();
     if (!this.#groups.size) return;
-    if (this.#selectedSceneId !== canvas.scene?.id) {
+    const sceneChanged = this.#selectedSceneId !== canvas.scene?.id;
+    if (sceneChanged) {
       this.#selectedSceneId = canvas.scene?.id ?? null;
       this.#selectedPortraitId = null;
     }
@@ -472,6 +476,7 @@ export class PortraitStage {
     const preview = isPreviewActive();
     const playerHidden = navigationButton.isPlayerHidden();
     const sideVisible = !playerHidden && isLayerVisible("side");
+    const sideWasVisible = [...this.#groups.values()].some(group => !group.hidden);
     const focusVisible = !playerHidden && isLayerVisible("focus");
     const backgroundVisible = !playerHidden && isLayerVisible("background");
     document.body.classList.toggle("rnps-scene-background-visible", backgroundVisible && Boolean(getPresentation(canvas?.scene).background.src));
@@ -492,12 +497,14 @@ export class PortraitStage {
     const tokenHighlight = game.settings.get(MODULE_ID, SETTING_KEYS.TOKEN_HIGHLIGHT_ENABLED);
 
     if (sideVisible) {
+      const previousPortraits = sceneChanged ? new Map() : this.#capturePortraitLayout();
       for (const groupId of Object.values(GROUP_IDS)) {
         const views = await Promise.all(
           state.groups[groupId].entries.map(entry => preparePortraitView(entry))
         );
         if (version !== this.#renderVersion) return;
-        this.#renderGroup(groupId, views.filter(view => view && (view.visible || game.user.isGM)), tokenHighlight);
+        this.#renderGroup(groupId, views.filter(view => view && (view.visible || game.user.isGM)),
+          tokenHighlight, previousPortraits);
       }
       if (this.#selectedPortraitId && ![...this.#groups.values()].some(group =>
         [...group.querySelectorAll(".rnps-portrait")].some(card => card.dataset.entryId === this.#selectedPortraitId)
@@ -507,6 +514,7 @@ export class PortraitStage {
       this.#syncSelectedPortrait();
       this.#applySettings();
       this.#updateRightColumnLayout();
+      this.#animatePortraitLayout(previousPortraits, sideWasVisible && !sceneChanged);
       await this.#refreshPinnedTags();
     }
     await this.#renderPresentation(version);
@@ -527,7 +535,90 @@ export class PortraitStage {
     }
   }
 
-  #renderGroup(groupId, views, tokenHighlight) {
+  #capturePortraitLayout() {
+    const portraits = new Map();
+    for (const group of this.#groups.values()) {
+      if (group.hidden) continue;
+      for (const card of group.querySelectorAll(":scope > .rnps-portrait")) {
+        const style = getComputedStyle(card);
+        portraits.set(card.dataset.entryId, {
+          card, rect: card.getBoundingClientRect(), groupId: group.dataset.groupId,
+          variables: Object.fromEntries(["--rnps-label-font", "--rnps-label-font-size", "--rnps-size"]
+            .map(variable => [variable, style.getPropertyValue(variable)]))
+        });
+      }
+    }
+    return portraits;
+  }
+
+  #animatePortraitLayout(previous, enabled) {
+    if (!enabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const current = new Map();
+    for (const group of this.#groups.values()) {
+      for (const card of group.querySelectorAll(":scope > .rnps-portrait")) {
+        current.set(card.dataset.entryId, card);
+      }
+    }
+    const afterRects = new Map([...current].map(([id, card]) => [id, card.getBoundingClientRect()]));
+    const previousIds = [...previous.keys()];
+    const currentIds = [...current.keys()];
+    const structureChanged = previousIds.length !== currentIds.length
+      || currentIds.some((id, index) => id !== previousIds[index]
+        || previous.get(id)?.groupId !== current.get(id)?.parentElement?.dataset.groupId);
+    const sizeChanged = currentIds.some(id => {
+      const before = previous.get(id)?.rect;
+      const after = afterRects.get(id);
+      return before && after && (Math.abs(before.width - after.width) > 0.5
+        || Math.abs(before.height - after.height) > 0.5);
+    });
+    if (!structureChanged && !sizeChanged) return;
+    for (const [entryId, card] of current) {
+      const before = previous.get(entryId)?.rect;
+      const after = afterRects.get(entryId);
+      if (!before) {
+        card.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
+          { duration: 250, easing: "ease-out" });
+        continue;
+      }
+      if (!before.width || !before.height || !after.width || !after.height) continue;
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      const sx = after.width ? before.width / after.width : 1;
+      const sy = after.height ? before.height / after.height : 1;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
+      card.animate([
+        { transformOrigin: "top left", transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+        { transformOrigin: "top left", transform: "none" }
+      ], { duration: 350, easing: "ease-in-out" });
+    }
+    for (const [entryId, { card, rect, variables }] of previous) {
+      if (current.has(entryId)) continue;
+      if (!this.#portraitExitLayer?.isConnected) {
+        this.#portraitExitLayer = document.createElement("div");
+        this.#portraitExitLayer.className = "rnps-portrait-exit-layer";
+        document.body.append(this.#portraitExitLayer);
+      }
+      for (const [variable, value] of Object.entries(variables)) card.style.setProperty(variable, value);
+      card.getAnimations().forEach(animation => animation.cancel());
+      card.classList.add("rnps-portrait-exiting");
+      card.setAttribute("aria-hidden", "true");
+      card.tabIndex = -1;
+      card.style.transition = "none";
+      Object.assign(card.style, {
+        left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, height: `${rect.height}px`
+      });
+      this.#portraitExitLayer.append(card);
+      const animation = card.animate([{ opacity: 1 }, { opacity: 0 }],
+        { duration: 250, easing: "ease-out" });
+      void animation.finished.catch(() => {}).then(() => {
+        card.querySelector("video")?.pause();
+        card.remove();
+      });
+    }
+  }
+
+  #renderGroup(groupId, views, tokenHighlight, previousPortraits) {
     const group = this.#groups.get(groupId);
     group.replaceChildren();
 
@@ -568,6 +659,18 @@ export class PortraitStage {
       }, { once: true });
       imageLayer.append(image);
       card.append(imageLayer);
+      const previousImageLayer = previousPortraits.get(view.id)?.card
+        .querySelector(":scope > .rnps-portrait-image");
+      const previousMedia = previousImageLayer?.querySelector("img, video");
+      if (previousMedia?.src === image.src && previousMedia.tagName === image.tagName) {
+        previousImageLayer.className = imageLayer.className;
+        previousImageLayer.style.cssText = imageLayer.style.cssText;
+        if (previousMedia instanceof HTMLVideoElement) {
+          previousMedia.playbackRate = mediaSettings.playbackRate ?? 1;
+          if (previousMedia.paused) previousMedia.play().catch(() => {});
+        }
+        card.replaceChild(previousImageLayer, imageLayer);
+      }
 
       if (view.label) {
         const name = document.createElement("span");

@@ -336,6 +336,18 @@
   transition: transform 120ms ease;
 }
 
+.rnps-portrait-exit-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+.rnps-portrait-exit-layer > .rnps-portrait-exiting {
+  position: fixed;
+  margin: 0;
+  pointer-events: none;
+}
+
 .rnps-portrait--hidden > .rnps-portrait-image,
 .rnps-portrait--hidden > .rnps-portrait-name {
   opacity: 0.4;
